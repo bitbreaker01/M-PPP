@@ -1,8 +1,8 @@
 # PENDIENTES — documento temporal
 
-Se limpia a medida que se decide. **Cuando quede vacío, se elimina.** Nada de lo que hay acá frena la construcción.
+Se limpia a medida que se decide. **Cuando quede vacío, se elimina.**
 
-Última actualización: 2026-09-20. El diseño detallado (`00` a `04`) está **revisado completo por el aprobador** y no tiene decisiones abiertas.
+Última actualización: 2026-09-20. Diseño `00` a `07` revisado por el aprobador; queda abierta una sola decisión de diseño: los idiomas (D-3).
 
 ## 0. Diseño que falta (bloquea construir esas partes, no el modelo de datos)
 
@@ -23,7 +23,7 @@ Cuando se reanude, lo primero es corregir dos observaciones del revisor en `herr
 |---|---|---|
 | D-1 | `05-app-model-driven.md` | **Cerrado el 2026-09-20.** Decisiones DA-01 a DA-09 aprobadas y mockup revisado por el aprobador: pidió la navegación entre Cliente, Plan y correo Autorizado (ya está en el mockup y en `05`); "aparte de eso, lo miro todo bien". |
 | D-2 | `07-flujos.md` | **Cerrado el 2026-09-20.** Flujos aprobados; el aprobador confirmó que el plugin liviano resuelva también `REMITENTE_RECONOCIDO`. |
-| D-3 | Paso al Dev de BAC | **¿Cuál es el idioma base del Dev de BAC?** Acá es 1033 y todas las etiquetas van bajo 1033. Si allá el idioma base es español (3082), hay que comprobar cómo quedan las etiquetas al importar la solución antes de construir cien componentes. |
+| D-3 | **Idiomas** (BLOQUEA construir) | El aprobador exige (2026-09-20) que todo nazca **listo para varios idiomas**: ya vivió una solución hecha en base inglés que en un entorno base español no mostraba ninguna página. Verificado en Learn: las etiquetas de metadatos caen al idioma base del origen; los títulos del sitemap y de los comandos van embebidos y necesitan uno por idioma; las etiquetas de idiomas no habilitados en el destino se descartan. **Falta que decida**: (1) habilitar español (3082) en Dev; (2) qué texto va bajo 1033; (3) un entorno con base español para probar la importación temprano. Después se cambia `01` §0, el formato del playbook (`idiomas` en vez de `lcid`) y la herramienta del choice. |
 
 ## A. Para confirmar con negocio, sin apuro
 
