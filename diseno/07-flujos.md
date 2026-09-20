@@ -114,6 +114,38 @@ Los tres umbrales salen de la tabla de Parámetros (`vigilancia.*`), leídos al 
 3. Las comunicaciones se responden **solo al remitente**.
 4. Las respuestas automáticas **se filtran**; el cómo está propuesto en §9 y espera aprobación.
 
-## 9. Propuesta pendiente de aprobación: respuestas automáticas y rebotes
+## 9. Propuesta pendiente de aprobación: solo se procesan correos nuevos
 
-Ver la conversación del 2026-09-20. Cuando se apruebe, entra a este documento como decisión DF-08 y al catálogo de reglas de `02`.
+Regla del aprobador (2026-09-20), que reemplaza a la propuesta anterior de tres capas de detección: **solo se procesa un correo nuevo; una respuesta no se procesa nunca. Un reenvío sí se acepta.** Se decide **en el flujo de ingesta, antes de llamar al plugin**.
+
+Por qué alcanza: una respuesta automática de "fuera de oficina" es, por construcción, una respuesta a algo que le mandamos; al no procesar respuestas, no se le contesta y el bucle no puede empezar. Cubre además lo que las cabeceras no cubrían: el cliente que contesta "gracias" a nuestro acuse, o que discute una fila en el mismo hilo. Un rebote llega de `postmaster` o `mailer-daemon`, que no es un remitente autorizado: ya caía en No reconocida, sin respuesta.
+
+### Cómo se distingue
+
+| Caso | Criterio | Qué se hace |
+|---|---|---|
+| **Nuevo** | El correo **no** trae las cabeceras `In-Reply-To` ni `References` | Se procesa |
+| **Reenvío** | Trae esas cabeceras **y** el asunto empieza con un prefijo de reenvío (`FW:`, `FWD:`, `RV:`, `REENV:`; lista en el parámetro `correo.prefijos.reenvio`) | Se procesa |
+| **Respuesta** | Trae esas cabeceras y el asunto no es de reenvío | **No se procesa** |
+
+- **Reenvíos y respuestas no se distinguen por cabeceras**: en Outlook y en Gmail los dos llevan `In-Reply-To` y `References`, para mantenerse en la conversación. Lo único que los separa es el prefijo del asunto, que pone el programa de correo. Es una convención y no una garantía, por eso la lista de prefijos es un parámetro. **Esto es conocimiento general, no está verificado con correos reales**: al construir el flujo se prueba con un correo nuevo, una respuesta y un reenvío, desde Outlook y desde Gmail, contra el buzón de Dev, y se ajusta el criterio si hace falta.
+- **Las cabeceras no vienen en la acción estándar *Get email*.** Se leen con la acción *Send an HTTP request* del mismo conector de Outlook, contra Graph: `GET /users/{buzón}/messages/{id}?$select=internetMessageHeaders`. Graph las expone y funciona sobre buzones compartidos (verificado en Learn); **falta comprobar al construir** que esa acción del conector admite esa ruta sobre un buzón compartido. No agrega ningún conector nuevo, así que la política DLP no cambia. Plan B si no se pudiera: el plugin las lee del `.eml` que ya guardamos, y la decisión se toma ahí.
+
+### Qué pasa con el que no se procesa
+
+Se registra igual que todo lo que llega (RF-10): se crea la Solicitud, se guarda el `.eml`, se mueve el correo. **No se llama a la validación y no se le responde al remitente.** Queda en la misma bandeja que hoy tienen los ejecutivos para los no reconocidos, con su motivo a la vista, y con los mismos botones: **Atendido** o **Descartar**.
+
+| Pieza | Propuesta |
+|---|---|
+| Estado | Uno nuevo, **No es correo nuevo**, hermano de **No reconocida**. Dos estados y no uno, para poder contar cuántos de cada tipo llegan; la bandeja, los botones y el vencimiento son los mismos. |
+| Bandeja | La entrada "No reconocidos" pasa a llamarse **Por clasificar** y muestra los dos estados, con una columna Motivo. |
+| Vencimiento | Parámetro `clasificacion.dias.vencimiento`, inicial **30**. El flujo de vigilancia, una vez por día, pasa a un estado terminal nuevo, **Vencida**, todo lo que lleve más de esos días en la bandeja sin que nadie lo atienda ni lo descarte. **Vencida** y no Descartada, para que la trazabilidad distinga "alguien decidió ignorarlo" de "nadie lo miró". Queda en la Bitácora. |
+| Aviso | Al llegar, el mismo aviso dentro de la app que hoy reciben los ejecutivos por un no reconocido. |
+
+### Lo que esta regla le cuesta al cliente
+
+Un cliente que corrige las filas rechazadas y **contesta nuestro acuse** adjuntando la plantilla arreglada no va a ser procesado: es una respuesta. Los textos del acuse y del rechazo (DD-08, DD-09) tienen que decirlo sin ambigüedad: *"Para reenviar la plantilla corregida, escriba un correo nuevo a esta dirección. No responda a este mensaje: las respuestas no se procesan."*
+
+### Lo único que mantendría de la propuesta anterior
+
+Un **cortacircuito por remitente**: si ya se le envió una comunicación a una dirección en los últimos N minutos y llega de ella otro correo nuevo y sin plantilla, no se le responde y queda para revisar (parámetro `comunicacion.minutos.entre.respuestas`). La regla de "solo nuevos" corta el bucle con cualquier autorrespondedor que conteste en el hilo, que son casi todos. No lo corta con un sistema que responde con un correo **nuevo** cada vez (algunas mesas de ayuda lo hacen: "recibimos su mensaje, caso n.º 123"). Es raro, pero una tormenta de correos con un cliente del banco es de lo peor que le puede pasar a esta solución, y el cortacircuito es la única defensa que no depende de cómo se porte el otro lado.
