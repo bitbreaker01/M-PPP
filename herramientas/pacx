@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# pacx — ejecuta `pac` aislado del llavero de GNOME.
+#
+# En una sesión remota sin escritorio, `pac` se cuelga para siempre, sin error, en todo
+# verbo autenticado: MSAL intenta guardar o leer el secreto del perfil en el llavero por
+# D-Bus, y el llavero intenta abrir un diálogo que nadie ve. Quitar la variable
+# DBUS_SESSION_BUS_ADDRESS NO alcanza: D-Bus igual encuentra el bus por XDG_RUNTIME_DIR.
+# Hay que anular las dos cosas. Sin llavero, `pac` usa su caché de archivo y responde.
+#
+# Uso:  herramientas/pacx env who
+#       herramientas/pacx solution list
+# Siempre con tope de tiempo: un cuelgue tiene que ser un error, no una espera.
+set -euo pipefail
+
+aislado="${TMPDIR:-/tmp}/pacx-$(id -u)"
+mkdir -p "$aislado"
+chmod 700 "$aislado"
+
+exec env \
+  DBUS_SESSION_BUS_ADDRESS="unix:path=/nonexistent/bus" \
+  XDG_RUNTIME_DIR="$aislado" \
+  timeout "${PACX_TIMEOUT:-180}" pac "$@"

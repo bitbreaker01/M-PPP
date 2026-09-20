@@ -1,0 +1,30 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+
+# Power Platform
+*.zip
+!solution/**/*.zip
+.pac/
+
+# Datos reales de clientes: NUNCA al repositorio
+datos/reales/
+*.eml
+
+# Entorno local
+.env
+*.local.json
+
+# Secretos: NUNCA al repositorio
+pp_secrets.env
+*.env
+*secret*
+
+# Contexto de trabajo local: los originales viven en el repositorio de conocimiento
+panoramas/
+/definicion.md
+/factibilidad-tecnica.md
+/ficha-solicitud.md
