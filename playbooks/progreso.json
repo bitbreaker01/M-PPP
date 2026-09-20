@@ -1,0 +1,661 @@
+{
+ "proyecto": "MPPP · fase 1",
+ "criterio_hecho": "ciclo cerrado: construido, revisado, verificado en Dev, muestra exportada y reporte aprobado por el aprobador (compuerta B)",
+ "en_curso": "",
+ "grupos": {
+  "P-01": "Solución",
+  "P-02": "Choices globales",
+  "P-03": "Tablas con sus columnas",
+  "P-04": "Relaciones",
+  "P-05": "Claves alternativas",
+  "P-06/07": "Seguridad: perfil de columnas y roles",
+  "P-08": "Código de plugins (C#)",
+  "P-09": "Custom API y steps",
+  "P-10": "Datos semilla",
+  "P-11": "Variables de entorno y referencias de conexión",
+  "P-12": "Flujos",
+  "P-13/15": "App model-driven"
+ },
+ "fuera_de_alcance": {
+  "2.15": "fase 3",
+  "3.11": "fase 3",
+  "6.7": "fase 2",
+  "6.8": "fase 3",
+  "7.13": "fase 2",
+  "8.3": "fase 2",
+  "8.4": "fase 2",
+  "10.5": "fase 3",
+  "12.9": "versión 1.1",
+  "13.1": "tarea de administración, no pasa por el ciclo",
+  "13.2": "tarea de administración, no pasa por el ciclo",
+  "13.3": "tarea de administración, no pasa por el ciclo",
+  "13.4": "tarea de administración, no pasa por el ciclo",
+  "13.5": "tarea de administración, no pasa por el ciclo",
+  "13.6": "tarea de administración, no pasa por el ciclo"
+ },
+ "filas": [
+  {
+   "id": "1.1",
+   "grupo": "P-01",
+   "nombre": "sanic_mppp_sol_mantenimientoppp",
+   "total": 1,
+   "hechos": 1
+  },
+  {
+   "id": "2.1",
+   "grupo": "P-02",
+   "nombre": "sanic_mppp_ch_moneda",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "2.2",
+   "grupo": "P-02",
+   "nombre": "sanic_mppp_ch_gestion",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "2.3",
+   "grupo": "P-02",
+   "nombre": "sanic_mppp_ch_clasificacion",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "2.4",
+   "grupo": "P-02",
+   "nombre": "sanic_mppp_ch_tipoformatoplan",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "2.5",
+   "grupo": "P-02",
+   "nombre": "sanic_mppp_ch_tipoidentificacion",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "2.6",
+   "grupo": "P-02",
+   "nombre": "sanic_mppp_ch_banco",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "2.7",
+   "grupo": "P-02",
+   "nombre": "sanic_mppp_ch_estadosolicitud",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "2.8",
+   "grupo": "P-02",
+   "nombre": "sanic_mppp_ch_estadofila",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "2.9",
+   "grupo": "P-02",
+   "nombre": "sanic_mppp_ch_efectoregla",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "2.10",
+   "grupo": "P-02",
+   "nombre": "sanic_mppp_ch_nivelregla",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "2.11",
+   "grupo": "P-02",
+   "nombre": "sanic_mppp_ch_resultadoregla",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "2.12",
+   "grupo": "P-02",
+   "nombre": "sanic_mppp_ch_origenevento",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "2.13",
+   "grupo": "P-02",
+   "nombre": "sanic_mppp_ch_eventobitacora",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "2.14",
+   "grupo": "P-02",
+   "nombre": "sanic_mppp_ch_tipoparametro",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "3.1",
+   "grupo": "P-03",
+   "nombre": "sanic_mppp_tbl_cliente",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "3.2",
+   "grupo": "P-03",
+   "nombre": "sanic_mppp_tbl_plan",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "3.3",
+   "grupo": "P-03",
+   "nombre": "sanic_mppp_tbl_autorizado",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "3.4",
+   "grupo": "P-03",
+   "nombre": "sanic_mppp_tbl_autorizacionplan",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "3.5",
+   "grupo": "P-03",
+   "nombre": "sanic_mppp_tbl_parametro",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "3.6",
+   "grupo": "P-03",
+   "nombre": "sanic_mppp_tbl_regla",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "3.7",
+   "grupo": "P-03",
+   "nombre": "sanic_mppp_tbl_solicitud",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "3.8",
+   "grupo": "P-03",
+   "nombre": "sanic_mppp_tbl_fila",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "3.9",
+   "grupo": "P-03",
+   "nombre": "sanic_mppp_tbl_resultadoregla",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "3.10",
+   "grupo": "P-03",
+   "nombre": "sanic_mppp_tbl_bitacora",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "4.1",
+   "grupo": "P-04",
+   "nombre": "cliente → plan",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "4.2",
+   "grupo": "P-04",
+   "nombre": "cliente → autorizado",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "4.3",
+   "grupo": "P-04",
+   "nombre": "autorizado → autorizacionplan",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "4.4",
+   "grupo": "P-04",
+   "nombre": "plan → autorizacionplan",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "4.5",
+   "grupo": "P-04",
+   "nombre": "solicitud → fila",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "4.6",
+   "grupo": "P-04",
+   "nombre": "solicitud → resultadoregla",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "4.7",
+   "grupo": "P-04",
+   "nombre": "solicitud → bitacora",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "4.8",
+   "grupo": "P-04",
+   "nombre": "plan → fila",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "4.9",
+   "grupo": "P-04",
+   "nombre": "regla → resultadoregla",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "4.10",
+   "grupo": "P-04",
+   "nombre": "systemuser → fila",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "4.11",
+   "grupo": "P-04",
+   "nombre": "systemuser → fila",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "5.1",
+   "grupo": "P-05",
+   "nombre": "sanic_mppp_key_cliente_cifbac",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "5.2",
+   "grupo": "P-05",
+   "nombre": "sanic_mppp_key_cliente_cifcom",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "5.3",
+   "grupo": "P-05",
+   "nombre": "sanic_mppp_key_plan_codigo",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "5.4",
+   "grupo": "P-05",
+   "nombre": "sanic_mppp_key_autorizado_cliente_nombre",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "5.5",
+   "grupo": "P-05",
+   "nombre": "sanic_mppp_key_autorizacionplan_autorizado_plan",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "5.6",
+   "grupo": "P-05",
+   "nombre": "sanic_mppp_key_parametro_nombre_version",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "5.7",
+   "grupo": "P-05",
+   "nombre": "sanic_mppp_key_regla_codigo",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "5.8",
+   "grupo": "P-05",
+   "nombre": "sanic_mppp_key_solicitud_messageid",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "5.9",
+   "grupo": "P-05",
+   "nombre": "sanic_mppp_key_fila_solicitud_numerofila",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "5.10",
+   "grupo": "P-05",
+   "nombre": "sanic_mppp_key_resultadoregla_solicitud_reglacodigo",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "6.1",
+   "grupo": "P-06/07",
+   "nombre": "Column security profile: CSP - MPPP - Datos sensibles (fila.sanic_numeroidentificacion, fi",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "6.2",
+   "grupo": "P-06/07",
+   "nombre": "Security role: SR - MPPP - Ejecutivo",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "6.3",
+   "grupo": "P-06/07",
+   "nombre": "Security role: SR - MPPP - Supervisor",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "6.4",
+   "grupo": "P-06/07",
+   "nombre": "Security role: SR - MPPP - Administrador de planes",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "6.5",
+   "grupo": "P-06/07",
+   "nombre": "Security role: SR - MPPP - Administrador técnico",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "6.6",
+   "grupo": "P-06/07",
+   "nombre": "Security role: SR - MPPP - Servicio de ingesta",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "7.1",
+   "grupo": "P-08",
+   "nombre": "Dominio/",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "7.2",
+   "grupo": "P-08",
+   "nombre": "Plantilla/",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "7.3",
+   "grupo": "P-08",
+   "nombre": "Validacion/",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "7.4",
+   "grupo": "P-08",
+   "nombre": "Respuesta/",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "7.5",
+   "grupo": "P-08",
+   "nombre": "Doble de prueba OrganizationServiceEnMemoria",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "7.6",
+   "grupo": "P-08",
+   "nombre": "Datos/",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "7.6b",
+   "grupo": "P-08",
+   "nombre": "Correo/ y Api/ClasificarCorreoApi",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "7.7",
+   "grupo": "P-08",
+   "nombre": "Api/ValidarSolicitudApi",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "7.8",
+   "grupo": "P-08",
+   "nombre": "Steps/ lista blanca de columnas (Fila y Solicitud)",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "7.9",
+   "grupo": "P-08",
+   "nombre": "Steps/ transición de Fila (Pre) y post-transición (Post)",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "7.10",
+   "grupo": "P-08",
+   "nombre": "Steps/ normalizar y validar (Cliente, Plan, Autorizado, Parametro, Regla)",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "7.11",
+   "grupo": "P-08",
+   "nombre": "Steps/ nombre calculado (Plan, AutorizacionPlan) e integridad de AutorizacionPlan",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "7.12",
+   "grupo": "P-08",
+   "nombre": "Steps/ atender no reconocida",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "8.0",
+   "grupo": "P-09",
+   "nombre": "Custom API: sanic_mppp_capi_clasificarcorreo (1 parámetro de entrada, 3 de salida)",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "8.1",
+   "grupo": "P-09",
+   "nombre": "Custom API: sanic_mppp_capi_validarsolicitud (1 parámetro de entrada, 6 de salida)",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "8.2",
+   "grupo": "P-09",
+   "nombre": "Steps: Uno por cada mensaje y tabla de 7.8 a 7.12 (~17), con su etapa, orden, atributos de",
+   "total": 17,
+   "hechos": 0
+  },
+  {
+   "id": "9.1",
+   "grupo": "P-10",
+   "nombre": "Parámetros: correo.prefijos.reenvio, clasificacion.dias.vencimiento, plantilla.estructura,",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "9.2",
+   "grupo": "P-10",
+   "nombre": "Reglas de nivel Correo (2) y de nivel Solicitud (5)",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "9.3",
+   "grupo": "P-10",
+   "nombre": "Reglas de nivel Registro",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "9.4",
+   "grupo": "P-10",
+   "nombre": "Migración única desde SharePoint: clientes, planes, autorizados, autorizaciones (RF-16)",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "10.1",
+   "grupo": "P-11",
+   "nombre": "Environment variable: sanic_mppp_ev_buzoningesta",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "10.2",
+   "grupo": "P-11",
+   "nombre": "Environment variable: sanic_mppp_ev_carpetaprocesados",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "10.3",
+   "grupo": "P-11",
+   "nombre": "Connection reference: sanic_mppp_conr_outlook",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "10.4",
+   "grupo": "P-11",
+   "nombre": "Connection reference: sanic_mppp_conr_dataverse",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "11.1",
+   "grupo": "P-12",
+   "nombre": "Cloud Flow - MPPP - ING - Ingerir y validar correo",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "11.2",
+   "grupo": "P-12",
+   "nombre": "Cloud Flow - MPPP - REC - Recibir correo nuevo",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "11.3",
+   "grupo": "P-12",
+   "nombre": "Cloud Flow - MPPP - ENV - Enviar comunicación al cliente",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "11.4",
+   "grupo": "P-12",
+   "nombre": "Cloud Flow - MPPP - COM - Detectar comunicación pendiente",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "11.5",
+   "grupo": "P-12",
+   "nombre": "Cloud Flow - MPPP - VIG - Vigilar pendientes",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "12.1",
+   "grupo": "P-13/15",
+   "nombre": "Íconos SVG (web resources)",
+   "total": 10,
+   "hechos": 0
+  },
+  {
+   "id": "12.2",
+   "grupo": "P-13/15",
+   "nombre": "Vistas",
+   "total": 19,
+   "hechos": 0
+  },
+  {
+   "id": "12.3",
+   "grupo": "P-13/15",
+   "nombre": "Formularios principales",
+   "total": 9,
+   "hechos": 0
+  },
+  {
+   "id": "12.4",
+   "grupo": "P-13/15",
+   "nombre": "Página custom: diálogo de motivo",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "12.5",
+   "grupo": "P-13/15",
+   "nombre": "Comandos propios",
+   "total": 8,
+   "hechos": 0
+  },
+  {
+   "id": "12.6",
+   "grupo": "P-13/15",
+   "nombre": "Ocultamiento de comandos genéricos",
+   "total": 10,
+   "hechos": 0
+  },
+  {
+   "id": "12.7",
+   "grupo": "P-13/15",
+   "nombre": "Sitemap",
+   "total": 1,
+   "hechos": 0
+  },
+  {
+   "id": "12.8",
+   "grupo": "P-13/15",
+   "nombre": "App sanic_mppp_mda_mantenimientoppp",
+   "total": 1,
+   "hechos": 0
+  }
+ ]
+}
