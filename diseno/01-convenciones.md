@@ -13,7 +13,8 @@ Proyecto: 2026-001-referencias-planes-pago · Etapa 3 · Estado: **secciones 1 a
 | Prefijo de publisher | `sanic` |
 | Abreviatura de la solución | `MPPP` / `mppp` |
 | Nombre completo | Mantenimiento PPP |
-| Idioma base del entorno | **1033 (inglés)**, y es el único provisionado (verificado en Dev el 2026-09-20). Las etiquetas van **en español, bajo el LCID 1033**, como en las demás soluciones del publisher. Nunca 3082: la plataforma lo acepta sin error y el componente queda sin nombre visible |
+| Idioma base del entorno | **1033 (inglés)**, y es el único provisionado (verificado en Dev el 2026-09-20). Las etiquetas van **en español, bajo el LCID 1033**, como en las demás soluciones del publisher. Una etiqueta de metadatos **solo** en 3082 deja el componente sin nombre visible acá (verificado) |
+| Idiomas del proyecto | **`idiomas: [1033, 3082]`**, ampliable (exigencia del aprobador, 2026-09-20: todo nace listo para varios idiomas). **Etiquetas de metadatos** (tablas, columnas, choices, vistas, formularios): en 1033; si el entorno destino tiene otro idioma base y la solución no trae etiquetas en él, la plataforma usa las del idioma base del origen (Learn, *Create solutions that support multiple languages*). **Etiquetas embebidas** en el XML del componente (títulos y descripciones del sitemap, textos de los comandos, y las que cada export real demuestre): **una por cada idioma de la lista**, porque ahí no hay sustitución. Se escriben desde Dev aunque solo tenga 1033 habilitado. Qué textos de cada tipo de componente son embebidos se asienta en la referencia del tipo, con el export real como evidencia |
 | Excepciones al estándar | Ninguna |
 
 ## 1. Las tres reglas que gobiernan todo
