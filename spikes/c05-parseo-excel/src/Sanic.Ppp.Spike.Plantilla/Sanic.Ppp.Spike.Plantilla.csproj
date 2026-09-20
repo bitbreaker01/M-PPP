@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net462;net8.0</TargetFrameworks>
+    <LangVersion>7.3</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Sanic.Ppp.Spike.Plantilla</RootNamespace>
+    <AssemblyName>Sanic.Ppp.Spike.Plantilla</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.1.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <!-- System.IO.Compression.ZipArchive (LP-03): existe en net462 pero el SDK-style csproj
+         no la referencia por defecto para net4x, hay que pedirla explicita. -->
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+
+</Project>

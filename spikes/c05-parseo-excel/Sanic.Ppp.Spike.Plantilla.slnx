@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/bench/">
+    <Project Path="bench/Bench.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Sanic.Ppp.Spike.Plantilla/Sanic.Ppp.Spike.Plantilla.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Sanic.Ppp.Spike.Plantilla.Tests/Sanic.Ppp.Spike.Plantilla.Tests.csproj" />
+  </Folder>
+</Solution>
