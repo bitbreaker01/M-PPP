@@ -22,7 +22,7 @@ Cuando se reanude, lo primero es corregir dos observaciones del revisor en `herr
 | # | Documento | Qué necesita del aprobador |
 |---|---|---|
 | D-1 | `05-app-model-driven.md` | Decisiones DA-01 a DA-09 y los seis puntos de cómo trabaja la gente, **aprobados el 2026-09-20**. Falta la **opinión del aprobador sobre el mockup funcional**: `diseno/mockups/mantenimiento-ppp.html` (también publicado como artefacto privado). Lo que cambie en el mockup se pasa a `05` antes de escribir ningún playbook de la app. |
-| D-2 | `07-flujos.md` | Respondidas: buzón compartido, responder solo al remitente, el Dev actual es un tenant propio del aprobador. **Falta aprobar dos propuestas**: cómo se distinguen las respuestas automáticas y los rebotes, y los **nombres e identificadores cortos de los flujos** (las letras A, I, C, E, W no son aceptables). |
+| D-2 | `07-flujos.md` | **Revisado y aprobado el 2026-09-20**: nombres e identificadores de los flujos, solo correos nuevos con plugin liviano, bandeja Por clasificar con vencimiento a 30 días, sin cortacircuito. Falta **confirmar una extensión del arquitecto**: que el plugin liviano resuelva también si el remitente es reconocido (antes lo hacía el plugin de validación). Y al construir, probar el criterio con correos reales. |
 | D-3 | Paso al Dev de BAC | **¿Cuál es el idioma base del Dev de BAC?** Acá es 1033 y todas las etiquetas van bajo 1033. Si allá el idioma base es español (3082), hay que comprobar cómo quedan las etiquetas al importar la solución antes de construir cien componentes. |
 
 ## A. Para confirmar con negocio, sin apuro

@@ -40,7 +40,7 @@ Si un componente **no tiene nombre lógico** en la plataforma, aplica solo la re
 | Parámetro de salida de Custom API | `CAPI_OP - MPPP - Nombre` | `uniquename` corto · `name`: `sanic_mppp_capiop_<api>_<nombre>` | `filasvalidas` |
 | Environment variable | `EV - MPPP - Nombre` | `sanic_mppp_ev_nombre` | `EV - MPPP - Buzón de ingesta` · `sanic_mppp_ev_buzoningesta` |
 | Connection reference | `CONR - MPPP - Nombre` | `sanic_mppp_conr_nombre` | `CONR - MPPP - Outlook` · `sanic_mppp_conr_outlook` |
-| Cloud flow | `Cloud Flow - MPPP - Nombre` | **no tiene** | `Cloud Flow - MPPP - A - Ingesta` |
+| Cloud flow | `Cloud Flow - MPPP - COD - Nombre`, donde `MPPP-COD` es su **identificador corto** de tres letras (BP-PP-196) | **no tiene**, salvo que Power Automate respete `uniquename` (§7); en ese caso `sanic_mppp_cloudflow_<cod>` | `Cloud Flow - MPPP - REC - Recibir correo nuevo` · ID `MPPP-REC` |
 | Security role | `SR - MPPP - Nombre` | **no tiene** | `SR - MPPP - Ejecutivo` |
 | Column security profile | `CSP - MPPP - Nombre` | **no tiene** | `CSP - MPPP - Datos sensibles` |
 | App model-driven | `MDA - MPPP - Nombre` | `sanic_mppp_mda_nombre` | `MDA - MPPP - Mantenimiento PPP` · `sanic_mppp_mda_mantenimientoppp` |

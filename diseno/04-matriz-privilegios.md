@@ -46,19 +46,19 @@ Mismo criterio en Solicitud para los humanos: solo `sanic_requiererevision` (el 
 
 ## 3. Identidades de aplicación
 
-| Tabla | SR - MPPP - Servicio de ingesta (cuenta de servicio, Flows A/B/C/W) | SR - MPPP - RPA (application user, fase 2) | SR - MPPP - Histórico (application user, fase 3) |
+| Tabla | SR - MPPP - Servicio de ingesta (cuenta de servicio, los cinco flujos) | SR - MPPP - RPA (application user, fase 2) | SR - MPPP - Histórico (application user, fase 3) |
 |---|---|---|---|
 | Solicitud | C R W Ap At : O | R:O | C R W **D** Ap At : O |
 | Fila | — | R:O | C R **D** Ap : O |
 | ResultadoRegla | — | — | C R **D** Ap : O |
 | Bitacora | C Ap : O | — | C R **D** Ap : O |
-| Parametro | R:O (los `vigilancia.*` que lee Flow W) | — | R:O |
+| Parametro | R:O (los `vigilancia.*` que lee `MPPP-VIG`) | — | R:O |
 | Regla | — | — | R:O |
 | Cliente, Plan | — | R:O | R:O |
 | Autorizado, AutorizacionPlan | — | — | R:O |
 | CorridaHistorico (fase 3) | — | — | C R W : O |
 | Privilegios varios | Ejecutar flujos, leer environment variables y connection references | — | `prvBulkDelete` · `prvOverrideCreatedOnCreatedBy` (para `overriddencreatedon`, D-36) |
-| Custom API | `sanic_mppp_capi_validarsolicitud` | `sanic_mppp_capi_obtenerfilaspendientes`, `sanic_mppp_capi_registrarresultadorpa` | — |
+| Custom API | `sanic_mppp_capi_clasificarcorreo`, `sanic_mppp_capi_validarsolicitud` | `sanic_mppp_capi_obtenerfilaspendientes`, `sanic_mppp_capi_registrarresultadorpa` | — |
 
 - El **RPA no escribe ninguna tabla**: todo pasa por su Custom API, que graba como SYSTEM. Rol mínimo de verdad (D-14, RNF-07).
 - **Histórico es la única identidad con `D`** sobre la unidad histórica, y el código solo lo ejerce enviando el job nativo sobre Solicitudes marcadas y vencidas (D-35). `C` es para la reactivación.

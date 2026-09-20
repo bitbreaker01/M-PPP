@@ -66,11 +66,13 @@ TABLAS = {
     "solicitud": dict(x=440, y=600, color=UH, titulo="Solicitud", logico="sanic_mppp_tbl_solicitud", filas=[
         ("sanic_nombre", "MPPP-{SEQNUM:8}", "PK"),
         ("sanic_messageid", "T(450)", "AK"),
+        ("sanic_outlookmessageid", "T(500)", ""),
         ("sanic_remitente", "T(320)", ""),
         ("sanic_asunto", "T(400)", ""),
         ("sanic_fecharecibido", "Fecha y hora", ""),
         ("sanic_fechaingresada", "Fecha y hora", ""),
         ("sanic_estadoprocesamiento", "Choice", ""),
+        ("sanic_motivoclasificacion", "T(300)", ""),
         ("sanic_fechavalidada", "Fecha y hora", ""),
         ("sanic_fechaacuseiniciado", "Fecha y hora", ""),
         ("sanic_fechaacuseenviado", "Fecha y hora", ""),

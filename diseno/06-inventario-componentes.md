@@ -18,8 +18,8 @@ Mecanismo de creación: **Web API de Dataverse**, con una herramienta versionada
 | P-06 Column security profile | 1 (2 columnas) | | | |
 | P-07 Security role | 5 | 1 | 1 | |
 | P-08 Código de plugins (C#, TDD) | 1 paquete, ~10 clases | +2 clases | | namespace y nombre de clase |
-| P-09 Registro de Custom API y steps | 1 API (7 parámetros), ~17 steps | 2 API | | nombre de API y de parámetros |
-| P-10 Datos semilla | 10 parámetros, 14 reglas | 1 parámetro | 2 parámetros | |
+| P-09 Registro de Custom API y steps | 2 API (11 parámetros), ~17 steps | 2 API | | nombre de API y de parámetros |
+| P-10 Datos semilla | 12 parámetros, 15 reglas | 1 parámetro | 2 parámetros | |
 | P-11 Environment variable y connection reference | 2 + 2 | | +2 | nombre |
 | P-12 Cloud flow | 5 (3 con disparador, 2 hijos) | | | |
 | P-13 App model-driven: app, sitemap, ~16 vistas, 9 formularios, 8 comandos, ~10 íconos | ver §12 | | página custom de la bandeja (v1.1) | |
@@ -44,13 +44,13 @@ Sin dependencias entre sí; van primero porque las columnas los usan. Valores = 
 | 2.4 | `sanic_mppp_ch_tipoformatoplan` | 3 | 1 |
 | 2.5 | `sanic_mppp_ch_tipoidentificacion` | 5 | 1 |
 | 2.6 | `sanic_mppp_ch_banco` | 8 | 1 |
-| 2.7 | `sanic_mppp_ch_estadosolicitud` | 7 | 1 |
+| 2.7 | `sanic_mppp_ch_estadosolicitud` | 9 | 1 |
 | 2.8 | `sanic_mppp_ch_estadofila` | 7 | 1 |
 | 2.9 | `sanic_mppp_ch_efectoregla` | 3 | 1 |
-| 2.10 | `sanic_mppp_ch_nivelregla` | 2 | 1 |
+| 2.10 | `sanic_mppp_ch_nivelregla` | 3 | 1 |
 | 2.11 | `sanic_mppp_ch_resultadoregla` | 3 | 1 |
-| 2.12 | `sanic_mppp_ch_origenevento` | 7 | 1 (+2 opciones en fases 2 y 3) |
-| 2.13 | `sanic_mppp_ch_eventobitacora` | 18 | 1 |
+| 2.12 | `sanic_mppp_ch_origenevento` | 8 | 1 (+2 opciones en fases 2 y 3) |
+| 2.13 | `sanic_mppp_ch_eventobitacora` | 20 | 1 |
 | 2.14 | `sanic_mppp_ch_tipoparametro` | 3 | 1 |
 | 2.15 | estado de histórico | por definir | 3 |
 
@@ -132,6 +132,7 @@ Un solo paquete, `sanic_mppp_pkg_plugins` (`Sanic.Mppp.Plugins`). Se construye p
 | 7.4 | `Respuesta/` | Arma el acuse y la respuesta final, con enmascarado | 1 |
 | 7.5 | Doble de prueba `OrganizationServiceEnMemoria` | En el proyecto de tests | 1 |
 | 7.6 | `Datos/` | Repositorios sobre `IOrganizationService` | 1 |
+| 7.6b | `Correo/` y `Api/ClasificarCorreoApi` | Lector de cabeceras del `.eml` (entrada no confiable) y el **plugin liviano** que decide si el correo se procesa | 1 |
 | 7.7 | `Api/ValidarSolicitudApi` | Plugin de la Custom API de validación | 1 |
 | 7.8 | `Steps/` lista blanca de columnas (Fila y Solicitud) | | 1 |
 | 7.9 | `Steps/` transición de Fila (Pre) y post-transición (Post) | | 1 |
@@ -144,6 +145,7 @@ Un solo paquete, `sanic_mppp_pkg_plugins` (`Sanic.Mppp.Plugins`). Se construye p
 
 | # | Componente | Nombre | Depende de | Fase |
 |---|---|---|---|---|
+| 8.0 | Custom API | `sanic_mppp_capi_clasificarcorreo` (1 parámetro de entrada, 3 de salida) | 7.6b | 1 |
 | 8.1 | Custom API | `sanic_mppp_capi_validarsolicitud` (1 parámetro de entrada, 6 de salida) | 7.7 | 1 |
 | 8.2 | Steps | Uno por cada mensaje y tabla de 7.8 a 7.12 (~17), con su etapa, orden, atributos de filtro e imágenes | paquete registrado | 1 |
 | 8.3 | Custom API | `sanic_mppp_capi_obtenerfilaspendientes` | 7.13 | 2 |
@@ -153,8 +155,8 @@ Un solo paquete, `sanic_mppp_pkg_plugins` (`Sanic.Mppp.Plugins`). Se construye p
 
 | # | Qué | Cantidad | Depende de |
 |---|---|---|---|
-| 9.1 | Parámetros: `plantilla.estructura`, `plantilla.listas`, `plantilla.obligatoriedad`, `lectura.limites`, `retencion.dias.*` (2), `vigilancia.*` (3), `rpa.puedeaprobar` | 10 | tabla 3.5 |
-| 9.2 | Reglas de nivel Solicitud | 6 | tabla 3.6 |
+| 9.1 | Parámetros: `correo.prefijos.reenvio`, `clasificacion.dias.vencimiento`, `plantilla.estructura`, `plantilla.listas`, `plantilla.obligatoriedad`, `lectura.limites`, `retencion.dias.*` (2), `vigilancia.*` (3), `rpa.puedeaprobar` | 12 | tabla 3.5 |
+| 9.2 | Reglas de nivel Correo (2) y de nivel Solicitud (5) | 7 | tabla 3.6 |
 | 9.3 | Reglas de nivel Registro | 8 | tabla 3.6 |
 | 9.4 | Migración única desde SharePoint: clientes, planes, autorizados, autorizaciones (RF-16) | datos reales | tablas 3.1–3.4, y los datos revisados por Banca Privada |
 
@@ -172,11 +174,11 @@ Un solo paquete, `sanic_mppp_pkg_plugins` (`Sanic.Mppp.Plugins`). Se construye p
 
 | # | Flujo | Disparador | Depende de |
 |---|---|---|---|
-| 11.1 | `Cloud Flow - MPPP - I - Ingerir correo` | hijo | tabla 3.7, Custom API 8.1, 10.1–10.4 |
-| 11.2 | `Cloud Flow - MPPP - A - Ingesta` | correo nuevo en el buzón | 11.1 |
-| 11.3 | `Cloud Flow - MPPP - E - Enviar comunicación` | hijo | tabla 3.7 |
-| 11.4 | `Cloud Flow - MPPP - C - Comunicaciones` | cambio de estado de la Solicitud | 11.3 |
-| 11.5 | `Cloud Flow - MPPP - W - Vigilancia` | cada 10 minutos | 11.1, 11.3, parámetros 9.1 |
+| 11.1 | `Cloud Flow - MPPP - ING - Ingerir y validar correo` | hijo | tabla 3.7, Custom API 8.0 y 8.1, 10.1–10.4 |
+| 11.2 | `Cloud Flow - MPPP - REC - Recibir correo nuevo` | correo nuevo en el buzón | 11.1 |
+| 11.3 | `Cloud Flow - MPPP - ENV - Enviar comunicación al cliente` | hijo | tabla 3.7 |
+| 11.4 | `Cloud Flow - MPPP - COM - Detectar comunicación pendiente` | cambio de estado de la Solicitud | 11.3 |
+| 11.5 | `Cloud Flow - MPPP - VIG - Vigilar pendientes` | cada 10 minutos | 11.1, 11.3, parámetros 9.1 |
 
 Desaparece el Flow B de la definición (`07` DF-01). Los hijos se construyen antes que quienes los llaman.
 

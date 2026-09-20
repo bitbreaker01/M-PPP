@@ -18,12 +18,12 @@ Se **genera**, no se dibuja a mano: `python3 herramientas/generar_er.py`. Cuando
 |---|---|---|
 | DD-01 | **La Fila guarda solo valores válidos en los campos de lista.** Gestión, Clasificación, Moneda, Tipo de identificación y Banco son **choices** (decisión del aprobador: todas las listas se tratan igual). Si el cliente mandó un valor inválido, la columna queda vacía y el motivo —con el valor recibido— va en `sanic_mensaje`. Los campos de texto libre se guardan como llegaron, recortados al largo de la columna. | Decisión del aprobador: un valor inválido no sirve para nada guardado, y la evidencia de lo que mandó el cliente no se pierde porque el Excel original está en la Solicitud. Reemplaza al diseño anterior de texto crudo más columnas normalizadas. |
 | DD-02 | La configuración de plantilla, listas permitidas y obligatoriedad vive como **JSON versionado en filas de Parametro**, con códigos separados por puntos (`plantilla.estructura`). | RF-05. Una versión de plantilla tiene que cambiar toda junta o no cambiar: con 50 parámetros sueltos, a mitad de una edición la ingesta leería media plantilla nueva y media vieja. Quien la edita es el Administrador técnico, un desarrollador a pedido (D-38). |
-| DD-03 | La clave de Solicitud es `sanic_messageid` `T(450)`, **un solo campo**. Flow A recorta a 450 si alguna vez se excede. | 450 caracteres es el máximo que admite una clave (900 bytes, verificado en Learn). En la práctica Exchange y Gmail generan entre 60 y 120. Con `< > + /` en el valor la clave sirve para **unicidad**, no para GET/PATCH: **prohibido** hacer upsert por clave en Flow A/W. El spike registra el largo real de los Message-ID del buzón. |
+| DD-03 | La clave de Solicitud es `sanic_messageid` `T(450)`, **un solo campo**. `MPPP-ING` recorta a 450 si alguna vez se excede. | 450 caracteres es el máximo que admite una clave (900 bytes, verificado en Learn). En la práctica Exchange y Gmail generan entre 60 y 120. Con `< > + /` en el valor la clave sirve para **unicidad**, no para GET/PATCH: **prohibido** hacer upsert por clave en `MPPP-ING`. El spike registra el largo real de los Message-ID del buzón. |
 | DD-04 | La Bitácora **no tiene clave alternativa**. Excepción declarada a RNF-08. | No tiene clave de negocio natural, y la reactivación conserva los GUID (D-36): una clave hecha de un GUID en texto no agrega nada. |
 | DD-05 | Todas las tablas son user-owned, incluidos los catálogos. Excepción declarada a `definicion.md` §6 "Datos" y a BP-PP-001. | BP-PP-013 (estándar del estudio). La propiedad es **irreversible**: user-owned deja abierta la separación por persona o unidad de negocio; org-owned la cierra para siempre. Precisión: org-owned no significa "cualquiera la ve", significa "quien tiene el privilegio ve todas las filas"; quien no tiene un rol `SR - MPPP` no ve nada en ningún caso. |
 | DD-06 | Un correo no reconocido que el ejecutivo decide ignorar se marca **Descartada**. No hay borrado humano. | `definicion.md` §6 "Seguridad". Lo purga el plazo corto `retencion.dias.noreconocidas` (D-28). |
 | DD-07 | El supervisor puede **devolver** una fila: Digitada → Validada, con motivo obligatorio. | Confirmado por el aprobador: pasa en la operación real. Sin camino de vuelta, un error de digitación deja la fila trabada y la solicitud nunca se cierra. |
-| DD-08 | **Dos comunicaciones al cliente**, cada una como máximo una vez: (1) **acuse** inmediato con el resultado de la validación fila por fila; (2) **respuesta final** cuando todas las filas terminaron, con lo que se hizo en AS400, lo que no y por qué. El cuerpo de ambas lo arma el código y se guarda en la Solicitud; Flow C solo envía. Nunca se devuelven identificación ni cuenta completas: la cuenta va enmascarada a 4 dígitos. | Precisión del aprobador a RF-09 y D-21, que describían una sola comunicación. Cierra el hueco de que el cliente nunca se enteraba del resultado final. |
+| DD-08 | **Dos comunicaciones al cliente**, cada una como máximo una vez: (1) **acuse** inmediato con el resultado de la validación fila por fila; (2) **respuesta final** cuando todas las filas terminaron, con lo que se hizo en AS400, lo que no y por qué. El cuerpo de ambas lo arma el código y se guarda en la Solicitud; `MPPP-ENV` solo envía. Nunca se devuelven identificación ni cuenta completas: la cuenta va enmascarada a 4 dígitos. | Precisión del aprobador a RF-09 y D-21, que describían una sola comunicación. Cierra el hueco de que el cliente nunca se enteraba del resultado final. |
 | DD-09 | Si **ninguna fila es válida** (o falla una regla de solicitud), la Solicitud queda **Rechazada** y recibe **una única comunicación**, que lo dice expresamente: "no hay nada que procesar, no recibirá otro correo por esta solicitud; corrija y reenvíe". | No habrá respuesta final porque no hay nada que digitar; el cliente no puede quedarse esperándola. |
 | DD-10 | En planes con **tipo de formato 11**, la Referencia **se construye**: código de banco (3 dígitos) + ceros + número de cuenta, hasta 20 caracteres. Para armarla se ignora lo que venga en la columna Referencia de la plantilla, que igual se conserva aparte en `sanic_referenciarecibida`. El código del banco no se guarda en la Fila: sale de la equivalencia banco → código de 3 dígitos de `plantilla.listas`. | Regla de negocio informada por el aprobador el 2026-09-18. Las preguntas que abre están en `PENDIENTES.md`. |
 | DD-11 | El estado del correo de un desconocido se llama **No reconocida**, y el efecto de regla que lo produce, **Envía a revisión**. | Al aprobador "Derivada" no le decía nada; "No reconocido" es el término de la propia definición (RF-03). "Envía a revisión" dice lo que pasa: no se le responde al cliente y un ejecutivo la revisa. |
@@ -46,16 +46,16 @@ Valor = correlativo estable (ver `01` §6). `T` = estado terminal.
 | `sanic_mppp_ch_tipoformatoplan` | 1 `06` · 2 `10` · 3 `11` |
 | `sanic_mppp_ch_tipoidentificacion` | 1 CNA · 2 CRE · 3 PAS · 4 PEX · 5 RUC |
 | `sanic_mppp_ch_banco` | 1 LAFISE · 2 BAC · 3 BANPRO · 4 FICOHSA · 5 BDF · 6 AVANZ · 7 PRODUZCAMOS · 8 ATLANTIDA |
-| `sanic_mppp_ch_estadosolicitud` | 1 Ingresada · 2 No reconocida · 3 Descartada `T` · 4 Rechazada · 5 En proceso · 6 Procesada · 7 Cerrada `T` |
+| `sanic_mppp_ch_estadosolicitud` | 1 Ingresada · 2 No reconocida · 3 Descartada `T` · 4 Rechazada · 5 En proceso · 6 Procesada · 7 Cerrada `T` · 8 No es correo nuevo · 9 Vencida `T` |
 | `sanic_mppp_ch_estadofila` | 1 Rechazada en validación `T` · 2 Sin autorización `T` · 3 Validada · 4 Digitada · 5 Aprobada `T` · 6 Rechazada en AS400 `T` · 7 Anulada `T` |
 | `sanic_mppp_ch_efectoregla` | 1 Rechaza · 2 Envía a revisión · 3 Advierte |
-| `sanic_mppp_ch_nivelregla` | 1 Solicitud · 2 Registro |
+| `sanic_mppp_ch_nivelregla` | 1 Solicitud · 2 Registro · 3 Correo |
 | `sanic_mppp_ch_resultadoregla` | 1 Cumplida · 2 No cumplida · 3 Omitida |
-| `sanic_mppp_ch_origenevento` | 1 Flujo A · 2 Flujo B · 3 Flujo C · 4 Flujo W · 5 Custom API · 6 Plugin · 7 App |
-| `sanic_mppp_ch_eventobitacora` | 1 Ingresada · 2 Validación terminada · 3 Acuse iniciado · 4 Acuse enviado · 5 Fila digitada · 6 Fila aprobada · 7 Fila devuelta · 8 Fila rechazada en AS400 · 18 Fila anulada · 9 Procesada · 10 Respuesta final iniciada · 11 Respuesta final enviada · 12 Cerrada · 13 No reconocida atendida · 14 Descartada · 15 Reintento · 16 Requiere revisión · 17 Error |
+| `sanic_mppp_ch_origenevento` | 1 MPPP-REC · 2 MPPP-ING · 3 MPPP-COM · 4 MPPP-ENV · 5 MPPP-VIG · 6 Custom API · 7 Plugin · 8 App |
+| `sanic_mppp_ch_eventobitacora` | 1 Ingresada · 2 Validación terminada · 3 Acuse iniciado · 4 Acuse enviado · 5 Fila digitada · 6 Fila aprobada · 7 Fila devuelta · 8 Fila rechazada en AS400 · 18 Fila anulada · 9 Procesada · 10 Respuesta final iniciada · 11 Respuesta final enviada · 12 Cerrada · 13 No reconocida atendida · 14 Descartada · 15 Reintento · 16 Requiere revisión · 17 Error · 19 Correo clasificado · 20 Vencida |
 | `sanic_mppp_ch_tipoparametro` | 1 Texto · 2 Número · 3 JSON |
 
-**Estados de la Solicitud**: *Ingresada* (llegó, sin validar) · *No reconocida* (remitente sin autorización sobre ningún plan; no se responde, la atiende un ejecutivo) · *Descartada* (el ejecutivo decidió ignorarla) · *Rechazada* (nada que procesar; una única comunicación, DD-09) · *En proceso* (hay filas válidas; acuse enviado o por enviarse) · *Procesada* (todas las filas terminaron; dispara la respuesta final) · *Cerrada* (respuesta final enviada, o Rechazada ya comunicada, o No reconocida atendida). **Cerrada marca el fin del tiempo de ciclo** (criterio de éxito 1) y el inicio del plazo de retención.
+**Estados de la Solicitud**: *Ingresada* (llegó, sin clasificar ni validar) · *No es correo nuevo* (es una respuesta a otro correo, o no se pudo leer; no se procesa ni se responde, `07` DF-08) · *No reconocida* (remitente sin autorización sobre ningún plan; no se responde) — las dos van a la bandeja **Por clasificar**, donde un ejecutivo las atiende o las descarta · *Vencida* (nadie la clasificó en `clasificacion.dias.vencimiento` días) · *Descartada* (el ejecutivo decidió ignorarla) · *Rechazada* (nada que procesar; una única comunicación, DD-09) · *En proceso* (hay filas válidas; acuse enviado o por enviarse) · *Procesada* (todas las filas terminaron; dispara la respuesta final) · *Cerrada* (respuesta final enviada, o Rechazada ya comunicada, o No reconocida atendida). **Cerrada marca el fin del tiempo de ciclo** (criterio de éxito 1) y el inicio del plazo de retención.
 
 **El RPA no es un estado, es un actor**: cuando digite y apruebe, la fila pasa por Digitada y Aprobada igual que con una persona, con el usuario de aplicación del RPA en `sanic_digitadapor` y `sanic_aprobadapor`.
 
@@ -125,7 +125,9 @@ Regla de integridad (plugin PreOperation, BP-PP-051): el cliente del plan debe s
 | `plantilla.obligatoriedad` | JSON | Campos obligatorios por Gestión × Clasificación × tipo de formato del plan. **Versión inicial: todos obligatorios salvo Referencia** (DD-16) |
 | `lectura.limites` | JSON | Peso máximo del archivo comprimido y peso máximo descomprimido (LP-02, LP-03) |
 | `retencion.dias.general` · `retencion.dias.noreconocidas` | Número | Plazos del histórico (fase 3) |
-| `vigilancia.minutos.sinvalidar` · `vigilancia.minutos.sinresponder` · `vigilancia.reintentos.maximo` | Número | Flow W |
+| `vigilancia.minutos.sinvalidar` · `vigilancia.minutos.sinresponder` · `vigilancia.reintentos.maximo` | Número | `MPPP-VIG` |
+| `correo.prefijos.reenvio` | JSON | Prefijos de asunto que identifican un reenvío: `FW:`, `FWD:`, `RV:`, `REENV:` (`03` §0) |
+| `clasificacion.dias.vencimiento` | Número | Días que un correo puede quedar en Por clasificar antes de pasar a Vencida. Inicial: 30 |
 | `rpa.puedeaprobar` | Texto | `no` hasta contar con el aval de C-03. En `si`, el bot puede aprobar lo que él mismo digitó, siempre como evento aparte (`03` §3) |
 
 Largos de la plantilla vigente (ficha §9): Nombre ≤44 · Identificación 1–16 · Referencia ≤20 · Cuenta 1–16.
@@ -135,13 +137,15 @@ Largos de la plantilla vigente (ficha §9): Nombre ≤44 · Identificación 1–
 |---|---|---|---|
 | `sanic_nombre` | T(200) | S | Primaria. |
 | `sanic_codigo` | T(50) | S | **Clave** `sanic_mppp_key_regla_codigo`. El código C# tiene un evaluador por código; una regla activa sin evaluador es un error de configuración. |
-| `sanic_nivel` | C:nivelregla | S | *Solicitud*: se evalúa una vez sobre el correo. *Registro*: se evalúa por cada fila. |
+| `sanic_nivel` | C:nivelregla | S | *Correo*: la evalúa el plugin liviano, sin abrir la plantilla. *Solicitud*: una vez, sobre el correo y su adjunto. *Registro*: por cada fila. |
 | `sanic_orden` | E | S | Orden de evaluación dentro de su nivel. |
 | `sanic_dependede` | T(500) | | Códigos de las reglas de las que depende, separados por coma. Si alguna de ellas no resultó Cumplida, esta regla **se omite** (DD-13). Un plugin valida al guardar: los códigos existen, son del mismo nivel, tienen orden menor y no forman ciclos. |
 | `sanic_efecto` | C:efectoregla | S | *Envía a revisión* solo es válido en el nivel Solicitud. |
 | `sanic_mensajecliente` | M(2000) | | Texto para el cliente cuando la regla falla. |
 
-Semillas de nivel **Solicitud** (→ = depende de): `REMITENTE_RECONOCIDO` (Envía a revisión) · `TRAE_ADJUNTO` → REMITENTE_RECONOCIDO · `ADJUNTO_ES_EXCEL` → TRAE_ADJUNTO · `UN_SOLO_EXCEL` → ADJUNTO_ES_EXCEL · `ESTRUCTURA_PLANTILLA` → UN_SOLO_EXCEL · `TIENE_FILAS` → ESTRUCTURA_PLANTILLA (todas Rechaza).
+Semillas de nivel **Correo**, que evalúa el plugin liviano (→ = depende de): `ES_CORREO_NUEVO` · `REMITENTE_RECONOCIDO` → ES_CORREO_NUEVO (las dos con efecto Envía a revisión).
+
+Semillas de nivel **Solicitud**, que evalúa el plugin de validación: `TRAE_ADJUNTO` · `ADJUNTO_ES_EXCEL` → TRAE_ADJUNTO · `UN_SOLO_EXCEL` → ADJUNTO_ES_EXCEL · `ESTRUCTURA_PLANTILLA` → UN_SOLO_EXCEL · `TIENE_FILAS` → ESTRUCTURA_PLANTILLA (todas Rechaza).
 
 Semillas de nivel **Registro**: `LISTAS_VALIDAS` · `LARGOS_Y_FORMATO` · `PLAN_EXISTE` · `FORMATO_11_SOLO_ACH` → PLAN_EXISTE, LISTAS_VALIDAS · `OBLIGATORIEDAD` → PLAN_EXISTE, LISTAS_VALIDAS · `REFERENCIA_FORMATO_11` → FORMATO_11_SOLO_ACH, OBLIGATORIEDAD · `MONEDA_DEL_PLAN` → PLAN_EXISTE, LISTAS_VALIDAS · `AUTORIZACION_CORREO_PLAN` → PLAN_EXISTE (todas Rechaza; la última deja la fila en Sin autorización).
 
@@ -154,6 +158,7 @@ Semillas de nivel **Registro**: `LISTAS_VALIDAS` · `LARGOS_Y_FORMATO` · `PLAN_
 | `sanic_messageid` | T(450) | S | **Clave** `sanic_mppp_key_solicitud_messageid` (DD-03). |
 | `sanic_outlookmessageid` | T(500) | | Identificador de Outlook del correo **después de moverlo** a la carpeta de procesados; es el que permite responder en el hilo (`07` DF-04). No es clave: cambia si el correo se mueve. |
 | `sanic_remitente` | T(320) | S | |
+| `sanic_motivoclasificacion` | T(300) | | Por qué el correo fue a Por clasificar (`03` §0). Vacía si se procesó. |
 | `sanic_asunto` | T(400) | | |
 | `sanic_fecharecibido` | F | S | Fecha del correo en el buzón. **Inicio del tiempo de ciclo.** |
 | `sanic_fechaingresada` | F | S | Alta en Dataverse. |
@@ -170,7 +175,7 @@ Semillas de nivel **Registro**: `LISTAS_VALIDAS` · `LARGOS_Y_FORMATO` · `PLAN_
 | `sanic_cantidadadjuntos` | E | | |
 | `sanic_filastotales` · `sanic_filasvalidas` · `sanic_filasrechazadas` | E | | |
 | `sanic_versionparametros` | T(200) | | Versiones de los parámetros `plantilla.*` usadas. |
-| `sanic_reintentosvalidacion` | E | | Veces que Flow W reintentó la validación. |
+| `sanic_reintentosvalidacion` | E | | Veces que `MPPP-VIG` reintentó la validación. |
 | `sanic_requiererevision` · `sanic_motivorevision` | B · M(2000) | | Envío iniciado sin cerrar, máximo de reintentos, error de la API. |
 
 Quién atendió una No reconocida y cuándo queda en la Bitácora. Las columnas del histórico (archivada, ruta del paquete, reactivada, estado de histórico) **se crean en la fase 3**: agregar columnas no es irreversible.

@@ -14,7 +14,7 @@ Reglas citadas: BP-PP-091, 093, 094, 095, 100, 186. Requisitos: RF-03, RF-11 a R
 | DA-04 | **La "bandeja de trabajo" como página custom completa** —lista de solicitudes a la izquierda, filas a la derecha, detalle en panel lateral, al estilo de la Accelerator— **queda para la versión 1.1**, después de la fase 1. | Es donde más rinde una página custom, pero es también lo más caro de la app. La fase 1 sale con la grilla nativa y sus comandos, que ya resuelven la acción masiva. |
 | DA-05 | **Solo controles modernos. El Creator Kit no se usa para nada.** | Decisión del aprobador: **ninguna dependencia externa** por ahora. El Creator Kit no tiene soporte oficial de Microsoft y obligaría a instalar `CreatorKitCore` en Test y Prod antes que la solución. |
 | DA-06 | **Se ocultan todos los comandos genéricos que no se usan**, en cada tabla: Eliminar, Asignar, Compartir, Flujo, Enviar vínculo, Combinar, y "Nuevo" donde el alta no es de una persona (Solicitud, Fila, ResultadoRegla, Bitácora). | Es lo que más ensucia una model-driven y lo más barato de arreglar. Además, varios de esos comandos ofrecen acciones que la matriz de privilegios no permite. |
-| DA-08 | **Notificaciones dentro de la app desde la fase 1** (campana de la model-driven, tabla nativa `appnotification`). Las crea el código de servidor, no los botones: la Custom API de validación y el plugin posterior a la transición. **Una por solicitud y por tanda, nunca una por fila.** | Decisión del aprobador. Avisos: al ejecutivo del cliente, cuando una solicitud suya deja filas por digitar; a los supervisores, cuando una solicitud pasa a tener filas por aprobar; al ejecutivo que digitó, cuando le devuelven filas; a todos los ejecutivos, cuando llega un correo no reconocido; a ejecutivos y supervisores, cuando una solicitud queda para revisar. Cada aviso abre la vista o la solicitud que corresponde. Es nativo: no agrega dependencias ni licencias. |
+| DA-08 | **Notificaciones dentro de la app desde la fase 1** (campana de la model-driven, tabla nativa `appnotification`). Las crea el código de servidor, no los botones: la Custom API de validación y el plugin posterior a la transición. **Una por solicitud y por tanda, nunca una por fila.** | Decisión del aprobador. Avisos: al ejecutivo del cliente, cuando una solicitud suya deja filas por digitar; a los supervisores, cuando una solicitud pasa a tener filas por aprobar; al ejecutivo que digitó, cuando le devuelven filas; a todos los ejecutivos, cuando un correo va a Por clasificar; a ejecutivos y supervisores, cuando una solicitud queda para revisar. Cada aviso abre la vista o la solicitud que corresponde. Es nativo: no agrega dependencias ni licencias. |
 | DA-09 | **Toda pantalla se valida primero en un mockup HTML 100 % funcional** (`diseno/mockups/`), con datos ficticios, antes de construir nada. | Estándar del aprobador para cualquier Power App (BP-PP-102): probar la interfaz y dar opinión cuesta minutos en un mockup y días en la plataforma. |
 | DA-07 | **La lógica no vive en los botones.** Un botón solo cambia `sanic_estado` (y `sanic_mensaje`); que la transición sea válida, quién puede hacerla y la segregación de funciones los decide el plugin (`03` §4). | BP-PP-051. Un usuario que llame al Web API sin pasar por la app encuentra las mismas reglas. La visibilidad de cada botón según el rol es comodidad, no seguridad. |
 
@@ -28,7 +28,7 @@ Reglas citadas: BP-PP-091, 093, 094, 095, 100, 186. Requisitos: RF-03, RF-11 a R
 |---|---|---|---|
 | **Trabajo** | Por digitar | Vista de Filas en estado Validada | Ejecutivo |
 | | Por aprobar | Vista de Filas en estado Digitada | Supervisor |
-| | No reconocidos | Vista de Solicitudes en estado No reconocida | Ejecutivo |
+| | **Por clasificar** | Vista de Solicitudes en estado No reconocida o No es correo nuevo, con su motivo | Ejecutivo |
 | | Para revisar | Vista de Solicitudes con `sanic_requiererevision` = sí | Ejecutivo, Supervisor |
 | **Consulta** | Solicitudes | Todas las Solicitudes | Ejecutivo, Supervisor |
 | | Filas | Todas las Filas | Ejecutivo, Supervisor |
@@ -48,7 +48,7 @@ Columnas pensadas para digitar sin abrir el registro. Las protegidas (identifica
 | **Por aprobar** (Fila) · *por defecto del Supervisor* | Estado = Digitada | las mismas + Digitada por, Digitada el | Digitada el |
 | Mis clientes — devueltas (Fila) | Estado = Validada, con mensaje de devolución | + Mensaje | |
 | Terminadas (Fila) | Estado terminal | + Estado, Mensaje, Aprobada por | más recientes primero |
-| No reconocidos (Solicitud) | Estado = No reconocida | Recibido el, Remitente, Asunto, Adjuntos | más viejos primero |
+| **Por clasificar** (Solicitud) | Estado = No reconocida o No es correo nuevo | Recibido el, Remitente, Asunto, **Motivo**, Adjuntos, Vence el | más viejos primero |
 | Para revisar (Solicitud) | `requiererevision` = sí | Número, Remitente, Estado, Motivo de revisión | |
 | Solicitudes (Solicitud) | todas | Número, Recibido el, Remitente, Estado, Filas totales / válidas / rechazadas, Cerrada el | más recientes primero |
 | Catálogos y configuración | activos | las de negocio de cada tabla | |
@@ -79,7 +79,7 @@ En la grilla principal de Filas, en la subgrilla de Filas de la Solicitud y en e
 | **Anular** | Ejecutivo | Validada o Digitada | motivo (diálogo) | Estado → Anulada + mensaje |
 | **Aprobar** | Supervisor | Digitada | confirmación con la cantidad | Estado → Aprobada |
 | **Devolver** | Supervisor | Digitada | motivo (diálogo) | Estado → Validada + mensaje |
-| **Atendido** · **Descartar** | Ejecutivo | Solicitud No reconocida | confirmación | Estado → Cerrada · Descartada |
+| **Atendido** · **Descartar** | Ejecutivo | Solicitud No reconocida o No es correo nuevo | confirmación | Estado → Cerrada · Descartada. Lo que nadie clasifica en 30 días pasa solo a Vencida (`07` DF-09) |
 | **Revisado** | Ejecutivo, Supervisor | Solicitud con `requiererevision` | nota | Apaga `requiererevision` y deja la nota en la Bitácora |
 
 Una acción masiva puede fallar en algunas filas y en otras no (por ejemplo, el supervisor intenta aprobar una fila que él mismo digitó): el botón informa cuántas se aplicaron y cuáles no y por qué, y no deja nada a medias dentro de una misma fila.
@@ -89,7 +89,7 @@ Una acción masiva puede fallar en algunas filas y en otras no (por ejemplo, el 
 1. **Unidad de trabajo.** El ejecutivo trabaja una **lista plana de filas por digitar**, ordenada por solicitud, y no entra solicitud por solicitud. Tiene la Solicitud a un clic si quiere ver el correo.
 2. **Acción masiva.** Selecciona varias filas y las marca juntas. El caso normal es "digité las 25 de esta plantilla". La grilla ofrece además **"Seleccionar todas" y "Desmarcar todas"** como comandos visibles, no solo la casilla del encabezado.
 3. **Verificación del supervisor.** Le alcanza con las filas que extrajimos, y si duda **descarga el Excel original** desde la Solicitud. No hay visor del Excel dentro de la app en la fase 1.
-4. **No reconocidos.** Los ven **todos** los ejecutivos. Para decidir les alcanza con remitente, asunto y fecha, y si no, descargan el correo original.
+4. **Por clasificar** (correos no reconocidos y correos que no son nuevos). Los ven **todos** los ejecutivos. Para decidir les alcanza con remitente, asunto y fecha, y si no, descargan el correo original.
 5. **Catálogos.** El Administrador de planes carga **uno por uno en formularios**, y para cargas grandes usa la importación nativa desde Excel de model-driven. La migración inicial desde SharePoint es aparte (RF-16).
 6. **Avisos.** **Notificaciones dentro de la app desde la fase 1** (DA-08).
 

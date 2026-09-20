@@ -4,9 +4,34 @@ Proyecto: 2026-001-referencias-planes-pago · Etapa 3 · Estado: **revisado con 
 
 Reglas citadas: BP-PP-051, 052, 053, 055, 057, 060. Todas las Custom API: **unbound**, `AllowedCustomProcessingStepType = None`, `IsPrivate = true`, plugin de respaldo en el paquete `Sanic.Mppp.Plugins`. Sin llamadas HTTP salientes (D-22, BP-PP-052).
 
+## 0. `sanic_mppp_capi_clasificarcorreo` — fase 1 (Action) · el plugin liviano
+
+Responde una sola pregunta, **¿este correo merece procesarse?**, sin abrir la plantilla (`07` DF-08). Quién la llama: `MPPP-ING`, apenas el correo quedó guardado y movido; y `MPPP-VIG` en un reintento. Identidad: cuenta de servicio.
+
+| Parámetro | Dirección | Tipo | Nota |
+|---|---|---|---|
+| `solicitudid` | entrada | Guid | |
+| `procesar` | salida | Boolean | `true` → el flujo sigue con la validación. `false` → el flujo termina: no se valida y **no se le responde a nadie**. |
+| `clasificacion` | salida | String | `nuevo` · `reenvio` · `respuesta` · `remitente_no_reconocido` · `ilegible` |
+| `yaprocesada` | salida | Boolean | `true` si la Solicitud ya no estaba en Ingresada. |
+
+**Algoritmo**
+1. Leer la Solicitud. Si no está en Ingresada → devolver lo guardado, `yaprocesada = true` (idempotente, BP-PP-055).
+2. Leer **solo las cabeceras** del `.eml` de `sanic_correocrudo`: se descarga el primer bloque del archivo y se toma hasta la primera línea en blanco, con un tope de 256 KB, uniendo las líneas de continuación. **Es entrada no confiable**: nunca se interpreta el cuerpo, nunca se siguen enlaces, y si las cabeceras no se pueden leer la clasificación es `ilegible` y el correo va a Por clasificar. Ante la duda, lo ve una persona.
+3. Evaluar las reglas activas de **nivel Correo**, con el mismo motor de orden y dependencias (DD-13), y dejar un `ResultadoRegla` por cada una:
+   - `ES_CORREO_NUEVO`. **Nuevo**: no trae `In-Reply-To` ni `References`. **Reenvío**: trae alguna, y el asunto empieza con un prefijo de la lista `correo.prefijos.reenvio` (`FW:`, `FWD:`, `RV:`, `REENV:`), sin distinguir mayúsculas. **Respuesta**: trae alguna y el asunto no es de reenvío. Se cumple para nuevo y para reenvío.
+   - `REMITENTE_RECONOCIDO` (depende de la anterior): el remitente tiene al menos una autorización activa sobre algún plan (RF-02, RF-03).
+4. Resultado:
+   - Respuesta o ilegible → estado **No es correo nuevo**, `sanic_motivoclasificacion` con el motivo ("es una respuesta a otro correo"; "no se pudieron leer las cabeceras"). `procesar = false`.
+   - Remitente no reconocido → estado **No reconocida**, con su motivo. `procesar = false`.
+   - Si no → la Solicitud sigue en Ingresada. `procesar = true`.
+5. Cuando `procesar = false`: Bitácora "Correo clasificado" y **un aviso dentro de la app a todos los ejecutivos** (`05` DA-08). No se arma ninguna comunicación para el remitente.
+
+Reenvíos y respuestas llevan las mismas cabeceras en los programas de correo más comunes; lo que los separa es el prefijo del asunto, que es una convención del programa y no una garantía. Por eso la lista es un parámetro, y por eso **el criterio se prueba con correos reales** al construir (`07` §8). Es liviano de verdad: no abre el Excel, no carga planes, hace una sola consulta (autorizaciones del remitente), y corre en milisegundos.
+
 ## 1. `sanic_mppp_capi_validarsolicitud` — fase 1 (Action)
 
-Quién la llama: Flow B (alta de Solicitud) y Flow W (reintento). Identidad: cuenta de servicio.
+Quién la llama: el flujo `MPPP-ING`, solo después de que `sanic_mppp_capi_clasificarcorreo` (§0) devolvió `procesar` = sí; y `MPPP-VIG` en un reintento. Identidad: cuenta de servicio. **Este es el plugin grande: abre la plantilla.** No decide si el correo merece procesarse; eso ya lo decidió el liviano.
 
 | Parámetro | Dirección | Tipo | Req | Nota |
 |---|---|---|---|---|
@@ -20,10 +45,9 @@ Los nombres de la tabla son el `uniquename`; `name` y `displayname` siguen `01-c
 
 **Algoritmo**
 1. Leer Solicitud. Si `estadoprocesamiento` ≠ Ingresada → devolver lo guardado con `yaprocesada = true` (idempotencia, D-24, BP-PP-055).
-2. **Atomicidad**: el plugin corre en la etapa principal de la Custom API, dentro de la transacción de Dataverse. Si falla a mitad, se revierte todo: nunca quedan Filas ni ResultadoRegla a medias, y por eso **no hace falta ningún borrado de limpieza** (la solución no borra nada fuera del job nativo, D-35). **Confirmado en el spike C-05 parte B.** Consecuencia: no existe ningún estado propio de "en validación" observable desde afuera — la transacción o termina en un estado final (No reconocida, Rechazada, En proceso) o se revierte entera y la Solicitud sigue en Ingresada; una Solicitud que sigue en Ingresada pasado el plazo es la señal de Flow W.
+2. **Atomicidad**: el plugin corre en la etapa principal de la Custom API, dentro de la transacción de Dataverse. Si falla a mitad, se revierte todo: nunca quedan Filas ni ResultadoRegla a medias, y por eso **no hace falta ningún borrado de limpieza** (la solución no borra nada fuera del job nativo, D-35). **Confirmado en el spike C-05 parte B.** Consecuencia: no existe ningún estado propio de "en validación" observable desde afuera — la transacción o termina en un estado final (No reconocida, Rechazada, En proceso) o se revierte entera y la Solicitud sigue en Ingresada; una Solicitud que sigue en Ingresada pasado el plazo es la señal de `MPPP-VIG`.
 3. Cargar `plantilla.estructura`, `plantilla.listas`, `plantilla.obligatoriedad` (versión activa más alta) y anotar `versionparametros`.
-4. **Reglas de solicitud** (nivel Solicitud): evaluar en `sanic_orden` las reglas activas y escribir un `ResultadoRegla` por cada una, con resultado **Cumplida, No cumplida u Omitida**. Una regla cuyas dependencias (`sanic_dependede`) no resultaron todas Cumplida **no se evalúa**: queda Omitida, y su razón dice qué regla la bloqueó (DD-13). Por ejemplo, sin adjunto, `ESTRUCTURA_PLANTILLA` queda Omitida por `TRAE_ADJUNTO`. **En los tres finales posibles** (No reconocida, Rechazada, En proceso) se escribe la Bitácora "Validación terminada" con el resultado: ningún camino termina sin dejar rastro.
-   - Falla alguna con efecto **Envía a revisión** → estado **No reconocida**. No se responde al cliente (RF-03). Fin.
+4. **Reglas de solicitud** (nivel Solicitud; las de nivel Correo ya las evaluó el plugin liviano, §0): evaluar en `sanic_orden` las reglas activas y escribir un `ResultadoRegla` por cada una, con resultado **Cumplida, No cumplida u Omitida**. Una regla cuyas dependencias (`sanic_dependede`) no resultaron todas Cumplida **no se evalúa**: queda Omitida, y su razón dice qué regla la bloqueó (DD-13). Por ejemplo, sin adjunto, `ESTRUCTURA_PLANTILLA` queda Omitida por `TRAE_ADJUNTO`. **En los tres finales posibles** (No reconocida, Rechazada, En proceso) se escribe la Bitácora "Validación terminada" con el resultado: ningún camino termina sin dejar rastro.
    - Falla alguna con efecto **Rechaza** → estado **Rechazada**; se arma el acuse (RF-04, DD-09), que dice expresamente que no hay nada que procesar, que no recibirá otro correo por esta solicitud, y que corrija y reenvíe. Fin.
 5. **Reglas de registro** (nivel Registro), por cada fila no vacía: mismo motor que el paso 4, con las reglas activas de ese nivel en su `sanic_orden` y respetando `sanic_dependede`. Las dependencias deciden qué se evalúa, pero **por fila no se guarda un historial regla por regla**: `sanic_mensaje` lleva solo los motivos de las reglas que fallaron (`definicion.md` D-05). El historial con Cumplida, No cumplida y Omitida es del **sobre** —el correo—, y vive en `ResultadoRegla` (paso 4). Reglas iniciales:
    - `LISTAS_VALIDAS`: Gestión, Clasificación, Tipo de identificación, Moneda y Banco contra `plantilla.listas`. Un valor inválido deja su columna vacía y el valor recibido se cita en el mensaje (DD-01).
@@ -37,9 +61,9 @@ Los nombres de la tabla son el `uniquename`; `name` y `displayname` siguen `01-c
    - Estado de la fila: falla `AUTORIZACION_CORREO_PLAN` → **Sin autorización**; falla cualquier otra con efecto Rechaza → **Rechazada en validación**; ninguna falla → **Validada**. Una regla Omitida no cuenta como falla por sí misma: la fila ya quedó rechazada por la regla que la bloqueó.
    - **No se validan duplicados dentro de la plantilla** (DD-12): el control está en AS400.
 6. Catálogos cargados **una vez** por ejecución: planes por código (una consulta con `In`) y autorizaciones del remitente (una consulta). Nunca una consulta por fila (N+1). Alta de filas y resultados con `ExecuteMultiple` en lotes.
-7. Armar el contenido del acuse (`sanic_acusecontenido`, DD-08) fila por fila. Contadores (`filastotales`/`filasvalidas`/`filasrechazadas`), estado resultante — **Rechazada** si ninguna fila quedó Validada (mismo texto del paso 4, DD-09), si no **En proceso** —, `fechavalidada`, Bitácora. `sanic_fechaacuseiniciado`/`sanic_fechaacuseenviado` no los toca esta API: los marca Flow C al enviar (§6).
+7. Armar el contenido del acuse (`sanic_acusecontenido`, DD-08) fila por fila. Contadores (`filastotales`/`filasvalidas`/`filasrechazadas`), estado resultante — **Rechazada** si ninguna fila quedó Validada (mismo texto del paso 4, DD-09), si no **En proceso** —, `fechavalidada`, Bitácora. `sanic_fechaacuseiniciado`/`sanic_fechaacuseenviado` no los toca esta API: los marca `MPPP-ENV` al enviar (§6).
 
-**Errores**: excepción de negocio esperable (Excel corrupto, hoja inexistente) = regla fallida, **no** excepción. Excepción real → `InvalidPluginExecutionException` con mensaje sin datos sensibles; la transacción se revierte, la Solicitud sigue en Ingresada, y Flow W la reintenta hasta `vigilancia.reintentos.maximo`, luego marca `sanic_requiererevision`.
+**Errores**: excepción de negocio esperable (Excel corrupto, hoja inexistente) = regla fallida, **no** excepción. Excepción real → `InvalidPluginExecutionException` con mensaje sin datos sensibles; la transacción se revierte, la Solicitud sigue en Ingresada, y `MPPP-VIG` la reintenta hasta `vigilancia.reintentos.maximo`, luego marca `sanic_requiererevision`.
 
 **Presupuesto de tiempo** (BP-PP-053): objetivo < 10 s. Medido en el spike C-05 parte B, dentro del sandbox: leer 25 o 100 filas tarda entre 8 y 20 ms en caliente, y cerca de 1 s la primera ejecución en frío. El lector no es el cuello de botella; lo que hay que cuidar son las consultas y las altas (paso 6).
 
@@ -131,7 +155,7 @@ Step: `Update` de `sanic_mppp_tbl_fila`, **PreOperation**, síncrono, filtering 
   - Así el RPA sigue **sin privilegio de escritura** sobre ninguna tabla (`04` §3). Alternativa descartada: que la API actualice con el usuario del bot, que en el spike sí conserva al actor; obligaría a darle `W` sobre Fila a una credencial que vive fuera del banco, en Automation Anywhere. Riesgo residual aceptado: otro plugin del entorno compartido que corra como SYSTEM podría escribir esas columnas; tendría que ser código desplegado a propósito por alguien con rol de personalizador.
 - Ya no existe `sanic_usuarioas400aprobador`: el usuario que marca Aprobada **es** el aprobador de AS400, no hace falta una columna aparte.
 - Las transiciones iniciales (alta de la fila con su estado) las hace la Custom API §1 en el `Create`, que este step no intercepta.
-- **Cierre**: el step PostOperation revisa, tras cada cambio de estado de Fila, si la Solicitud sigue **En proceso** y ya no queda ninguna fila en Validada ni Digitada. Si es así, pasa la Solicitud a **Procesada**, pone `sanic_fechaprocesada` y arma `sanic_respuestafinalcontenido` (qué se hizo en AS400, qué no y por qué — DD-08). El paso final Procesada → Cerrada lo hace Flow C al enviar la respuesta final (§6); este plugin no cierra la Solicitud.
+- **Cierre**: el step PostOperation revisa, tras cada cambio de estado de Fila, si la Solicitud sigue **En proceso** y ya no queda ninguna fila en Validada ni Digitada. Si es así, pasa la Solicitud a **Procesada**, pone `sanic_fechaprocesada` y arma `sanic_respuestafinalcontenido` (qué se hizo en AS400, qué no y por qué — DD-08). El paso final Procesada → Cerrada lo hace `MPPP-ENV` al enviar la respuesta final (§6); este plugin no cierra la Solicitud.
 
 ## 5. Otros steps
 
@@ -141,32 +165,34 @@ Step: `Update` de `sanic_mppp_tbl_fila`, **PreOperation**, síncrono, filtering 
 | Integridad de AutorizacionPlan | Create y Update · PreOperation | Cliente del Plan = Cliente del Autorizado |
 | Nombre calculado | Create · PreOperation en Plan, AutorizacionPlan, Fila y Bitacora | Completa `sanic_nombre`. **No** aplica a Autorizado ni a Parametro: en esas dos tablas la columna primaria es la clave de negocio (correo, código), no un valor calculado (BP-PP-192) |
 | Normalizar y validar | Create y Update de Cliente, Plan, Autorizado y Parametro · PreOperation | Cliente: `sanic_cifbac` solo dígitos, relleno con ceros a 9; `sanic_cifcom` en mayúscula, `^[A-Z0-9 ]{9}\d{3}$`. Plan: `sanic_codigo` en mayúscula, relleno con ceros a 4, `^[A-Z0-9]{4}$`. Autorizado: `sanic_nombre` (correo) sin espacios, en minúscula, con formato de correo válido. Parametro: `sanic_nombre` (código) en minúscula, separado por puntos |
-| Atender no reconocida | Update de Solicitud, filtro `sanic_estadoprocesamiento` · PreOperation | Solo No reconocida → Cerrada / Descartada; ya no completa columnas propias — quién atendió y cuándo queda en la Bitácora, con `sanic_actortexto` |
+| Atender correo por clasificar | Update de Solicitud, filtro `sanic_estadoprocesamiento` · PreOperation | Solo No reconocida o No es correo nuevo → Cerrada / Descartada; ya no completa columnas propias — quién atendió y cuándo queda en la Bitácora, con `sanic_actortexto` |
 
 ## 6. Máquina de estados de la Solicitud
 
 ```
-Ingresada ─(Custom API §1, dentro de la transacción)─┬─► No reconocida ─(Ejecutivo)─► Cerrada | Descartada
-   (Flow A/W)                                        ├─► Rechazada ─(Flow C: envía el acuse)─► Cerrada
-                                                      └─► En proceso ─(Flow C: envía el acuse,
-                                                                       no cambia el estado)
-                                                              │
-                                                              │ (plugin post-transición de Fila, §4:
-                                                              │  ninguna fila queda en Validada ni Digitada)
-                                                              ▼
-                                                          Procesada ─(Flow C: envía la respuesta final)─► Cerrada
+Ingresada ──(plugin liviano, §0)──┬─► No es correo nuevo ─┐
+ (MPPP-ING)                       ├─► No reconocida ──────┴─(Ejecutivo)─► Cerrada | Descartada
+                                  │                        └─(MPPP-VIG, a los 30 días)─► Vencida
+                                  ▼ procesar = sí
+                        (plugin de validación, §1)──┬─► Rechazada ─(MPPP-ENV envía el acuse)─► Cerrada
+                                                    └─► En proceso ─(MPPP-ENV envía el acuse; el estado no cambia)
+                                                            │ plugin posterior a la transición de Fila (§4):
+                                                            │ ninguna fila queda en Validada ni Digitada
+                                                            ▼
+                                                        Procesada ─(MPPP-ENV envía la respuesta final)─► Cerrada
 ```
 
-Nota de una línea: el archivado de fase 3 (histórico) va en una columna aparte que se crea en esa fase, fuera de este choice; no hay transición desde/hacia Cerrada que dependa de él en fase 1.
+El archivado de la fase 3 va en una columna aparte, que se crea en esa fase, fuera de este choice.
 
 | Quién | Transiciones que puede hacer |
 |---|---|
-| Flow A / W | alta en Ingresada |
-| Custom API de validación (§1) | Ingresada → No reconocida \| Rechazada \| En proceso |
-| Flow C | envía el acuse de una Solicitud En proceso: **no** cambia el estado, solo marca `sanic_fechaacuseiniciado`/`sanic_fechaacuseenviado`; envía el acuse de una Rechazada → Cerrada; envía la respuesta final de una Procesada → Cerrada. Mecanismo D-21 aplicado a cada comunicación por separado: "iniciado" se marca antes de enviar, y si queda iniciada sin enviarse **no se reenvía**, se marca `sanic_requiererevision` |
-| Plugin post-transición de Fila (§4) | En proceso → Procesada, cuando ninguna fila de la Solicitud queda en Validada ni Digitada (pone `sanic_fechaprocesada` y arma `sanic_respuestafinalcontenido`) |
-| Flow W | no cambia estados: reinvoca la API, reingresa correos, o marca `sanic_requiererevision` |
-| Ejecutivo | No reconocida → Cerrada (atendida) \| Descartada |
+| `MPPP-ING` | Alta en Ingresada |
+| Plugin liviano, `clasificarcorreo` (§0) | Ingresada → No es correo nuevo \| No reconocida; o la deja en Ingresada para que siga |
+| Plugin de validación, `validarsolicitud` (§1) | Ingresada → Rechazada \| En proceso |
+| `MPPP-ENV` | Acuse de una En proceso: **no** cambia el estado, solo marca las fechas de iniciado y enviado. Acuse de una Rechazada → Cerrada. Respuesta final de una Procesada → Cerrada. Cada comunicación por separado: "iniciado" se marca antes de enviar, y si queda iniciada sin enviarse **no se reenvía**: se marca `sanic_requiererevision` (D-21) |
+| Plugin posterior a la transición de Fila (§4) | En proceso → Procesada, cuando ninguna fila queda en Validada ni Digitada (pone `sanic_fechaprocesada` y arma `sanic_respuestafinalcontenido`) |
+| `MPPP-VIG` | No es correo nuevo \| No reconocida → **Vencida**, pasados `clasificacion.dias.vencimiento` días. Aparte de eso no cambia estados: reinvoca las API, reingresa correos, o marca `sanic_requiererevision` |
+| Ejecutivo | No es correo nuevo \| No reconocida → Cerrada (atendida) \| Descartada |
 
 ## 7. Lector de plantilla: el archivo es hostil hasta que demuestre lo contrario
 
