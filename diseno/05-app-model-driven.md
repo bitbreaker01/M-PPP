@@ -1,10 +1,8 @@
 # 05. Diseño de la app model-driven
 
-Proyecto: 2026-001-referencias-planes-pago · Etapa 3 · Estado: **borrador para revisión del aprobador**. Nada de esto está construido.
+Proyecto: 2026-001-referencias-planes-pago · Etapa 3 · Estado: **decisiones DA-01 a DA-07 y los seis supuestos aprobados por el aprobador el 2026-09-20**; falta su opinión sobre el mockup (`mockups/`). Nada de esto está construido.
 
 Reglas citadas: BP-PP-091, 093, 094, 095, 100, 186. Requisitos: RF-03, RF-11 a RF-14, RF-19, RNF-04. Decisiones: D-12, D-13, `02` DD-07, DD-14. Referencia estética: `anexos/referencia-dataverse-accelerator.md`.
-
-Los **SUPUESTOS** marcados así son respuestas que puse yo a preguntas que siguen abiertas; están para que el aprobador las corrija.
 
 ## 0. Decisiones de este documento
 
@@ -14,8 +12,10 @@ Los **SUPUESTOS** marcados así son respuestas que puse yo a preguntas que sigue
 | DA-02 | **Las transiciones se disparan con botones propios en la barra de comandos de la grilla de Filas, sobre varias filas seleccionadas a la vez.** Los que no piden dato (Digitada, Aprobar) actúan directo; los que piden motivo (Rechazada en AS400, Anular, Devolver) abren un **diálogo**. | Son unas 7.500 filas por mes: abrir cada una para cambiarle el estado es inviable. El comando moderno con Power Fx recibe las filas seleccionadas (`Self.Selected.AllItems`), así que la acción masiva es nativa. |
 | DA-03 | **El diálogo de motivo es una página custom pequeña, abierta como diálogo**: un texto, la lista de filas afectadas y dos botones. Es la **única** página custom de la fase 1. | La barra de comandos no tiene cómo pedir un texto. Una página custom en modo diálogo es el escalón que indica BP-PP-091 antes de JavaScript, y BP-PP-093 la prefiere a una canvas embebida. Es chica: no tiene listas grandes ni problemas de delegación. |
 | DA-04 | **La "bandeja de trabajo" como página custom completa** —lista de solicitudes a la izquierda, filas a la derecha, detalle en panel lateral, al estilo de la Accelerator— **queda para la versión 1.1**, después de la fase 1. | Es donde más rinde una página custom, pero es también lo más caro de la app. La fase 1 sale con la grilla nativa y sus comandos, que ya resuelven la acción masiva. |
-| DA-05 | **Controles modernos primero; Creator Kit solo si hace falta.** | El Creator Kit no tiene soporte oficial de Microsoft y obliga a instalar `CreatorKitCore` en Test y Prod antes que la solución. Para un diálogo de motivo alcanzan los controles modernos. |
+| DA-05 | **Solo controles modernos. El Creator Kit no se usa para nada.** | Decisión del aprobador: **ninguna dependencia externa** por ahora. El Creator Kit no tiene soporte oficial de Microsoft y obligaría a instalar `CreatorKitCore` en Test y Prod antes que la solución. |
 | DA-06 | **Se ocultan todos los comandos genéricos que no se usan**, en cada tabla: Eliminar, Asignar, Compartir, Flujo, Enviar vínculo, Combinar, y "Nuevo" donde el alta no es de una persona (Solicitud, Fila, ResultadoRegla, Bitácora). | Es lo que más ensucia una model-driven y lo más barato de arreglar. Además, varios de esos comandos ofrecen acciones que la matriz de privilegios no permite. |
+| DA-08 | **Notificaciones dentro de la app desde la fase 1** (campana de la model-driven, tabla nativa `appnotification`). Las crea el código de servidor, no los botones: la Custom API de validación y el plugin posterior a la transición. **Una por solicitud y por tanda, nunca una por fila.** | Decisión del aprobador. Avisos: al ejecutivo del cliente, cuando una solicitud suya deja filas por digitar; a los supervisores, cuando una solicitud pasa a tener filas por aprobar; al ejecutivo que digitó, cuando le devuelven filas; a todos los ejecutivos, cuando llega un correo no reconocido; a ejecutivos y supervisores, cuando una solicitud queda para revisar. Cada aviso abre la vista o la solicitud que corresponde. Es nativo: no agrega dependencias ni licencias. |
+| DA-09 | **Toda pantalla se valida primero en un mockup HTML 100 % funcional** (`diseno/mockups/`), con datos ficticios, antes de construir nada. | Estándar del aprobador para cualquier Power App (BP-PP-102): probar la interfaz y dar opinión cuesta minutos en un mockup y días en la plataforma. |
 | DA-07 | **La lógica no vive en los botones.** Un botón solo cambia `sanic_estado` (y `sanic_mensaje`); que la transición sea válida, quién puede hacerla y la segregación de funciones los decide el plugin (`03` §4). | BP-PP-051. Un usuario que llame al Web API sin pasar por la app encuentra las mismas reglas. La visibilidad de cada botón según el rol es comodidad, no seguridad. |
 
 ## 1. La app
@@ -84,14 +84,14 @@ En la grilla principal de Filas, en la subgrilla de Filas de la Solicitud y en e
 
 Una acción masiva puede fallar en algunas filas y en otras no (por ejemplo, el supervisor intenta aprobar una fila que él mismo digitó): el botón informa cuántas se aplicaron y cuáles no y por qué, y no deja nada a medias dentro de una misma fila.
 
-## 6. Supuestos sobre cómo trabaja la gente — a corregir por el aprobador
+## 6. Cómo trabaja la gente — confirmado por el aprobador el 2026-09-20
 
-1. **SUPUESTO — Unidad de trabajo.** El ejecutivo trabaja una **lista plana de filas por digitar**, ordenada por solicitud, y no entra solicitud por solicitud. Tiene la Solicitud a un clic si quiere ver el correo.
-2. **SUPUESTO — Acción masiva.** Selecciona varias filas y las marca juntas. El caso normal es "digité las 25 de esta plantilla".
-3. **SUPUESTO — Verificación del supervisor.** Le alcanza con las filas que extrajimos, y si duda **descarga el Excel original** desde la Solicitud. No hay visor del Excel dentro de la app en la fase 1.
-4. **SUPUESTO — No reconocidos.** Los ven **todos** los ejecutivos. Para decidir les alcanza con remitente, asunto y fecha, y si no, descargan el correo original. **Alternativa**: guardar también un extracto en texto del cuerpo (primeros 2.000 caracteres) en una columna nueva, para leerlo sin descargar. No lo agregué; decime si lo querés.
-5. **SUPUESTO — Catálogos.** El Administrador de planes carga **uno por uno en formularios**, y para cargas grandes usa la importación nativa desde Excel de model-driven. La migración inicial desde SharePoint es aparte (RF-16).
-6. **SUPUESTO — Avisos.** **No hay avisos** en la fase 1: la bandeja es la cola de trabajo. Las notificaciones dentro de la app son una mejora posterior barata.
+1. **Unidad de trabajo.** El ejecutivo trabaja una **lista plana de filas por digitar**, ordenada por solicitud, y no entra solicitud por solicitud. Tiene la Solicitud a un clic si quiere ver el correo.
+2. **Acción masiva.** Selecciona varias filas y las marca juntas. El caso normal es "digité las 25 de esta plantilla". La grilla ofrece además **"Seleccionar todas" y "Desmarcar todas"** como comandos visibles, no solo la casilla del encabezado.
+3. **Verificación del supervisor.** Le alcanza con las filas que extrajimos, y si duda **descarga el Excel original** desde la Solicitud. No hay visor del Excel dentro de la app en la fase 1.
+4. **No reconocidos.** Los ven **todos** los ejecutivos. Para decidir les alcanza con remitente, asunto y fecha, y si no, descargan el correo original.
+5. **Catálogos.** El Administrador de planes carga **uno por uno en formularios**, y para cargas grandes usa la importación nativa desde Excel de model-driven. La migración inicial desde SharePoint es aparte (RF-16).
+6. **Avisos.** **Notificaciones dentro de la app desde la fase 1** (DA-08).
 
 ## 7. Inventario que sale de este diseño (completa `06` §12)
 

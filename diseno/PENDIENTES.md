@@ -21,7 +21,7 @@ Cuando se reanude, lo primero es corregir dos observaciones del revisor en `herr
 
 | # | Documento | Qué necesita del aprobador |
 |---|---|---|
-| D-1 | `05-app-model-driven.md` | Corregir los **seis supuestos** de su §6 (unidad de trabajo, acción masiva, verificación del supervisor, no reconocidos y extracto del cuerpo, carga de catálogos, avisos), y aprobar que la fase 1 salga con grilla nativa + botones + un diálogo de motivo, dejando la bandeja custom para la 1.1. |
+| D-1 | `05-app-model-driven.md` | Decisiones DA-01 a DA-09 y los seis puntos de cómo trabaja la gente, **aprobados el 2026-09-20**. Falta la **opinión del aprobador sobre el mockup funcional**: `diseno/mockups/mantenimiento-ppp.html` (también publicado como artefacto privado). Lo que cambie en el mockup se pasa a `05` antes de escribir ningún playbook de la app. |
 | D-2 | `07-flujos.md` | Aprobar que desaparezca Flow B (DF-01) y responder sus cuatro preguntas: buzón compartido o propio; si este Dev es el definitivo; responder solo al remitente o a todos; **filtrar respuestas automáticas para no entrar en un bucle de correos**. |
 
 ## A. Para confirmar con negocio, sin apuro
