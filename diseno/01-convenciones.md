@@ -86,18 +86,21 @@ Ejemplo: `1.0.0.14` es el export 14 camino a la primera entrega; `1.1.0.3` la se
 | Paquete de plugins (dependent assemblies, por Open XML SDK) | `Sanic.Mppp.Plugins` (.NET Framework 4.6.2, firmado); en Dataverse `sanic_mppp_pkg_plugins` |
 | Namespace raíz | `Sanic.Mppp.Plugins` — **inmutable tras el primer registro** (renombrar tipos rompe el registro en silencio) |
 | Frameworks de destino | Librerías: **`net462;net8.0`**. net462 es lo que ejecuta el sandbox de Dataverse; net8.0 existe solo para que los tests corran en el puesto de trabajo Linux, que no tiene `mono` (verificado 2026-09-18). Compilar net462 en Linux requiere `Microsoft.NETFramework.ReferenceAssemblies`. Prohibido usar APIs que no existan en net462. |
-| Tests | `Sanic.Mppp.Plugins.Tests` (`net8.0`, xUnit, FakeXrmEasy, Strict TDD) |
+| Tests | `Sanic.Mppp.Plugins.Tests` (`net8.0`, xUnit, Strict TDD). **Sin FakeXrmEasy**: sus versiones 2.x y 3.x exigen licencia comercial paga (`docs/licencias-terceros.md`). El dominio se prueba con tests unitarios puros; la capa que toca `IOrganizationService` se prueba con un **doble propio en memoria**, que vive en el proyecto de tests |
 | Herramienta de histórico (fase 3) | `Sanic.Mppp.Historico` (Azure Function, .NET 8 isolated) |
 | Solución desempaquetada | `solution/` (`pac solution unpack`), sin binarios en git (BP-PP-130) |
 
 ```
 M-PPP/
-├── diseno/            ← estos documentos
+├── README.md          ← mapa del repositorio
+├── diseno/            ← diseño detallado (00 a 04), diagrama y PENDIENTES
+├── datos/             ← insumos versionados: plantilla del cliente, semillas de catálogos y parámetros. Sin datos reales de clientes
+├── herramientas/      ← utilidades del puesto de trabajo: pacx, generar_er.py. Una sola carpeta
 ├── src/               ← C# (plugins, tests, histórico)
 ├── solution/          ← solución desempaquetada
-├── datos/             ← semillas de catálogos y parámetros (JSON/CSV), sin datos reales de clientes
-├── spikes/            ← C-05, C-06 (código descartable, conclusiones en md)
-└── docs/              ← procedimientos de operación
+├── spikes/            ← C-05, C-06: código descartable, conclusiones en md
+├── docs/              ← procedimientos de operación
+└── local/             ← NO versionado: secretos y documentos de contexto
 ```
 
 ## 6. Valores de choice
@@ -111,9 +114,11 @@ Los valores numéricos usan el prefijo de opciones del publisher + correlativo d
 | Nombre de step de plugin: máximo **256** caracteres | Verificado en Learn (tabla `SdkMessageProcessingStep`), 2026-09-18. El más largo previsto ronda los 65. |
 | Schema name de relación: máximo **100** caracteres | Verificado en Learn (tabla `EntityRelationship`), 2026-09-18. |
 | El `UniqueName` de un parámetro de Custom API puede repetirse entre APIs distintas; los parámetros se identifican por nombre | Verificado en Learn (`CustomAPI tables`), 2026-09-18. |
-| Largo máximo del nombre lógico de **tabla** (`sanic_mppp_tbl_` ya gasta 15) | **Pendiente**: comprobar en el entorno al crear la primera tabla. |
-| Security role, column security profile y cloud flow no tienen nombre lógico | **Pendiente**: afirmado por conocimiento de la plataforma, no verificado hoy. |
-| Una connection reference creada desde el maker portal recibe un sufijo aleatorio; creada por archivo de solución o API conserva el nombre exacto | **Pendiente**. Se prefiere sin sufijo; con sufijo es aceptable. |
-| Si el `uniquename` de un parámetro de Custom API exige prefijo de publisher | **Pendiente**. Si lo exigiera, se usa `sanic_<nombre>`. |
+| Largo máximo del nombre lógico de **tabla** | Verificado en Dev el 2026-09-20: **95 caracteres** por identificador ("Identifiers cannot be more than 95 characters long"). Se crearon y borraron tablas de prueba de 51 y 65. La más larga del proyecto tiene 31. |
+| Security role y column security profile no tienen nombre lógico | Verificado en los metadatos de Dev el 2026-09-20: `role` y `fieldsecurityprofile` solo tienen `name`. |
+| Cloud flow | **Corrección**: la tabla `workflow` **sí** tiene una columna `uniquename`, y admite valor al crear. Falta comprobar, al construir el primer flujo, si Power Automate la respeta en un cloud flow; si la respeta, aplica el nombre lógico `sanic_mppp_cloudflow_<nombre>` que pedía el aprobador. Hasta entonces, solo display name. |
+| Una connection reference creada por API conserva el nombre exacto, sin sufijo | Verificado en Dev el 2026-09-20 (`sanic_mppp_conr_zzdummy`, creada y borrada). Las connection references del proyecto se crean por API o por archivo de solución, no desde el maker portal. |
+| El `uniquename` de un parámetro de Custom API **no** exige prefijo de publisher | Verificado en Dev el 2026-09-20: se aceptó `solicitudid` sin prefijo. |
+| La solución existe en Dev | Creada el 2026-09-20: `sanic_mppp_sol_mantenimientoppp`, «SOL - MPPP - Mantenimiento PPP», versión `1.0.0.0`, unmanaged, publisher `Sistemas_Abiertos_Nicaragua`. Vacía. |
 | Unique name del publisher y prefijo numérico de opciones | Verificado en Dev el 2026-09-20: `Sistemas_Abiertos_Nicaragua`, `15946`. Existe un segundo publisher con prefijo `sanic` ("Sanic Corp", `10000`). |
 | `pac` se cuelga sin error en una sesión sin escritorio | Resuelto el 2026-09-20: es el llavero de GNOME por D-Bus. Se usa `herramientas/pacx`, que aísla a `pac` del llavero; quitar solo `DBUS_SESSION_BUS_ADDRESS` no alcanza, porque D-Bus encuentra el bus por `XDG_RUNTIME_DIR`. Perfil del proyecto: `MPPP-DEV`. |

@@ -196,4 +196,4 @@ Sanic.Mppp.Plugins/
 └── Datos/          IRepositorio… sobre IOrganizationService
 ```
 
-`Dominio`, `Validacion` y `Respuesta` no conocen Dataverse: se prueban con tests unitarios puros. Solo `Api`, `Steps` y `Datos` usan FakeXrmEasy. Eso es lo que hace barato el TDD estricto acá.
+`Dominio`, `Validacion` y `Respuesta` no conocen Dataverse: se prueban con tests unitarios puros. Solo `Api`, `Steps` y `Datos` tocan `IOrganizationService`, y se prueban contra un **doble propio en memoria** (`OrganizationServiceEnMemoria`, en el proyecto de tests): guarda entidades en un diccionario, resuelve `Create`, `Retrieve`, `Update`, `RetrieveMultiple` por igualdad y por lista, y `Execute` para los pocos mensajes que el código usa. **No se usa FakeXrmEasy**: exige licencia comercial paga para uso en una empresa (`docs/licencias-terceros.md`). Lo que el doble no puede probar —el pipeline real, la transacción, la seguridad— se prueba en Dev, no se simula. Cuanto más fina sea la capa `Datos`, más barato es el TDD estricto acá.

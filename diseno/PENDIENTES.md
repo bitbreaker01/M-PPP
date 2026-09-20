@@ -10,20 +10,13 @@ La matriz de obligatoriedad arranca con **todo obligatorio salvo Referencia** (D
 
 ## B. Verificaciones contra el entorno
 
-`pac` ya funciona desde la sesión remota con `herramientas/pacx` (perfil `MPPP-DEV`). Verificado: publisher `Sistemas_Abiertos_Nicaragua`, prefijo de opciones `15946`; hay un segundo publisher con prefijo `sanic` ("Sanic Corp") que no se debe usar.
-
-Falta comprobar, al crear los primeros componentes:
-
-- Largo máximo del nombre lógico de tabla (`sanic_mppp_tbl_` ya gasta 15 caracteres).
-- Que security role, column security profile y cloud flow no tienen nombre lógico.
-- Si una connection reference creada por archivo de solución conserva el nombre exacto, sin sufijo.
-- Si el `uniquename` de un parámetro de Custom API exige prefijo de publisher.
+Todas hechas el 2026-09-20 y asentadas en `01-convenciones.md` §7. Queda una sola, que se cierra al construir el primer flujo: si Power Automate respeta la columna `uniquename` en un cloud flow.
 
 ## C. Parte B del spike C-05 (dentro de Dataverse)
 
 La parte A quedó cerrada sin tercera revisión, por decisión del aprobador. Falta, ya con entorno:
 
-- Open XML SDK como ensamblado dependiente dentro del sandbox, y cuánto tarda de verdad.
+- Open XML SDK como ensamblado dependiente dentro del sandbox, y cuánto tarda de verdad. En net462 el paquete se apoya en `WindowsBase`, un ensamblado del framework: comprobar que el sandbox lo tiene.
 - Atomicidad de la Custom API: provocar una excepción después de crear filas y comprobar que no queda nada.
 - Que `InitiatingUserId` se conserva en el `Update` anidado que hace el plugin como SYSTEM (si no, el actor viaja por `SharedVariables`).
 - Que la comparación de claves alternativas no distingue mayúsculas.

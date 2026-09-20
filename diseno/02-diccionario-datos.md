@@ -10,7 +10,7 @@ Convenciones en `01-convenciones.md` (estándar BP-PP-181 a BP-PP-195). Tipos: `
 
 ![Modelo de datos de Mantenimiento PPP](02-modelo-datos.svg)
 
-Se **genera**, no se dibuja a mano: `python3 diseno/herramientas/generar_er.py`. Cuando cambia este diccionario, se actualiza el modelo declarado en ese script y se regenera.
+Se **genera**, no se dibuja a mano: `python3 herramientas/generar_er.py`. Cuando cambia este diccionario, se actualiza el modelo declarado en ese script y se regenera.
 
 ## 0. Decisiones de este documento
 
