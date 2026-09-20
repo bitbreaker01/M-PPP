@@ -13,14 +13,16 @@ Se limpia a medida que se decide. **Cuando quede vacío, se elimina.** Nada de l
 
 ## 00. Construcción: DETENIDA por orden del aprobador (2026-09-20)
 
-No se construye ningún componente hasta que la app (`05`) y los flujos (`07`) estén diseñados y el aprobador haya revisado todo y dé la orden.
+No se construye ningún componente hasta que el aprobador revise el diseño de la app (`05`) y de los flujos (`07`) y dé la orden. **Dev está vacío**: existe solo la solución `sanic_mppp_sol_mantenimientoppp`, sin componentes (el choice de prueba del ciclo 1 se borró el 2026-09-20 por orden del aprobador).
 
-Lo único construido en Dev: la solución `sanic_mppp_sol_mantenimientoppp` y el choice global `sanic_mppp_ch_moneda` (ciclo de aprendizaje 1, cerrado: aprobado con observaciones). **Decisión pendiente del aprobador: dejar ese choice o borrarlo** (se puede mientras ninguna columna lo use).
+Cuando se reanude, lo primero es corregir dos observaciones del revisor en `herramientas/construir/choice_global.py`: (1) un estado HTTP no previsto en una consulta de precondición se informa como `bloqueado` y según la receta es `error`; (2) la fase de validación sin red no tiene contención propia y falta la prueba de tipo de `prefijo_opciones`. Ninguna hace que se cree nada de más.
 
-Cuando se reanude, lo primero es corregir dos observaciones del revisor en `herramientas/construir/choice_global.py`, antes de construir el segundo choice:
+## 0. Diseño en revisión
 
-1. Un estado HTTP no previsto en una consulta de **precondición** (solución, idioma base, idiomas provisionados) se informa como `bloqueado`; según la receta vigente es `error`. No crea nada en ningún caso: es un mensaje equivocado, no un riesgo.
-2. La fase de validación sin red no tiene red de contención propia, y falta la prueba de rechazo por tipo de `prefijo_opciones`.
+| # | Documento | Qué necesita del aprobador |
+|---|---|---|
+| D-1 | `05-app-model-driven.md` | Corregir los **seis supuestos** de su §6 (unidad de trabajo, acción masiva, verificación del supervisor, no reconocidos y extracto del cuerpo, carga de catálogos, avisos), y aprobar que la fase 1 salga con grilla nativa + botones + un diálogo de motivo, dejando la bandeja custom para la 1.1. |
+| D-2 | `07-flujos.md` | Aprobar que desaparezca Flow B (DF-01) y responder sus cuatro preguntas: buzón compartido o propio; si este Dev es el definitivo; responder solo al remitente o a todos; **filtrar respuestas automáticas para no entrar en un bucle de correos**. |
 
 ## A. Para confirmar con negocio, sin apuro
 

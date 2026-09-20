@@ -1,6 +1,6 @@
 # 06. Inventario de componentes
 
-Proyecto: 2026-001-referencias-planes-pago · Etapa 3 · Estado: **borrador**. Completo para datos, seguridad, lógica y configuración. **Incompleto para la app y para los flujos, que todavía no están diseñados** (`05-app-model-driven.md` y `07-flujos.md`, pendientes): de los flujos se sabe cuántos son y qué hace cada uno, no cómo.
+Proyecto: 2026-001-referencias-planes-pago · Etapa 3 · Estado: **borrador**. Completo. La app y los flujos ya están diseñados (`05-app-model-driven.md`, `07-flujos.md`), **en borrador y pendientes de la revisión del aprobador**; su parte de este inventario puede cambiar con esa revisión.
 
 Todo lo que hay que crear, en el orden en que se puede crear. Cada componente se construye a partir de un **playbook**: una especificación en Markdown, cerrada y sin ambigüedad, que ejecuta un agente constructor y audita un agente revisor. La columna **Tipo de playbook** agrupa los componentes que comparten formato de especificación y receta de construcción: son **14 tipos**, y esa es la medida real del trabajo de escribir las skills.
 
@@ -21,8 +21,9 @@ Mecanismo de creación: **Web API de Dataverse**, con una herramienta versionada
 | P-09 Registro de Custom API y steps | 1 API (7 parámetros), ~17 steps | 2 API | | nombre de API y de parámetros |
 | P-10 Datos semilla | 10 parámetros, 14 reglas | 1 parámetro | 2 parámetros | |
 | P-11 Environment variable y connection reference | 2 + 2 | | +2 | nombre |
-| P-12 Cloud flow | 4, **sin diseñar** | | | |
-| P-13 App model-driven: sitemap, vistas, formularios, comandos | **sin diseñar** | | | |
+| P-12 Cloud flow | 5 (3 con disparador, 2 hijos) | | | |
+| P-13 App model-driven: app, sitemap, ~16 vistas, 9 formularios, 8 comandos, ~10 íconos | ver §12 | | página custom de la bandeja (v1.1) | |
+| P-15 Página custom (canvas, **no la construye un agente solo**) | 1: diálogo de motivo | | | |
 | P-14 Identidades y puesta en marcha | cuenta de servicio, buzón | usuario de aplicación del RPA | usuario de aplicación e infraestructura Azure | |
 
 ## 1. Base
@@ -167,20 +168,31 @@ Un solo paquete, `sanic_mppp_pkg_plugins` (`Sanic.Mppp.Plugins`). Se construye p
 | 10.4 | Connection reference | `sanic_mppp_conr_dataverse` | 1 |
 | 10.5 | Environment variables del almacenamiento del histórico | por definir | 3 |
 
-## 11. Flujos — P-12 · **SIN DISEÑAR**
+## 11. Flujos — P-12 (`07-flujos.md`)
 
-Se sabe qué hace cada uno (`03` §6 y la definición). Falta diseñar, para cada flujo: disparador exacto y su filtro de columnas; acciones y expresiones; cómo se obtiene el Message-ID y se exporta el correo; cómo se suben los archivos a las columnas de archivo; política de reintentos y control de concurrencia; qué pasa ante cada error; desde qué buzón y cómo se envía cada comunicación; la consulta exacta del flujo de vigilancia. De eso depende el "como máximo una vez" de las dos comunicaciones. Se diseña en `07-flujos.md`.
+| # | Flujo | Disparador | Depende de |
+|---|---|---|---|
+| 11.1 | `Cloud Flow - MPPP - I - Ingerir correo` | hijo | tabla 3.7, Custom API 8.1, 10.1–10.4 |
+| 11.2 | `Cloud Flow - MPPP - A - Ingesta` | correo nuevo en el buzón | 11.1 |
+| 11.3 | `Cloud Flow - MPPP - E - Enviar comunicación` | hijo | tabla 3.7 |
+| 11.4 | `Cloud Flow - MPPP - C - Comunicaciones` | cambio de estado de la Solicitud | 11.3 |
+| 11.5 | `Cloud Flow - MPPP - W - Vigilancia` | cada 10 minutos | 11.1, 11.3, parámetros 9.1 |
 
-| # | Flujo | Depende de |
-|---|---|---|
-| 11.1 | `Cloud Flow - MPPP - A - Ingesta` | tabla 3.7, 10.1–10.4 |
-| 11.2 | `Cloud Flow - MPPP - B - Validación` | Custom API 8.1 |
-| 11.3 | `Cloud Flow - MPPP - C - Respuesta` | tabla 3.7 |
-| 11.4 | `Cloud Flow - MPPP - W - Vigilancia` | 11.1, 11.2, parámetros 9.1 |
+Desaparece el Flow B de la definición (`07` DF-01). Los hijos se construyen antes que quienes los llaman.
 
-## 12. App model-driven — P-13 · **SIN DISEÑAR**
+## 12. App model-driven — P-13 y P-15 (`05-app-model-driven.md`)
 
-Lo único decidido: una sola app (`sanic_mppp_mda_mantenimientoppp`, D-12), con cuatro perfiles, y una vista por defecto "mis clientes" sobre Fila (D-13). Falta decidir, y por eso no se puede inventariar: áreas del sitemap, vistas por perfil, formularios por tabla, **con qué gesto se dispara cada transición** (botón, edición del campo, acción masiva), cómo ve el supervisor el Excel original junto a las filas, tableros e indicador de tiempo de ciclo. Se diseña en `05-app-model-driven.md`.
+| # | Componente | Cantidad | Depende de |
+|---|---|---|---|
+| 12.1 | Íconos SVG (web resources) | ~10 | |
+| 12.2 | Vistas | ~16 | tablas y relaciones |
+| 12.3 | Formularios principales | 9 | tablas, vistas (subgrillas) |
+| 12.4 | Página custom: diálogo de motivo | 1 | tabla 3.8 · **se arma en Power Apps Studio** |
+| 12.5 | Comandos propios | 8 | 12.4, plugin de transición 7.9 |
+| 12.6 | Ocultamiento de comandos genéricos | 10 tablas | |
+| 12.7 | Sitemap | 1 | 12.1, 12.2 |
+| 12.8 | App `sanic_mppp_mda_mantenimientoppp` | 1 | 12.2, 12.3, 12.7, roles 6.2–6.5 |
+| 12.9 | Página custom "bandeja de trabajo" | 1 | **versión 1.1**, fuera de la fase 1 |
 
 ## 13. Identidades y puesta en marcha — P-14
 

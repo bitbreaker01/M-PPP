@@ -152,6 +152,7 @@ Semillas de nivel **Registro**: `LISTAS_VALIDAS` · `LARGOS_Y_FORMATO` · `PLAN_
 |---|---|---|---|
 | `sanic_nombre` | T(100) autonumérico | S | `MPPP-{SEQNUM:8}`. Es lo que se le cita al cliente. Se conserva al reactivar. |
 | `sanic_messageid` | T(450) | S | **Clave** `sanic_mppp_key_solicitud_messageid` (DD-03). |
+| `sanic_outlookmessageid` | T(500) | | Identificador de Outlook del correo **después de moverlo** a la carpeta de procesados; es el que permite responder en el hilo (`07` DF-04). No es clave: cambia si el correo se mueve. |
 | `sanic_remitente` | T(320) | S | |
 | `sanic_asunto` | T(400) | | |
 | `sanic_fecharecibido` | F | S | Fecha del correo en el buzón. **Inicio del tiempo de ciclo.** |
