@@ -11,6 +11,17 @@ Se limpia a medida que se decide. **Cuando quede vacío, se elimina.** Nada de l
 | D-1 | **La app model-driven** (`05-app-model-driven.md`): sitemap, vistas por perfil, formularios, con qué gesto se dispara cada transición, cómo ve el supervisor la solicitud original. | Respuestas del aprobador a seis preguntas: unidad de trabajo del ejecutivo (bandeja de filas o por solicitud); acciones masivas sobre varias filas; qué necesita ver el supervisor; bandeja de no reconocidos y si hace falta el cuerpo del correo en texto; carga de catálogos uno a uno o por importación; avisos de trabajo nuevo. |
 | D-2 | **Los cuatro flujos** (`07-flujos.md`): disparadores, acciones, expresiones, errores, reintentos, concurrencia. | Lo diseña el arquitecto; necesita del aprobador el nombre del buzón y cómo se envían las respuestas (desde el buzón dedicado, como respuesta al hilo o como correo nuevo). |
 
+## 00. Construcción: DETENIDA por orden del aprobador (2026-09-20)
+
+No se construye ningún componente hasta que la app (`05`) y los flujos (`07`) estén diseñados y el aprobador haya revisado todo y dé la orden.
+
+Lo único construido en Dev: la solución `sanic_mppp_sol_mantenimientoppp` y el choice global `sanic_mppp_ch_moneda` (ciclo de aprendizaje 1, cerrado: aprobado con observaciones). **Decisión pendiente del aprobador: dejar ese choice o borrarlo** (se puede mientras ninguna columna lo use).
+
+Cuando se reanude, lo primero es corregir dos observaciones del revisor en `herramientas/construir/choice_global.py`, antes de construir el segundo choice:
+
+1. Un estado HTTP no previsto en una consulta de **precondición** (solución, idioma base, idiomas provisionados) se informa como `bloqueado`; según la receta vigente es `error`. No crea nada en ningún caso: es un mensaje equivocado, no un riesgo.
+2. La fase de validación sin red no tiene red de contención propia, y falta la prueba de rechazo por tipo de `prefijo_opciones`.
+
 ## A. Para confirmar con negocio, sin apuro
 
 La matriz de obligatoriedad arranca con **todo obligatorio salvo Referencia** (DD-16). Cuando se quiera flexibilizar, se cambia el parámetro `plantilla.obligatoriedad`; no hay código que tocar. El aprobador va a escribir la versión detallada. Lo ya respondido está en `02-diccionario-datos.md`, DD-12 a DD-17.
