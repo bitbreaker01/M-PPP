@@ -63,10 +63,12 @@ Uno principal por tabla, **una sola pestaña**, sin pestaña de "Relacionados" v
 |---|---|---|
 | **Fila** | Encabezado: Estado, Solicitud, n.º de fila. *Gestión* (los diez datos de la plantilla, más la referencia recibida). *Resultado* (Mensaje). *Trazabilidad* (validada, digitada por y cuándo, aprobada por y cuándo). | **Todo de solo lectura.** El estado se cambia con los botones; la lista blanca de columnas del plugin rechazaría cualquier otra edición (`04` §1). |
 | **Solicitud** | Encabezado: Número, Estado, Remitente. *Correo* (recibido, asunto, archivos: correo original y Excel, para descargar). *Filas* (subgrilla con las filas y los mismos botones). *Reglas* (subgrilla de ResultadoRegla). *Comunicaciones* (acuse y respuesta final: cuándo y qué se dijo). *Bitácora* (subgrilla). | Solo lectura. |
-| **Cliente** | Nombre, CIFBAC, CIFCOM, Ejecutivo asignado. Subgrillas: Planes, Autorizados. | Administrador de planes |
-| **Plan** | Código, Cliente, Moneda, Tipo de formato. Subgrilla: Autorizaciones. | Administrador de planes |
-| **Autorizado** | Correo, Cliente, Documento firmado, Fecha. Subgrilla: Planes autorizados. | Administrador de planes |
+| **Cliente** | Nombre, CIFBAC, CIFCOM, Ejecutivo asignado. Subgrilla **Planes del cliente** (código, moneda, tipo de formato, cantidad de correos autorizados, estado). Subgrilla **Correos autorizados del cliente** (correo, planes que puede modificar, estado). | Administrador de planes |
+| **Plan** | Código, Cliente (el lookup lleva al cliente), Moneda, Tipo de formato. Subgrilla **Correos autorizados sobre este plan** (correo, documento, estado), sobre AutorizacionPlan. | Administrador de planes |
+| **Autorizado** | Correo, Cliente (el lookup lleva al cliente), Documento firmado, Fecha. Subgrilla **Planes que puede modificar** (código, moneda, tipo de formato, estado del plan), sobre AutorizacionPlan; desde ahí el Administrador de planes autoriza un plan o quita la autorización (desactiva el renglón, no lo borra). Solo se ofrecen planes del mismo cliente. | Administrador de planes |
 | **Parámetro** · **Regla** | Sus columnas; el valor JSON en un área de texto grande. | Administrador técnico |
+
+**Navegación entre catálogos** (pedido del aprobador sobre el mockup, 2026-09-20). Desde un Cliente se ven sus planes y sus correos autorizados; desde un Plan se viaja a su cliente y se ven los correos autorizados sobre él; desde un Autorizado se ven los planes que puede modificar. Desde una Fila, el Plan y el Cliente son enlaces. Todo con lo nativo: lookups y subgrillas; "Volver" regresa al registro anterior, no a la lista. La subgrilla de un Plan y la de un Autorizado muestran la misma tabla, AutorizacionPlan, vista desde cada lado: hacen falta dos vistas de esa tabla, una por lado (`06`).
 
 ## 5. Comandos
 

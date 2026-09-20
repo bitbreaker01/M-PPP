@@ -22,7 +22,7 @@ Mecanismo de creación: **Web API de Dataverse**, con una herramienta versionada
 | P-10 Datos semilla | 12 parámetros, 15 reglas | 1 parámetro | 2 parámetros | |
 | P-11 Environment variable y connection reference | 2 + 2 | | +2 | nombre |
 | P-12 Cloud flow | 5 (3 con disparador, 2 hijos) | | | |
-| P-13 App model-driven: app, sitemap, ~16 vistas, 9 formularios, 8 comandos, ~10 íconos | ver §12 | | página custom de la bandeja (v1.1) | |
+| P-13 App model-driven: app, sitemap, ~18 vistas, 9 formularios, 8 comandos, ~10 íconos | ver §12 | | página custom de la bandeja (v1.1) | |
 | P-15 Página custom (canvas, **no la construye un agente solo**) | 1: diálogo de motivo | | | |
 | P-14 Identidades y puesta en marcha | cuenta de servicio, buzón | usuario de aplicación del RPA | usuario de aplicación e infraestructura Azure | |
 
@@ -187,7 +187,7 @@ Desaparece el Flow B de la definición (`07` DF-01). Los hijos se construyen ant
 | # | Componente | Cantidad | Depende de |
 |---|---|---|---|
 | 12.1 | Íconos SVG (web resources) | ~10 | |
-| 12.2 | Vistas | ~16 | tablas y relaciones |
+| 12.2 | Vistas | ~18 | tablas y relaciones. Incluye las dos de AutorizacionPlan para subgrillas: "correos autorizados sobre un plan" y "planes que puede modificar un correo" (`05` §formularios) |
 | 12.3 | Formularios principales | 9 | tablas, vistas (subgrillas) |
 | 12.4 | Página custom: diálogo de motivo | 1 | tabla 3.8 · **se arma en Power Apps Studio** |
 | 12.5 | Comandos propios | 8 | 12.4, plugin de transición 7.9 |
