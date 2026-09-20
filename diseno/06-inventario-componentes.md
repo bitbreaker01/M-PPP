@@ -1,6 +1,6 @@
 # 06. Inventario de componentes
 
-Proyecto: 2026-001-referencias-planes-pago · Etapa 3 · Estado: **borrador**. Completo para datos, seguridad, lógica, configuración y flujos; **incompleto para la app**, que todavía no está diseñada (`05`, pendiente).
+Proyecto: 2026-001-referencias-planes-pago · Etapa 3 · Estado: **borrador**. Completo para datos, seguridad, lógica y configuración. **Incompleto para la app y para los flujos, que todavía no están diseñados** (`05-app-model-driven.md` y `07-flujos.md`, pendientes): de los flujos se sabe cuántos son y qué hace cada uno, no cómo.
 
 Todo lo que hay que crear, en el orden en que se puede crear. Cada componente se construye a partir de un **playbook**: una especificación en Markdown, cerrada y sin ambigüedad, que ejecuta un agente constructor y audita un agente revisor. La columna **Tipo de playbook** agrupa los componentes que comparten formato de especificación y receta de construcción: son **14 tipos**, y esa es la medida real del trabajo de escribir las skills.
 
@@ -21,7 +21,7 @@ Mecanismo de creación: **Web API de Dataverse** con scripts versionados (`herra
 | P-09 Registro de Custom API y steps | 1 API (7 parámetros), ~17 steps | 2 API | | nombre de API y de parámetros |
 | P-10 Datos semilla | 10 parámetros, 14 reglas | 1 parámetro | 2 parámetros | |
 | P-11 Environment variable y connection reference | 2 + 2 | | +2 | nombre |
-| P-12 Cloud flow | 4 | | | |
+| P-12 Cloud flow | 4, **sin diseñar** | | | |
 | P-13 App model-driven: sitemap, vistas, formularios, comandos | **sin diseñar** | | | |
 | P-14 Identidades y puesta en marcha | cuenta de servicio, buzón | usuario de aplicación del RPA | usuario de aplicación e infraestructura Azure | |
 
@@ -167,7 +167,9 @@ Un solo paquete, `sanic_mppp_pkg_plugins` (`Sanic.Mppp.Plugins`). Se construye p
 | 10.4 | Connection reference | `sanic_mppp_conr_dataverse` | 1 |
 | 10.5 | Environment variables del almacenamiento del histórico | por definir | 3 |
 
-## 11. Flujos — P-12
+## 11. Flujos — P-12 · **SIN DISEÑAR**
+
+Se sabe qué hace cada uno (`03` §6 y la definición). Falta diseñar, para cada flujo: disparador exacto y su filtro de columnas; acciones y expresiones; cómo se obtiene el Message-ID y se exporta el correo; cómo se suben los archivos a las columnas de archivo; política de reintentos y control de concurrencia; qué pasa ante cada error; desde qué buzón y cómo se envía cada comunicación; la consulta exacta del flujo de vigilancia. De eso depende el "como máximo una vez" de las dos comunicaciones. Se diseña en `07-flujos.md`.
 
 | # | Flujo | Depende de |
 |---|---|---|

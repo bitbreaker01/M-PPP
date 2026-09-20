@@ -13,6 +13,7 @@ Proyecto: 2026-001-referencias-planes-pago · Etapa 3 · Estado: **secciones 1 a
 | Prefijo de publisher | `sanic` |
 | Abreviatura de la solución | `MPPP` / `mppp` |
 | Nombre completo | Mantenimiento PPP |
+| Idioma base del entorno | **1033 (inglés)**, y es el único provisionado (verificado en Dev el 2026-09-20). Las etiquetas van **en español, bajo el LCID 1033**, como en las demás soluciones del publisher. Nunca 3082: la plataforma lo acepta sin error y el componente queda sin nombre visible |
 | Excepciones al estándar | Ninguna |
 
 ## 1. Las tres reglas que gobiernan todo
