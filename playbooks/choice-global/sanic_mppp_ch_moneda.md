@@ -2,19 +2,26 @@
 
 ## 1. Identidad
 
-| Dato | Valor | De dónde sale |
-|---|---|---|
-| Tipo de playbook | `choice-global`, skill `power-platform-especificar` 0.1.0 | |
-| Proyecto | 2026-001-referencias-planes-pago (Mantenimiento PPP) | |
-| Componente del inventario | 2.1 | `diseno/06-inventario-componentes.md` §2 |
-| Fase | 1 | |
-| Entorno | Dev · `https://org36e60d9d.crm.dynamics.com/` | `diseno/01-convenciones.md` §0 |
-| Solución | `sanic_mppp_sol_mantenimientoppp` | `diseno/01-convenciones.md` §7 |
-| Publisher | unique name **`Sistemas_Abiertos_Nicaragua`** (no confundir con "Sanic Corp", unique name `sanic`, que comparte el prefijo) | `diseno/01-convenciones.md` §0 |
-| Prefijo | `sanic` | ídem |
-| Prefijo numérico de opciones | `15946` | ídem, verificado en Dev el 2026-09-20 |
-| Idioma de las etiquetas | LCID `1033`: idioma base y único provisionado. Las etiquetas van en español bajo 1033 | ídem |
-| Definición del componente | `diseno/02-diccionario-datos.md` §1, fila `sanic_mppp_ch_moneda` | |
+```json
+{
+  "tipo_playbook": "choice-global",
+  "version_skill": "0.1.0",
+  "proyecto": "2026-001-referencias-planes-pago",
+  "inventario": "2.1",
+  "fase": 1,
+  "entorno_url": "https://org36e60d9d.crm.dynamics.com/",
+  "solucion": "sanic_mppp_sol_mantenimientoppp",
+  "publisher": "Sistemas_Abiertos_Nicaragua",
+  "prefijo": "sanic",
+  "abrev": "mppp",
+  "prefijo_opciones": 15946,
+  "lcid": 1033
+}
+```
+
+De dónde sale cada dato: todos de `diseno/01-convenciones.md` §0 y §7, verificados contra Dev el 2026-09-20. El componente está definido en `diseno/02-diccionario-datos.md` §1 y figura en `diseno/06-inventario-componentes.md` §2.
+
+Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic Corp", con otro unique name y prefijo de opciones 10000; no es el de este proyecto. El idioma base del entorno es inglés y es el único provisionado: las etiquetas van en español bajo ese LCID.
 
 ## 2. Qué se crea
 
@@ -24,7 +31,6 @@
   "nombre": "sanic_mppp_ch_moneda",
   "displayname": "CH - MPPP - Moneda",
   "descripcion": "Moneda de un plan de pago o de la cuenta de una referencia. La usan las tablas Plan y Fila.",
-  "lcid": 1033,
   "opciones": [
     { "valor": 159460001, "etiqueta": "COR", "descripcion": "Córdoba" },
     { "valor": 159460002, "etiqueta": "USD", "descripcion": "Dólar estadounidense" }
@@ -34,11 +40,13 @@
 
 ## 3. Precondiciones
 
-| # | Qué tiene que cumplirse | Cómo se comprueba | Esperado |
-|---|---|---|---|
-| 1 | La solución existe y es del publisher correcto | `GET solutions?$select=uniquename,ismanaged&$expand=publisherid($select=uniquename,customizationoptionvalueprefix)&$filter=uniquename eq 'sanic_mppp_sol_mantenimientoppp'` | Una fila; `ismanaged = false`; publisher `Sistemas_Abiertos_Nicaragua`; prefijo de opciones `15946` |
-| 2 | El idioma de las etiquetas es el base y está provisionado | `GET organizations?$select=languagecode` y `GET RetrieveProvisionedLanguages` | `1033` en los dos |
-| 3 | Todos los valores están en el rango del publisher | Cálculo local | `159460000 ≤ valor < 159470000` |
+Las de la receta (`patrones.md` §2.1), con estos valores esperados:
+
+| # | Qué tiene que cumplirse | Esperado |
+|---|---|---|
+| 1 | La solución existe, no es managed, y su publisher coincide en unique name, prefijo y prefijo de opciones | los de la sección 1 |
+| 2 | Todos los valores están en el rango del publisher | `159460000 ≤ valor < 159470000` |
+| 3 | El `lcid` es el idioma base y está provisionado | `1033` en los dos |
 
 Si alguna falla: estado `bloqueado`, no se crea nada.
 
@@ -46,7 +54,7 @@ Si alguna falla: estado `bloqueado`, no se crea nada.
 
 Receta: `power-platform-construir`, `references/modelo-datos/patrones.md` §2.1 "Choice global", con el contrato de herramientas de su §1.
 
-Herramienta del proyecto: `herramientas/construir/choice_global.py`. **Todavía no existe: este es el primer playbook de este tipo, así que el constructor la escribe** siguiendo ese contrato, usando `herramientas/dataverse_api.py` como cliente (sin abrir nunca `local/pp_secrets.env`), y después la ejecuta:
+Herramienta del proyecto: `herramientas/construir/choice_global.py`.
 
 ```
 python3 herramientas/construir/choice_global.py playbooks/choice-global/sanic_mppp_ch_moneda.md
@@ -58,17 +66,19 @@ python3 herramientas/construir/choice_global.py playbooks/choice-global/sanic_mp
 python3 herramientas/construir/choice_global.py playbooks/choice-global/sanic_mppp_ch_moneda.md --solo-verificar
 ```
 
+Las comprobaciones de la receta, con estos valores esperados:
+
 | # | Comprobación | Esperado |
 |---|---|---|
 | 1 | `GET GlobalOptionSetDefinitions(Name='sanic_mppp_ch_moneda')` | 200 · `IsGlobal = true` · `OptionSetType = Picklist` · `IsManaged = false` |
-| 2 | Display name en 1033 | `CH - MPPP - Moneda` |
-| 3 | Opciones, en orden | `159460001 = COR`, `159460002 = USD`; ninguna más |
-| 4 | Pertenece a `sanic_mppp_sol_mantenimientoppp` | Una fila en `solutioncomponents` de esa solución con el `MetadataId` del choice |
-| 5 | Segunda ejecución de la herramienta sin `--solo-verificar` | Estado `ya_existia`, código de salida 0, y no cambia nada |
+| 2 | Display name y descripción en 1033 | los de la sección 2 |
+| 3 | Opciones, en orden, con valor, etiqueta y descripción | `159460001 = COR`, `159460002 = USD`; ninguna más; ninguna etiqueta en otro idioma |
+| 4 | Pertenece a la solución de la sección 1 | exactamente una fila en `solutioncomponents` |
+| 5 | Segunda ejecución de la herramienta sin `--solo-verificar` | estado `ya_existia`, código de salida 0, no cambia nada |
 
 ## 6. Si ya existe
 
-Se compara: `Name`, display name en 1033, `IsGlobal`, `OptionSetType`, y la lista ordenada de pares valor-etiqueta. Si todo coincide: `ya_existia`. Si algo difiere: `difiere`, con la diferencia exacta, **sin tocar nada**.
+Se hacen todas las comprobaciones de la sección 5. Si todas pasan: `ya_existia`. Si alguna no: `difiere`, con la diferencia exacta, **sin tocar nada**.
 
 ## 7. Reversa
 
