@@ -4,7 +4,7 @@ Proyecto: 2026-001-referencias-planes-pago · Etapa 3 · Estado: **borrador**. C
 
 Todo lo que hay que crear, en el orden en que se puede crear. Cada componente se construye a partir de un **playbook**: una especificación en Markdown, cerrada y sin ambigüedad, que ejecuta un agente constructor y audita un agente revisor. La columna **Tipo de playbook** agrupa los componentes que comparten formato de especificación y receta de construcción: son **14 tipos**, y esa es la medida real del trabajo de escribir las skills.
 
-Mecanismo de creación: **Web API de Dataverse** con scripts versionados (`herramientas/dataverse_api.py`), repetibles en Test y Prod. Estado: `hecho` · `pendiente` · `bloqueado por …`.
+Mecanismo de creación: **Web API de Dataverse**, con una herramienta versionada por tipo de playbook (`herramientas/construir/`). Esas herramientas construyen **solo en Dev**; a Test y a Prod llega la solución managed (BP-PP-121, BP-PP-125), no una re-ejecución. La excepción son los datos semilla, que se cargan en cada entorno. Estado: `hecho` · `pendiente` · `bloqueado por …`.
 
 ## Resumen
 
