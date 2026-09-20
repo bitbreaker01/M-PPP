@@ -1,0 +1,192 @@
+<title>Ciclo de construcción MPPP</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#F2F5F4; --surface:#FFFFFF; --ink:#14211E; --muted:#56655F; --line:#D5DDDA;
+  --vos:#A8530A; --vos-bg:#FCEFDD;
+  --orq:#0B5C6B; --orq-bg:#DDF0F2;
+  --son:#4338A8; --son-bg:#E7E5FA;
+  --hai:#2A7548; --hai-bg:#DFF2E6;
+  --nuevo:#B42318; --nuevo-bg:#FDE7E4;
+  --rail:#9AA9A4;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0F1615; --surface:#182120; --ink:#E6EEEB; --muted:#9BABA5; --line:#2B3936;
+    --vos:#F2A552; --vos-bg:#3A2710;
+    --orq:#5CC3D3; --orq-bg:#0F3138;
+    --son:#A9A1F5; --son-bg:#25214F;
+    --hai:#6FD097; --hai-bg:#133222;
+    --nuevo:#FF8A7D; --nuevo-bg:#401814;
+    --rail:#4A5B56;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0F1615; --surface:#182120; --ink:#E6EEEB; --muted:#9BABA5; --line:#2B3936;
+  --vos:#F2A552; --vos-bg:#3A2710;
+  --orq:#5CC3D3; --orq-bg:#0F3138;
+  --son:#A9A1F5; --son-bg:#25214F;
+  --hai:#6FD097; --hai-bg:#133222;
+  --nuevo:#FF8A7D; --nuevo-bg:#401814;
+  --rail:#4A5B56;
+}
+body{background:var(--ground);color:var(--ink);font:15px/1.55 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;padding-inline:16px;padding-block:28px 56px}
+.wrap{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:30px}
+h1{font:700 34px/1.1 "IBM Plex Sans Condensed","Arial Narrow",sans-serif;margin:0;text-wrap:balance;letter-spacing:-.2px}
+h2{font:700 21px/1.2 "IBM Plex Sans Condensed","Arial Narrow",sans-serif;margin:0 0 4px;text-wrap:balance}
+p{margin:0;max-width:68ch}
+.lead{color:var(--muted);margin-top:8px}
+code,.mono{font:500 12.5px/1.4 "IBM Plex Mono",ui-monospace,Menlo,monospace}
+code{background:var(--line);padding:1px 5px;border-radius:3px;word-break:break-word}
+
+.estado{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 22px}
+.estado div span{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)}
+.estado div b{font-weight:600}
+
+.actores{display:flex;flex-wrap:wrap;gap:8px 10px;margin-top:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:99px;white-space:nowrap}
+.chip.vos{color:var(--vos);background:var(--vos-bg)} .chip.orq{color:var(--orq);background:var(--orq-bg)}
+.chip.son{color:var(--son);background:var(--son-bg)} .chip.hai{color:var(--hai);background:var(--hai-bg)}
+.chip small{font-weight:500;opacity:.85}
+.nuevo{font-size:11px;font-weight:600;color:var(--nuevo);border:1px solid var(--nuevo);border-radius:3px;padding:0 5px;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap}
+
+/* el ciclo */
+.ciclo{list-style:none;margin:14px 0 0;padding:0;position:relative;display:flex;flex-direction:column;gap:12px}
+.ciclo::before{content:"";position:absolute;left:19px;top:20px;bottom:20px;width:2px;background:var(--rail)}
+.paso{position:relative;display:grid;grid-template-columns:40px 1fr;gap:14px;align-items:start}
+.num{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font:700 17px "IBM Plex Sans Condensed",sans-serif;background:var(--surface);border:2px solid currentColor;z-index:1}
+.paso.orq .num{color:var(--orq)} .paso.son .num{color:var(--son)} .paso.hai .num{color:var(--hai)}
+.cuerpo{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 15px;display:flex;flex-direction:column;gap:7px;min-width:0}
+.cab{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.cab h3{font:600 16px/1.25 "IBM Plex Sans",sans-serif;margin:0;margin-right:auto}
+.cuerpo ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+.sale{font-size:13px;color:var(--muted)}
+.sale b{color:var(--ink);font-weight:600}
+.vuelve{align-self:flex-start;font-size:12.5px;font-weight:600;border:1.5px dashed currentColor;border-radius:4px;padding:2px 9px}
+.paso.son .vuelve{color:var(--son)} .paso.orq .vuelve{color:var(--orq)}
+
+.compuerta{position:relative;display:grid;grid-template-columns:40px 1fr;gap:14px;align-items:center}
+.compuerta .num{color:var(--vos);background:var(--vos-bg);border-radius:6px;font-size:13px;letter-spacing:.5px}
+.compuerta .cuerpo{background:var(--vos-bg);border-color:var(--vos);border-style:solid;border-width:1px 1px 1px 4px}
+.compuerta h3{color:var(--vos)}
+
+.destinos{width:100%;border-collapse:collapse;margin-top:12px;background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.destinos th,.destinos td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line);font-size:14px}
+.destinos th{font-size:11.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);font-weight:600}
+.destinos tr:last-child td{border-bottom:0}
+.tabla{overflow-x:auto}
+.nota{border-left:3px solid var(--nuevo);padding:2px 0 2px 14px;color:var(--ink)}
+.nota p+p{margin-top:8px}
+@media (max-width:520px){h1{font-size:27px}.paso,.compuerta{grid-template-columns:32px 1fr;gap:10px}.num{width:32px;height:32px;font-size:14px}.ciclo::before{left:15px}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Cómo se construye cada componente</h1>
+    <p class="lead">Un componente, un ciclo, un reporte. El diseño y la especificación los hace el modelo grande; lo mecánico lo hacen agentes baratos; y nada toca el entorno ni tus skills sin que vos abras la compuerta.</p>
+    <div class="actores" aria-label="Quién interviene">
+      <span class="chip vos">Vos <small>· decidís</small></span>
+      <span class="chip orq">Orquestador <small>· modelo grande, hilo principal</small></span>
+      <span class="chip son">Agente Sonnet <small>· construye y revisa</small></span>
+      <span class="chip hai">Agente Haiku <small>· comprueba el entorno</small></span>
+      <span class="nuevo">nuevo</span><span style="font-size:12.5px;color:var(--muted)">= lo que pediste hoy y todavía no está escrito en los agentes</span>
+    </div>
+  </header>
+
+  <section class="estado" aria-label="Estado actual">
+    <div><span>Dónde estamos</span><b>Detenidos antes de la compuerta A</b></div>
+    <div><span>Ciclos completos</span><b>1 · choice global «moneda»</b></div>
+    <div><span>Dev</span><b>Vacío: solo la solución</b></div>
+    <div><span>Madurez del tipo «choice»</span><b>1 de 3 ciclos limpios</b></div>
+  </section>
+
+  <section>
+    <h2>El ciclo</h2>
+    <p class="lead" style="margin-top:0">El orden importa: cada paso consume lo que dejó el anterior.</p>
+    <ol class="ciclo">
+      <li class="paso orq"><div class="num">1</div><div class="cuerpo">
+        <div class="cab"><h3>Elegir el siguiente componente</h3><span class="chip orq">Orquestador</span></div>
+        <p>Sale del inventario, respetando dependencias: un choice antes que la tabla que lo usa, la tabla antes que su vista.</p>
+        <p class="sale">Lee <code>diseno/06-inventario-componentes.md</code></p>
+      </div></li>
+
+      <li class="paso orq"><div class="num">2</div><div class="cuerpo">
+        <div class="cab"><h3>Escribir el playbook</h3><span class="chip orq">Orquestador</span></div>
+        <p>Con la skill <code>power-platform-especificar</code>. Ocho secciones fijas: identidad, qué se crea, precondiciones, cómo se construye, verificación, qué pasa si ya existe, reversa y fuera de alcance. Todo dato sale del diseño aprobado; nada se inventa acá.</p>
+        <p class="sale">Deja <b>un Markdown por componente</b> en <code>playbooks/&lt;tipo&gt;/</code></p>
+      </div></li>
+
+      <li class="compuerta"><div class="num">A</div><div class="cuerpo">
+        <div class="cab"><h3>Tu orden de construir</h3><span class="chip vos">Vos</span></div>
+        <p>Describir el ciclo no es la orden. Hasta que la des, ningún agente arranca y Dev no se toca.</p>
+      </div></li>
+
+      <li class="paso son"><div class="num">3</div><div class="cuerpo">
+        <div class="cab"><h3>Construir</h3><span class="chip son">constructor-componente · Sonnet</span></div>
+        <ul>
+          <li>Con la skill <code>power-platform-construir</code> y la receta del tipo.</li>
+          <li>Si el tipo todavía no tiene herramienta, la escribe primero con sus pruebas sin red (cliente simulado). Una herramienta por tipo, en <code>herramientas/construir/</code>.</li>
+          <li>La ejecuta contra Dev: precondiciones → crear → verificar. Valida todo antes de escribir, se puede repetir sin daño y nunca borra.</li>
+        </ul>
+        <p class="sale">Entrega <b>el estado</b> (creado · ya existía · difiere · bloqueado · error) y <b>sus tropiezos</b>: qué le faltó, le sobró o le resultó ambiguo del playbook.</p>
+      </div></li>
+
+      <li class="paso son"><div class="num">4</div><div class="cuerpo">
+        <div class="cab"><h3>Revisar</h3><span class="chip son">revisor-construccion · Sonnet</span></div>
+        <p>Otro agente, sin el contexto del primero y con mandato adversarial: compara herramienta y resultado contra el playbook y la receta, y busca cómo romperlo.</p>
+        <p class="sale">Veredicto: <b>aprobado</b> · <b>aprobado con observaciones</b> · <b>rechazado</b></p>
+        <span class="vuelve">↩ si rechaza, vuelve al paso 3 · en el ciclo 1 fueron dos vueltas</span>
+      </div></li>
+
+      <li class="paso hai"><div class="num">5</div><div class="cuerpo">
+        <div class="cab"><h3>Comprobar el entorno</h3><span class="chip hai">verificador-entorno · Haiku</span></div>
+        <p>Solo lectura, y sin creerle a nadie: el componente existe en Dev tal como dice el playbook, está dentro de la solución y no cambió nada más. En el ciclo 1 esta comprobación la hice yo a mano; el agente ya está definido.</p>
+      </div></li>
+
+      <li class="paso orq"><div class="num">6</div><div class="cuerpo">
+        <div class="cab"><h3>Exportar la muestra real</h3><span class="nuevo">nuevo</span><span class="chip orq">Orquestador</span></div>
+        <p>Se exporta el componente recién creado y se guarda su forma completa, tal como la devuelve la plataforma: qué propiedades mandamos nosotros, cuáles completó ella sola, y qué textos van embebidos en el XML (los que necesitan un título por idioma).</p>
+        <p class="sale">Es la evidencia para el <b>catálogo de propiedades</b> del tipo: lo que evita el «falta la propiedad X» al reimportar.</p>
+      </div></li>
+
+      <li class="paso orq"><div class="num">7</div><div class="cuerpo">
+        <div class="cab"><h3>Retrospectiva</h3><span class="chip orq">Orquestador</span></div>
+        <p>Cada tropiezo se anota en <code>tropiezos.md</code> y se clasifica por lo que falló. De ahí sale una <b>propuesta</b> de cambios, con archivo y texto exacto. No se aplica nada todavía.</p>
+      </div></li>
+
+      <li class="compuerta"><div class="num">B</div><div class="cuerpo">
+        <div class="cab"><h3>Reporte, y tu aprobación</h3><span class="nuevo">nuevo</span><span class="chip vos">Vos</span></div>
+        <p>Te cuento qué se construyó y cómo quedó verificado, qué se aprendió, y qué cambio de skill propongo. Vos aprobás, corregís o rechazás cada cambio. Reemplaza a la aprobación permanente que revocaste.</p>
+      </div></li>
+
+      <li class="paso orq"><div class="num">8</div><div class="cuerpo">
+        <div class="cab"><h3>Aplicar lo aprobado y cerrar</h3><span class="chip orq">Orquestador</span></div>
+        <ul>
+          <li>Se editan las skills en <code>gmaker-plugins</code> (sin commit: eso lo revisás vos al final del proyecto), y se corren su verificador de contratos y sus pruebas.</li>
+          <li>Commit en M-PPP: playbook, herramienta, muestra exportada.</li>
+        </ul>
+        <span class="vuelve">↩ vuelve al paso 1 con el siguiente componente</span>
+      </div></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>A dónde va cada aprendizaje</h2>
+    <p class="lead" style="margin-top:0">La retroalimentación no es una sola flecha: según qué falló, se corrige un lugar distinto.</p>
+    <div class="tabla"><table class="destinos">
+      <thead><tr><th>Lo que pasó</th><th>Qué se corrige</th><th>Efecto en el próximo ciclo</th></tr></thead>
+      <tbody>
+        <tr><td>Al constructor le faltó un dato, o el playbook era ambiguo</td><td>Skill <code>power-platform-especificar</code>: la referencia de ese tipo de playbook</td><td>El playbook siguiente ya nace con ese dato</td></tr>
+        <tr><td>La receta estaba mal, o la herramienta falló</td><td>Skill <code>power-platform-construir</code>: receta del tipo, y la herramienta con una prueba nueva</td><td>El constructor no repite el error</td></tr>
+        <tr><td>La plataforma pidió o completó propiedades que no conocíamos</td><td>Catálogo de propiedades del tipo, con la muestra exportada como evidencia <span class="nuevo">nuevo</span></td><td>Editar XML o JSON y reimportar deja de fallar por una propiedad ausente</td></tr>
+        <tr><td>Apareció una regla que vale para cualquier proyecto</td><td>Skill <code>power-platform-practicas</code>: una regla con su identificador</td><td>Los revisores la exigen en todo proyecto</td></tr>
+        <tr><td>El diseño estaba equivocado</td><td>Los documentos de <code>diseno/</code>, antes de seguir construyendo</td><td>No se arrastra el error a los componentes que dependen de él</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="nota">
+    <p><b>Lo que todavía no está escrito.</b> El paso 6 y la compuerta B son de hoy. Viven en esta página y en mi memoria del proyecto, pero no en los archivos de los agentes ni en las skills. Escribirlos ahí es un cambio a tus skills, así que también espera tu visto bueno.</p>
+    <p><b>Dónde se gasta el modelo caro.</b> Solo en los pasos 1, 2, 6, 7 y 8, que son criterio y redacción. La construcción, la revisión y la comprobación corren en Sonnet y Haiku.</p>
+  </section>
+</div>
