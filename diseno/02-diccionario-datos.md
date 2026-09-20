@@ -93,8 +93,6 @@ La validación normaliza lo que escribe el cliente antes de buscar el plan: `12`
 |---|---|---|---|
 | `sanic_nombre` | T(320) | S | **Es el correo** (BP-PP-192: la columna primaria es la clave de negocio validada). Guardado sin espacios y en minúscula. La clave no distingue mayúsculas de todos modos (verificado en el spike C-05 parte B: `ABC` y `abc` chocan). |
 | `sanic_clienteid` | L:cliente | S | Borrado restringido. **Clave** `sanic_mppp_key_autorizado_cliente_nombre` = cliente + correo. |
-| `sanic_documentofirmado` | A (10 MB) | | Evidencia de la autorización (RF-11, D-08). |
-| `sanic_fechadocumento` | F (solo fecha) | | |
 
 Un mismo correo puede estar bajo varias empresas: la vista de búsqueda muestra también la columna Cliente para distinguir los renglones.
 
@@ -106,8 +104,12 @@ Resuelve la relación N:N entre correos autorizados y planes. Es una tabla y no 
 | `sanic_nombre` | T(400) | S | Primaria calculada: `<correo> → <plan>`. |
 | `sanic_autorizadoid` | L:autorizado | S | Borrado restringido. |
 | `sanic_planid` | L:plan | S | Borrado restringido. **Clave** `sanic_mppp_key_autorizacionplan_autorizado_plan`. |
+| `sanic_documentofirmado` | A (10 MB) | S* | **Evidencia de ESTA autorización** (RF-11, D-08, excepción E-17): el documento firmado que respalda que este correo opere sobre este plan. Una por cada par correo → plan (decisión del aprobador, 2026-09-20). |
+| `sanic_fechadocumento` | F (solo fecha) | | Fecha del documento firmado. |
 
-Regla de integridad (plugin PreOperation, BP-PP-051): el cliente del plan debe ser el cliente del autorizado. Para que una autorización valga, tienen que estar **activos** el Autorizado, el Plan, el Cliente y la propia AutorizacionPlan.
+Regla de integridad (plugin PreOperation, BP-PP-051): el cliente del plan debe ser el cliente del autorizado. **Autorización vigente** (definición única; la usan `REMITENTE_RECONOCIDO` y `AUTORIZACION_CORREO_PLAN`, `03` §0 y §1): están **activos** el Autorizado, el Plan, el Cliente y la propia AutorizacionPlan, **y la AutorizacionPlan tiene su evidencia cargada** (`sanic_documentofirmado` con archivo).
+
+\* **Por qué "obligatoria" no es "requerida al crear".** Una columna de archivo de Dataverse solo acepta el archivo después de que el registro existe (verificado en Learn, 2026-09-20), así que no se puede exigir en el alta. La obligatoriedad se cumple **cerrando por defecto**: una autorización nace sin evidencia y **no vale** hasta que se le carga; si se le quita el archivo, deja de valer en ese mismo momento. No hay forma de que una fila se valide contra una autorización sin documento. La app lo hace visible: vista "Autorizaciones sin evidencia" y la marca en cada subgrilla (`05`). A verificar al construir: que la condición "columna de archivo con valor" se pueda consultar con `not-null` desde el plugin (la columna guarda el identificador del archivo).
 
 ### 2.5 `sanic_mppp_tbl_parametro` (RF-05, DD-02, D-38)
 | Columna | Tipo | Req | Nota |

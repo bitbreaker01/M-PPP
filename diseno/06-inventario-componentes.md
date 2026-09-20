@@ -22,7 +22,7 @@ Mecanismo de creación: **Web API de Dataverse**, con una herramienta versionada
 | P-10 Datos semilla | 12 parámetros, 15 reglas | 1 parámetro | 2 parámetros | |
 | P-11 Environment variable y connection reference | 2 + 2 | | +2 | nombre |
 | P-12 Cloud flow | 5 (3 con disparador, 2 hijos) | | | |
-| P-13 App model-driven: app, sitemap, ~18 vistas, 9 formularios, 8 comandos, ~10 íconos | ver §12 | | página custom de la bandeja (v1.1) | |
+| P-13 App model-driven: app, sitemap, ~19 vistas, 9 formularios, 8 comandos, ~10 íconos | ver §12 | | página custom de la bandeja (v1.1) | |
 | P-15 Página custom (canvas, **no la construye un agente solo**) | 1: diálogo de motivo | | | |
 | P-14 Identidades y puesta en marcha | cuenta de servicio, buzón | usuario de aplicación del RPA | usuario de aplicación e infraestructura Azure | |
 
@@ -62,8 +62,8 @@ Todas user-owned. El orden respeta los lookups: una tabla se crea después de la
 |---|---|---|---|---|---|---|
 | 3.1 | `sanic_mppp_tbl_cliente` | 3 | | | | 1 |
 | 3.2 | `sanic_mppp_tbl_plan` | 4 | | | choices 2.1, 2.4 | 1 |
-| 3.3 | `sanic_mppp_tbl_autorizado` | 3 | 1 | | | 1 |
-| 3.4 | `sanic_mppp_tbl_autorizacionplan` | 1 | | | | 1 |
+| 3.3 | `sanic_mppp_tbl_autorizado` | 1 | | | | 1 |
+| 3.4 | `sanic_mppp_tbl_autorizacionplan` | 3 | 1 | | | 1 |
 | 3.5 | `sanic_mppp_tbl_parametro` | 5 | | | choice 2.14 | 1 |
 | 3.6 | `sanic_mppp_tbl_regla` | 7 | | | choices 2.9, 2.10 | 1 |
 | 3.7 | `sanic_mppp_tbl_solicitud` | 26 | 2 | | choice 2.7 | 1 |
@@ -187,7 +187,7 @@ Desaparece el Flow B de la definición (`07` DF-01). Los hijos se construyen ant
 | # | Componente | Cantidad | Depende de |
 |---|---|---|---|
 | 12.1 | Íconos SVG (web resources) | ~10 | |
-| 12.2 | Vistas | ~18 | tablas y relaciones. Incluye las dos de AutorizacionPlan para subgrillas: "correos autorizados sobre un plan" y "planes que puede modificar un correo" (`05` §formularios) |
+| 12.2 | Vistas | ~19 | tablas y relaciones. Incluye las dos de AutorizacionPlan para subgrillas: "correos autorizados sobre un plan" y "planes que puede modificar un correo", más "Autorizaciones sin evidencia" (`05` §formularios) |
 | 12.3 | Formularios principales | 9 | tablas, vistas (subgrillas) |
 | 12.4 | Página custom: diálogo de motivo | 1 | tabla 3.8 · **se arma en Power Apps Studio** |
 | 12.5 | Comandos propios | 8 | 12.4, plugin de transición 7.9 |

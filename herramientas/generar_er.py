@@ -16,8 +16,6 @@ TABLAS = {
     "autorizado": dict(x=40, y=90, color=CAT, titulo="Autorizado", logico="sanic_mppp_tbl_autorizado", filas=[
         ("sanic_nombre  (= correo)", "T(320)", "AK"),
         ("sanic_clienteid", "→ Cliente", "AK FK"),
-        ("sanic_documentofirmado", "Archivo", ""),
-        ("sanic_fechadocumento", "Fecha", ""),
     ]),
     "cliente": dict(x=440, y=90, color=CAT, titulo="Cliente", logico="sanic_mppp_tbl_cliente", filas=[
         ("sanic_nombre", "T(200)", "PK"),
@@ -45,6 +43,8 @@ TABLAS = {
         ("sanic_nombre", "T(400)", "PK"),
         ("sanic_autorizadoid", "→ Autorizado", "AK FK"),
         ("sanic_planid", "→ Plan", "AK FK"),
+        ("sanic_documentofirmado  (obligatoria)", "Archivo", ""),
+        ("sanic_fechadocumento", "Fecha", ""),
     ]),
     "parametro": dict(x=1240, y=330, color=CAT, titulo="Parametro", logico="sanic_mppp_tbl_parametro", filas=[
         ("sanic_nombre  (= código)", "T(100)", "AK"),
