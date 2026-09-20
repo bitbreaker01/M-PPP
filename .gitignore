@@ -18,13 +18,11 @@ datos/reales/
 .env
 *.local.json
 
-# Secretos: NUNCA al repositorio
-pp_secrets.env
+# Todo lo local: secretos y documentos de contexto. NUNCA al repositorio
+/local/
 *.env
 *secret*
 
-# Contexto de trabajo local: los originales viven en el repositorio de conocimiento
-panoramas/
-/definicion.md
-/factibilidad-tecnica.md
-/ficha-solicitud.md
+# Python
+__pycache__/
+*.pyc

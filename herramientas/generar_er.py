@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Genera diseno/02-modelo-datos.svg a partir del modelo declarado acá abajo.
 
-Uso:  python3 diseno/herramientas/generar_er.py
+Uso:  python3 herramientas/generar_er.py
 El modelo de este archivo tiene que acompañar a 02-diccionario-datos.md: si cambia
 el diccionario, se cambia acá y se regenera. Sin dependencias fuera de la stdlib.
 """
@@ -233,7 +233,7 @@ for i, (m, fondo, txt) in enumerate([("PK", "#555", "columna primaria"), ("AK", 
     o.append(f'<text x="{xx + 26}" y="{yy + 1}" font-size="11" fill="#222">{txt}</text>')
 
 o.append("</svg>")
-destino = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "02-modelo-datos.svg")
+destino = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "diseno", "02-modelo-datos.svg")
 with open(destino, "w", encoding="utf-8") as f:
     f.write("\n".join(o))
 print("escrito", os.path.normpath(destino), f"{ANCHO}x{ALTO}")

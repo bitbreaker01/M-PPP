@@ -18,7 +18,7 @@ La parte B (correr esto dentro del sandbox de Dataverse como ensamblado dependie
 ## confianza_entradas
 **No confiable.** El Excel llega por correo desde fuera del banco. El lector falla cerrado, nunca pierde datos callado, y su tiempo y memoria están acotados por topes explícitos (LP-02, LP-03, LP-04), no por suposiciones sobre el contenido.
 - `diseno/01-convenciones.md` §3 y §4 (idioma, `net462;net8.0`, prohibido usar APIs que no existan en net462).
-- Plantilla real: `Inclusiones_Exclusiones en PPP.xlsx` (raíz del repo). **No la modifiques**; copiala para generar variantes.
+- Plantilla real: `datos/plantilla/Inclusiones_Exclusiones en PPP.xlsx`. **No la modifiques**; copiala para generar variantes.
 
 Hechos ya verificados de la plantilla: hoja `Datos`, encabezados en la fila 12 (columnas B a K: Gestión, Clasificación, No. Plan, Nombre Colaborador / Proveedor, Tipo ID, No. Identificación, Referencia, No. Cuenta, Moneda, Banco), datos en las filas 13 a 37, columna A con el número de fila, una celda combinada, comentarios encadenados en los encabezados, validaciones de datos con extensión x14, y una hoja **oculta** `Listas` que tiene una celda con fórmula (`=UPPER("Atlantida")`).
 
