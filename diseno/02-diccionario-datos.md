@@ -91,7 +91,7 @@ La validación normaliza lo que escribe el cliente antes de buscar el plan: `12`
 ### 2.3 `sanic_mppp_tbl_autorizado` (RF-11, D-27)
 | Columna | Tipo | Req | Nota |
 |---|---|---|---|
-| `sanic_nombre` | T(320) | S | **Es el correo** (BP-PP-192: la columna primaria es la clave de negocio validada). Guardado sin espacios y en minúscula. |
+| `sanic_nombre` | T(320) | S | **Es el correo** (BP-PP-192: la columna primaria es la clave de negocio validada). Guardado sin espacios y en minúscula. La clave no distingue mayúsculas de todos modos (verificado en el spike C-05 parte B: `ABC` y `abc` chocan). |
 | `sanic_clienteid` | L:cliente | S | Borrado restringido. **Clave** `sanic_mppp_key_autorizado_cliente_nombre` = cliente + correo. |
 | `sanic_documentofirmado` | A (10 MB) | | Evidencia de la autorización (RF-11, D-08). |
 | `sanic_fechadocumento` | F (solo fecha) | | |

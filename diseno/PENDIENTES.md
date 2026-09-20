@@ -12,12 +12,6 @@ La matriz de obligatoriedad arranca con **todo obligatorio salvo Referencia** (D
 
 Todas hechas el 2026-09-20 y asentadas en `01-convenciones.md` §7. Queda una sola, que se cierra al construir el primer flujo: si Power Automate respeta la columna `uniquename` en un cloud flow.
 
-## C. Parte B del spike C-05 (dentro de Dataverse)
+## C. Spike C-05
 
-La parte A quedó cerrada sin tercera revisión, por decisión del aprobador. Falta, ya con entorno:
-
-- Open XML SDK como ensamblado dependiente dentro del sandbox, y cuánto tarda de verdad. En net462 el paquete se apoya en `WindowsBase`, un ensamblado del framework: comprobar que el sandbox lo tiene.
-- Atomicidad de la Custom API: provocar una excepción después de crear filas y comprobar que no queda nada.
-- Que `InitiatingUserId` se conserva en el `Update` anidado que hace el plugin como SYSTEM (si no, el actor viaja por `SharedVariables`).
-- Que la comparación de claves alternativas no distingue mayúsculas.
-- Largo real de los Message-ID que llegan al buzón.
+**Cerrado.** Parte A y parte B terminadas; la condición C-05 de la definición está cumplida: Open XML SDK carga y lee la plantilla dentro del sandbox en milisegundos. Conclusiones en `spikes/c05-parseo-excel/CONCLUSIONES.md` y `CONCLUSIONES-B.md`. Quedó una sola cosa sin medir, porque necesita acceso al buzón: el largo real de los Message-ID que llegan (DD-03). Se mide al construir Flow A.
