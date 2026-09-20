@@ -30,7 +30,7 @@ Todos son propiedad de la **cuenta de servicio** (D-01, estándar regional de BA
 
 ## 2. A — Ingesta
 
-- **Disparador**: *When a new email arrives in a shared mailbox (V2)* (o el equivalente de buzón propio, ver pregunta 1). Buzón = `sanic_mppp_ev_buzoningesta`; carpeta = Bandeja de entrada; **Include Attachments = No** (los trae I; así el disparador es liviano y no falla por tamaño).
+- **Disparador**: *When a new email arrives in a shared mailbox (V2)*: el buzón es **compartido** (confirmado por el aprobador). Todas las acciones de Outlook de los cinco flujos son las de buzón compartido, o llevan la dirección del buzón como parámetro. Buzón = `sanic_mppp_ev_buzoningesta`; carpeta = Bandeja de entrada; **Include Attachments = No** (los trae I; así el disparador es liviano y no falla por tamaño).
 - **Concurrencia del disparador**: activada, grado 5. Dos correos distintos no se pisan: cada uno tiene su propia clave.
 - **Acción única**: *Run a Child Flow* → I, con `messageid` de Outlook.
 - Sin condiciones ni lógica: todo lo que A sabe hacer lo tiene que saber hacer W.
@@ -48,7 +48,8 @@ Entrada: identificador de Outlook del mensaje. Salida: identificador de la Solic
 | 4b | Si el alta falla por **clave duplicada** | La Solicitud ya existe (la creó otra ejecución). Se busca por `sanic_messageid` con *List rows* y filtro, se sigue desde el paso 7 con esa Solicitud, y el resultado es `ya_existia`. Cualquier **otro** error va al bloque de errores. |
 | 5 | *Export email (V2)* → *Upload a file or an image* | El `.eml` a `sanic_correocrudo` (RF-10). |
 | 6 | *Upload a file or an image* | El Excel a `sanic_exceloriginal`, si hay exactamente uno (D-31). |
-| 7 | *Move email (V2)* | A `sanic_mppp_ev_carpetaprocesados`. **Se guarda el identificador que devuelve** en `sanic_outlookmessageid` (DF-04). |
+| 7 | *Move email (V2)* | A `sanic_mppp_ev_carpetaprocesados`. **El correo cambia de identificador al moverse**: el nuevo es el que devuelve esta acción. |
+| 7b | *Update a row* → Solicitud | **Acción propia, inmediatamente después de mover**: `sanic_outlookmessageid` = el identificador que devolvió el paso 7 (DF-04). La Solicitud se creó en el paso 4, antes de mover, así que sin esta acción el identificador nuevo no queda en ningún lado. Si esta acción falla, el flujo sigue: el correo ya está movido y la Solicitud existe; E encuentra el mensaje por su Internet Message-ID en la carpeta de procesados y completa la columna en ese momento. |
 | 8 | *Perform an unbound action* → `sanic_mppp_capi_validarsolicitud` | Parámetro `solicitudid`. La respuesta trae estado y contadores. Política de reintento de la acción: **ninguna** (la API es idempotente, pero el reintento lo gobierna W, con su contador). |
 | 9 | Bitácora | Evento "Ingresada", origen Flujo A o W según quién llamó, actor "Cuenta de servicio". |
 
@@ -78,7 +79,7 @@ Secuencia de un envío, idéntica para las dos comunicaciones (D-21):
 |---|---|---|
 | 1 | Releer la Solicitud | Si la fecha de **iniciado** de esa comunicación ya tiene valor → **no envía**. Si además la de enviado está vacía, marca `sanic_requiererevision` con el motivo "envío iniciado sin confirmar" y termina. Nunca se reenvía ante la duda. |
 | 2 | Marcar **iniciado** | `sanic_fechaacuseiniciado` (o `…respuestafinaliniciada`) = `utcNow()`. Bitácora "Acuse iniciado". |
-| 3 | *Reply to email (V3)* | Sobre `sanic_outlookmessageid`, buzón = `sanic_mppp_ev_buzoningesta`, **responder solo al remitente** (no a todos), cuerpo HTML = el contenido guardado, sin adjuntos. Si el identificador no sirve, se busca el mensaje en la carpeta de procesados por su Internet Message-ID y se reintenta una vez (DF-04). |
+| 3 | *Reply to email (V3)* | Sobre `sanic_outlookmessageid`, buzón = `sanic_mppp_ev_buzoningesta`, **responder solo al remitente**, nunca a quienes iban en copia (confirmado por el aprobador: es el único cuya autorización se verificó), cuerpo HTML = el contenido guardado, sin adjuntos. Si el identificador no sirve, se busca el mensaje en la carpeta de procesados por su Internet Message-ID y se reintenta una vez (DF-04). |
 | 4 | Marcar **enviado** | La fecha de enviado = `utcNow()`. Bitácora "Acuse enviado". |
 | 5 | Cerrar, si corresponde | Acuse de una **Rechazada** → estado Cerrada + `sanic_fechacerrada` (DD-09). Respuesta final de una **Procesada** → Cerrada + `sanic_fechacerrada`. Acuse de una En proceso → el estado no cambia. |
 
@@ -106,9 +107,13 @@ Los tres umbrales salen de la tabla de Parámetros (`vigilancia.*`), leídos al 
 | `00` | Excepción E-15: desaparece Flow B; aparecen dos flujos hijos |
 | `04` §3 | Sin cambios: el rol de la cuenta de servicio ya cubre todo esto |
 
-## 8. Preguntas para el aprobador
+## 8. Resuelto con el aprobador (2026-09-20)
 
-1. **¿El buzón `mppp@…` es un buzón compartido** al que accede la cuenta de servicio, **o es el buzón propio de la cuenta de servicio?** Cambia qué disparador y qué acciones se usan (las de buzón compartido llevan la dirección como parámetro; las de buzón propio, no).
-2. **El dominio `55xljh.onmicrosoft.com` es de un tenant de desarrollo.** ¿Este Dev es un entorno tuyo y después la solución va al Dev de BAC, o es el Dev definitivo? Importa para las connection references y para las pruebas con correo real.
-3. **Respuesta "solo al remitente".** Si el cliente mandó el correo con copia a otras personas, ¿las respuestas les llegan también a ellas, o solo a quien envió? Propuse solo al remitente, porque es el único cuya autorización se verificó.
-4. **Correos que no son solicitudes** (respuestas automáticas de fuera de oficina, rebotes, avisos de no entregado): hoy entrarían como una Solicitud más y terminarían No reconocida o Rechazada. ¿Se filtran en I antes de crear nada (por cabeceras de respuesta automática) para no generarle una respuesta a un robot?
+1. El buzón es **compartido**.
+2. El Dev actual (`55xljh.onmicrosoft.com`) es un **tenant de desarrollo propio del aprobador**; la solución pasa después al Dev de BAC. Consecuencias: el valor de las environment variables y las conexiones se cargan de nuevo allá; el publisher `Sistemas_Abiertos_Nicaragua` viaja con la solución, con su prefijo de opciones `15946`; y **hay que saber cuál es el idioma base del Dev de BAC antes de llevarla**, porque acá todas las etiquetas van bajo 1033 (`PENDIENTES.md`).
+3. Las comunicaciones se responden **solo al remitente**.
+4. Las respuestas automáticas **se filtran**; el cómo está propuesto en §9 y espera aprobación.
+
+## 9. Propuesta pendiente de aprobación: respuestas automáticas y rebotes
+
+Ver la conversación del 2026-09-20. Cuando se apruebe, entra a este documento como decisión DF-08 y al catálogo de reglas de `02`.
