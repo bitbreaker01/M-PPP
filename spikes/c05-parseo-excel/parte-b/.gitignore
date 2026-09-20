@@ -1,0 +1,14 @@
+# Binarios y artefactos de build del spike parte B: nada de esto se versiona.
+bin/
+obj/
+*.nupkg
+*.dll
+*.snk
+*.pdb
+
+# Variantes de plantilla generadas localmente para medir (no son insumo versionado).
+variante-*.xlsx
+
+# Python
+__pycache__/
+*.pyc
