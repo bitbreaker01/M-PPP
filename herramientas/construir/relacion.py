@@ -3,12 +3,20 @@
 playbook de tipo `relacion`. Contrato: `power-platform-construir`,
 `references/modelo-datos/patrones.md` §1 y §2.3.
 
-    python3 herramientas/construir/relacion.py <playbook.md> [--solo-verificar] [--publicar]
+    python3 herramientas/construir/relacion.py <playbook.md> [--solo-verificar] [--publicar] [--corregir-lookup]
 
 La relación y su lookup nacen juntos, en un solo POST; después se publican
 las tablas tocadas (una relación, a diferencia de una tabla, no se publica
-sola). Nunca modifica ni borra: si la relación existe y no coincide, informa
-`difiere`. `--publicar` vuelve a publicar solo si coincide en todo.
+sola). Verificado contra la plataforma el 2026-09-20: al crear, la plataforma
+IGNORA la auditoría del lookup (la deja desactivada); si el playbook la pide,
+se reenvía la definición completa del lookup con PUT antes de publicar. Y una
+relación NO es un componente propio de la solución: viaja dentro de la tabla
+hija, que tiene que estar en la solución con todos sus subcomponentes.
+
+Nunca modifica ni borra: si la relación existe y no coincide, informa
+`difiere`. Dos salvedades explícitas: `--publicar` vuelve a publicar solo si
+coincide en todo, y `--corregir-lookup` repara solo la auditoría del lookup,
+cuando esa es la única diferencia.
 
 Última línea de la salida: JSON de una línea con `estado`
 (creado | ya_existia | difiere | bloqueado | error), `componente`, `detalle`.
@@ -45,7 +53,8 @@ from _comun import (  # noqa: E402
 TIPO = "relacion"
 LARGO_MAXIMO_RELACION = 100  # schema name de una relación (Learn, tabla EntityRelationship)
 LARGO_MAXIMO_IDENTIFICADOR = 95
-COMPONENTE_RELACION = 10  # tipo de componente de una relación en solutioncomponents
+COMPONENTE_TABLA = 1  # la relación viaja dentro de su tabla hija: no tiene fila propia en solutioncomponents
+INCLUYE_SUBCOMPONENTES = 0  # rootcomponentbehavior de una tabla agregada con todo lo suyo
 TABLAS_DEL_SISTEMA = {"systemuser"}  # únicas tablas ajenas que el formato admite como padre
 
 MENSAJE_FALLO_CLIENTE = (
@@ -148,8 +157,8 @@ def construir_payload(datos, identidad, atributo_referenciado):
 # ---------------------------------------------------------------------------
 def comprobar_tablas(dv, datos):
     """Precondición: las dos tablas existen. Devuelve la clave primaria de la
-    tabla padre, que es el atributo referenciado."""
-    claves = {}
+    tabla padre (el atributo referenciado) y el MetadataId de la tabla hija."""
+    claves, ids = {}, {}
     for rol in ("tabla_padre", "tabla_hija"):
         tabla = datos[rol]
         consulta = f"la consulta de la tabla '{tabla}' (GET EntityDefinitions)"
@@ -157,10 +166,11 @@ def comprobar_tablas(dv, datos):
         if t is None:
             raise Bloqueado(f"la tabla '{tabla}' ({rol}) no existe en el entorno: se construye antes que sus relaciones")
         claves[rol] = exigir_forma(t.get("PrimaryIdAttribute"), str, consulta, "PrimaryIdAttribute", no_vacio=True)
-    return claves["tabla_padre"]
+        ids[rol] = exigir_forma(t.get("MetadataId"), str, consulta, "MetadataId", no_vacio=True)
+    return claves["tabla_padre"], ids["tabla_hija"]
 
 
-def _verificar(dv, datos, identidad, solution_id, atributo_referenciado):
+def _verificar(dv, datos, identidad, solution_id, atributo_referenciado, id_tabla_hija):
     lcid, difs, k = identidad["lcid"], [], datos["lookup"]
     cr = f"la consulta de la relación (GET RelationshipDefinitions '{datos['nombre']}')"
     r = leer_entorno(dv, f"RelationshipDefinitions(SchemaName='{datos['nombre']}')/Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata", cr, admite_404=True)
@@ -200,11 +210,35 @@ def _verificar(dv, datos, identidad, solution_id, atributo_referenciado):
     comparar_etiqueta(a.get("Description"), lcid, f"{n}.Description", k["descripcion"], difs, cl, "Description", permite_nulo=True)
 
     cs = "la consulta de pertenencia a la solución (GET solutioncomponents)"
-    sc = leer_entorno(dv, f"solutioncomponents?$filter=_solutionid_value eq {solution_id} and objectid eq {metadata_id} and componenttype eq {COMPONENTE_RELACION}", cs)
+    sc = leer_entorno(dv, f"solutioncomponents?$select=rootcomponentbehavior&$filter=_solutionid_value eq {solution_id} and objectid eq {id_tabla_hija} and componenttype eq {COMPONENTE_TABLA}", cs)
     filas = exigir_forma(sc.get("value"), [dict], cs, "value")
     if len(filas) != 1:
-        difs.append(f"pertenencia a la solución: {len(filas)} filas en solutioncomponents, se esperaba 1")
+        difs.append(f"pertenencia a la solución: la tabla hija '{datos['tabla_hija']}' tiene {len(filas)} filas en solutioncomponents, se esperaba 1 (la relación viaja dentro de ella)")
+    else:
+        alcance = exigir_forma(filas[0].get("rootcomponentbehavior"), int, cs, "value[0].rootcomponentbehavior")
+        if alcance != INCLUYE_SUBCOMPONENTES:
+            difs.append(f"la tabla hija '{datos['tabla_hija']}' está en la solución pero no incluye todos sus subcomponentes (rootcomponentbehavior={alcance}): la relación no viajaría con ella")
     return {"existe": True, "diffs": difs, "metadata_id": metadata_id}
+
+
+def ajustar_lookup(dv, datos, identidad):
+    """Reenvía la definición completa del lookup con la auditoría del playbook
+    (la plataforma la ignora al crear la relación). Devuelve `None` o el texto
+    del problema. El GET con cast no trae '@odata.type' y el PUT lo exige."""
+    n = datos["lookup"]["nombre"]
+    ruta = f"EntityDefinitions(LogicalName='{datos['tabla_hija']}')/Attributes(LogicalName='{n}')"
+    consulta = f"la lectura completa de la columna lookup (GET Attributes '{n}')"
+    actual = leer_entorno(dv, ruta + "/Microsoft.Dynamics.CRM.LookupAttributeMetadata", consulta)
+    aud = exigir_forma(actual.get("IsAuditEnabled"), dict, consulta, "IsAuditEnabled")
+    definicion = {k: v for k, v in actual.items() if k != "@odata.context"}
+    definicion["@odata.type"] = "Microsoft.Dynamics.CRM.LookupAttributeMetadata"
+    definicion["IsAuditEnabled"] = {**aud, "Value": datos["lookup"]["auditoria"]}
+    est, cuerpo, _ = escribir_metadatos(dv, "PUT", ruta, definicion, solucion=identidad["solucion"], cabeceras={"MSCRM.MergeLabels": "true"})
+    return None if est == 204 else f"falló ajustar la auditoría del lookup {n}: HTTP {est} {cuerpo}"
+
+
+def _solo_difiere_la_auditoria(datos, diffs):
+    return bool(diffs) and all(d.startswith(f"{datos['lookup']['nombre']}.IsAuditEnabled:") for d in diffs)
 
 
 def _publicar(dv, datos):
@@ -214,11 +248,20 @@ def _publicar(dv, datos):
     return None if est == 204 else f"HTTP {est} {cuerpo}"
 
 
-def _contra_entorno(dv, datos, identidad, solo_verificar, componente, publicar):
+def _contra_entorno(dv, datos, identidad, solo_verificar, componente, publicar, corregir_lookup):
     solucion = identidad["solucion"]
     solution_id = comprobar_solucion_e_idioma(dv, identidad)
-    atributo = comprobar_tablas(dv, datos)
-    actual = _verificar(dv, datos, identidad, solution_id, atributo)
+    atributo, id_hija = comprobar_tablas(dv, datos)
+    actual = _verificar(dv, datos, identidad, solution_id, atributo, id_hija)
+
+    if actual["existe"] and corregir_lookup and not solo_verificar and _solo_difiere_la_auditoria(datos, actual["diffs"]):
+        problema = ajustar_lookup(dv, datos, identidad) or _publicar(dv, datos)
+        if problema:
+            return "error", componente, problema
+        actual = _verificar(dv, datos, identidad, solution_id, atributo, id_hija)
+        if not actual["diffs"]:
+            return "ya_existia", componente, (f"MetadataId {actual['metadata_id']}; la relación existía y su única diferencia era la auditoría del lookup, "
+                                              f"que la plataforma ignora al crear; se corrigió y ahora coincide en todo; pertenece a '{solucion}'")
 
     if solo_verificar and not actual["existe"]:
         return "error", componente, "la relación no existe en el entorno; --solo-verificar no crea nada, correr la herramienta sin ese flag primero"
@@ -236,10 +279,14 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente, publicar):
     est, cuerpo, _ = escribir_metadatos(dv, "POST", "RelationshipDefinitions", construir_payload(datos, identidad, atributo), solucion=solucion)
     if est != 204:
         return "error", componente, f"la creación falló: HTTP {est} {cuerpo}"
+    if datos["lookup"]["auditoria"]:
+        problema = ajustar_lookup(dv, datos, identidad)
+        if problema:
+            return "error", componente, f"la relación se creó pero quedó incompleta: {problema}. Volver a correr con --corregir-lookup"
     problema = _publicar(dv, datos)
     if problema:
         return "error", componente, f"la relación se creó pero falló publicar: {problema}. Verificar con --solo-verificar y, si coincide, volver a correr con --publicar"
-    final = _verificar(dv, datos, identidad, solution_id, atributo)
+    final = _verificar(dv, datos, identidad, solution_id, atributo, id_hija)
     if not final["existe"]:
         return "error", componente, "se creó (204) pero no aparece al releer del entorno"
     if final["diffs"]:
@@ -247,7 +294,7 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente, publicar):
     return "creado", componente, f"MetadataId {final['metadata_id']}, con su lookup {datos['tabla_hija']}.{datos['lookup']['nombre']}, en la solución '{solucion}'"
 
 
-def construir(ruta_playbook, solo_verificar, fabrica_cliente, publicar=False):
+def construir(ruta_playbook, solo_verificar, fabrica_cliente, publicar=False, corregir_lookup=False):
     """Nunca lanza: siempre devuelve `(estado, componente, detalle)`."""
     componente = os.path.basename(ruta_playbook)
     paso = "leer el playbook"
@@ -278,7 +325,7 @@ def construir(ruta_playbook, solo_verificar, fabrica_cliente, publicar=False):
 
     rastro = Rastro(dv)
     try:
-        return _contra_entorno(rastro, datos, identidad, solo_verificar, componente, publicar)
+        return _contra_entorno(rastro, datos, identidad, solo_verificar, componente, publicar, corregir_lookup)
     except Bloqueado as e:
         return "bloqueado", componente, str(e)
     except ErrorEntorno as e:
@@ -291,10 +338,10 @@ def main():
     argv = sys.argv[1:]
     rutas = [a for a in argv if not a.startswith("--")]
     if len(rutas) != 1:
-        return salida("error", "desconocido", "uso incorrecto: relacion.py <playbook.md> [--solo-verificar] [--publicar]")
+        return salida("error", "desconocido", "uso incorrecto: relacion.py <playbook.md> [--solo-verificar] [--publicar] [--corregir-lookup]")
     from dataverse_api import Dataverse
 
-    estado, componente, detalle = construir(rutas[0], "--solo-verificar" in argv, Dataverse, publicar="--publicar" in argv)
+    estado, componente, detalle = construir(rutas[0], "--solo-verificar" in argv, Dataverse, publicar="--publicar" in argv, corregir_lookup="--corregir-lookup" in argv)
     return salida(estado, componente, detalle)
 
 

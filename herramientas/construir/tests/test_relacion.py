@@ -95,13 +95,31 @@ def armar(cliente, d, existe=True, relacion=None, lookup=None, componentes=None,
     cliente.responder("GET", lambda r: r.startswith("EntityDefinitions(LogicalName=") and "/Attributes" not in r, tabla)
     cliente.responder("GET", lambda r: r.startswith("RelationshipDefinitions(SchemaName="),
                       lambda *_: (200, relacion if relacion is not None else cuerpo_relacion(d), {}) if estado["existe"] else (404, {"error": "no existe"}, {}))
-    cliente.responder("GET", lambda r: "/Attributes(LogicalName=" in r,
-                      lambda *_: (200, lookup if lookup is not None else cuerpo_lookup(d), {}) if estado["existe"] else (404, {"error": "no existe"}, {}))
-    cliente.responder("GET", es_ruta_solutioncomponents, (200, {"value": componentes if componentes is not None else [{"solutioncomponentid": "x"}]}, {}))
+    def leer_lookup(*_):
+        if not estado["existe"]:
+            return (404, {"error": "no existe"}, {})
+        if lookup is not None:
+            return (200, lookup, {})
+        c = cuerpo_lookup(d)
+        if estado.get("recien_creada") and not estado.get("auditoria_ajustada"):
+            c["IsAuditEnabled"] = aud(False)  # verificado: la plataforma ignora la auditoría del lookup al crear
+        return (200, c, {})
+
+    cliente.responder("GET", lambda r: "/Attributes(LogicalName=" in r, leer_lookup)
+    # Una relación NO tiene fila propia en solutioncomponents: viaja dentro de la tabla hija (componenttype 1, con todos sus subcomponentes).
+    cliente.responder("GET", es_ruta_solutioncomponents,
+                      (200, {"value": componentes if componentes is not None else [{"solutioncomponentid": "x", "rootcomponentbehavior": 0}]}, {}))
 
     def al_crear(*_):
         estado["existe"] = True
+        estado["recien_creada"] = True
         return (204, None, {})
+
+    def al_ajustar(*_):
+        estado["auditoria_ajustada"] = True
+        return (204, None, {})
+
+    cliente.responder("PUT", lambda r: "/Attributes(LogicalName=" in r, al_ajustar)
 
     cliente.responder("POST", "RelationshipDefinitions", al_crear)
     cliente.responder("POST", "PublishXml", (204, None, {}))
@@ -188,13 +206,49 @@ class Caminos(Base):
         self.assertEqual(comp, REL)
         self.assertIn(META_REL, detalle)
         escrituras = [(l["metodo"], l["ruta"]) for l in cliente.llamadas if l["metodo"] != "GET"]
-        self.assertEqual(escrituras, [("POST", "RelationshipDefinitions"), ("POST", "PublishXml")])
+        ruta_lookup = f"EntityDefinitions(LogicalName='{HIJA}')/Attributes(LogicalName='{LOOKUP}')"
+        self.assertEqual(escrituras, [("POST", "RelationshipDefinitions"), ("PUT", ruta_lookup), ("POST", "PublishXml")])
+        put = [l for l in cliente.llamadas if l["metodo"] == "PUT"][0]
+        self.assertEqual(put["cuerpo"]["@odata.type"], "Microsoft.Dynamics.CRM.LookupAttributeMetadata")
+        self.assertEqual(put["cuerpo"]["IsAuditEnabled"]["Value"], True)
+        self.assertEqual(put["cuerpo"]["Targets"], [PADRE])  # el resto de la definición se conserva
+        self.assertEqual(put["cabeceras"], {"MSCRM.MergeLabels": "true"})
+        self.assertEqual(put["solucion"], IDENT["solucion"])
         post = [l for l in cliente.llamadas if l["ruta"] == "RelationshipDefinitions"][0]
         self.assertEqual(post["solucion"], IDENT["solucion"])
         self.assertEqual(post["cuerpo"]["ReferencedAttribute"], PADRE + "id")
         xml = [l for l in cliente.llamadas if l["ruta"] == "PublishXml"][0]["cuerpo"]["ParameterXml"]
         self.assertIn(f"<entity>{PADRE}</entity>", xml)
         self.assertIn(f"<entity>{HIJA}</entity>", xml)
+
+    def test_un_lookup_sin_auditoria_no_necesita_ajuste(self):
+        cliente = armar(ClienteSimulado(), PARENTAL, existe=False)
+        estado, _, detalle = self.con_cliente(cliente, PARENTAL)
+        self.assertEqual(estado, "creado", detalle)
+        self.assertEqual([l for l in cliente.llamadas if l["metodo"] == "PUT"], [])
+
+    def test_si_falla_el_ajuste_de_la_auditoria_dice_que_quedo_incompleta(self):
+        cliente = ClienteSimulado()
+        cliente.responder("PUT", lambda r: True, (400, {"error": "boom"}, {}))
+        armar(cliente, BASE, existe=False)
+        estado, _, detalle = self.con_cliente(cliente, BASE)
+        self.assertEqual(estado, "error", detalle)
+        self.assertIn("incompleta", detalle)
+        self.assertIn("--corregir-lookup", detalle)
+
+    def test_corregir_lookup_repara_solo_la_auditoria(self):
+        sin_aud = con_cambio(cuerpo_lookup(BASE), ["IsAuditEnabled"], aud(False))
+        with tempfile.TemporaryDirectory() as dd:
+            ruta = os.path.join(dd, "p.md")
+            open(ruta, "w", encoding="utf-8").write(playbook_md(IDENT, BASE))
+            cliente = armar(ClienteSimulado(), BASE, lookup=sin_aud)
+            rl.construir(ruta, False, lambda: cliente, corregir_lookup=True)
+            self.assertEqual([l["metodo"] for l in cliente.llamadas if l["metodo"] != "GET"], ["PUT", "POST"])
+            otra = con_cambio(sin_aud, ["RequiredLevel"], rl_("None"))
+            cliente = armar(ClienteSimulado(), BASE, lookup=otra)
+            estado, _, _ = rl.construir(ruta, False, lambda: cliente, corregir_lookup=True)
+        self.assertEqual(estado, "difiere")
+        self.assertFalse(cliente.hubo_escritura())
 
     def test_hacia_una_tabla_del_sistema_solo_publica_la_hija(self):
         cliente = armar(ClienteSimulado(), DE_SISTEMA, existe=False)
@@ -273,6 +327,7 @@ class Diferencias(Base):
             (f"{LOOKUP}.Targets", dict(lookup=con_cambio(k, ["Targets"], ["account"]))),
             (f"{LOOKUP}.tipo", dict(lookup=con_cambio(k, ["AttributeTypeName"], {"Value": "StringType"}))),
             ("pertenencia a la solución", dict(componentes=[])),
+            ("no incluye todos sus subcomponentes", dict(componentes=[{"solutioncomponentid": "x", "rootcomponentbehavior": 1}])),
         ]
         for esperado, kw in casos:
             with self.subTest(esperado):
@@ -313,6 +368,7 @@ class FormaYHttpInesperados(Base):
             ("Targets", dict(lookup=con_cambio(k, ["Targets"], "sanic_mppp_tbl_cliente"))),
             ("Targets[0]", dict(lookup=con_cambio(k, ["Targets"], [None]))),
             ("DisplayName", dict(lookup=con_cambio(k, ["DisplayName"], None))),
+            ("value[0].rootcomponentbehavior", dict(componentes=[{"solutioncomponentid": "x", "rootcomponentbehavior": None}])),
             ("PrimaryIdAttribute", dict(tablas={PADRE: {"PrimaryIdAttribute": None, "IsCustomEntity": True}, HIJA: {"PrimaryIdAttribute": HIJA + "id", "IsCustomEntity": True}})),
         ]
         for campo, kw in casos:

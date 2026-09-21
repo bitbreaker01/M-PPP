@@ -1,7 +1,7 @@
 {
  "proyecto": "MPPP · fase 1",
  "criterio_hecho": "ciclo cerrado: construido, verificado en Dev y muestra exportada; si el ciclo enseñó algo nuevo, además el reporte aprobado por el aprobador",
- "en_curso": "3.6 Regla, 3.9 Resultado de regla y 3.10 Bitácora — su primaria pasa a autonumérica y opcional (decisión del aprobador); en corrección",
+ "en_curso": "P-04 Relaciones — herramienta escrita; en ensayo contra la plataforma con tablas descartables",
  "grupos": {
   "P-01": "Solución",
   "P-02": "Choices globales",
@@ -179,7 +179,7 @@
    "grupo": "P-03",
    "nombre": "sanic_mppp_tbl_regla",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "3.7",
@@ -200,14 +200,14 @@
    "grupo": "P-03",
    "nombre": "sanic_mppp_tbl_resultadoregla",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "3.10",
    "grupo": "P-03",
    "nombre": "sanic_mppp_tbl_bitacora",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "4.1",
