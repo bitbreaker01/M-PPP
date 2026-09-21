@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Plugins de Dataverse: la plataforma exige .NET Framework (4.6.2 a 4.8) y proyecto de estilo SDK.
+       net462 es el que generan las herramientas de Microsoft (pac plugin init). Versiones fijadas: nada de comodines. -->
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <RootNamespace>Sanic.Mppp.Plugins</RootNamespace>
+    <AssemblyName>Sanic.Mppp.Plugins</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Ya están en el sandbox de Dataverse: no se suben con el paquete. -->
+    <PackageReference Include="Microsoft.CrmSdk.CoreAssemblies" Version="9.0.2.60" PrivateAssets="All" />
+    <!-- Permite compilar para .NET Framework sin Windows ni Visual Studio. -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
+  </ItemGroup>
+</Project>
