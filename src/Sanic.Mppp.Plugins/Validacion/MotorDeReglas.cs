@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Sanic.Mppp.Plugins.Dominio;
 
 namespace Sanic.Mppp.Plugins.Validacion
@@ -84,9 +85,21 @@ namespace Sanic.Mppp.Plugins.Validacion
     /// </summary>
     public sealed class MotorDeReglas<TContexto>
     {
+        private readonly Dictionary<string, IEvaluador<TContexto>> _evaluadoresPorCodigo;
+
         public MotorDeReglas(IEnumerable<IEvaluador<TContexto>> evaluadores)
         {
-            throw new NotImplementedException();
+            if (evaluadores == null)
+            {
+                throw new ArgumentNullException(nameof(evaluadores));
+            }
+
+            // Códigos de regla se comparan ordinal (son identificadores, no texto de usuario).
+            _evaluadoresPorCodigo = new Dictionary<string, IEvaluador<TContexto>>(StringComparer.Ordinal);
+            foreach (var evaluador in evaluadores)
+            {
+                _evaluadoresPorCodigo[evaluador.Codigo] = evaluador;
+            }
         }
 
         /// <summary>
@@ -95,7 +108,65 @@ namespace Sanic.Mppp.Plugins.Validacion
         /// </summary>
         public IList<ResultadoDeRegla> Evaluar(IEnumerable<DefinicionDeRegla> reglasActivas, TContexto contexto)
         {
-            throw new NotImplementedException();
+            if (reglasActivas == null)
+            {
+                throw new ArgumentNullException(nameof(reglasActivas));
+            }
+
+            // "El motor evalúa todas las reglas activas, de menor a mayor Orden (sin importar el orden en que llegan)" (orden del constructor).
+            var ordenadas = reglasActivas.OrderBy(r => r.Orden).ToList();
+            var resultados = new List<ResultadoDeRegla>(ordenadas.Count);
+            var resultadoPorCodigo = new Dictionary<string, ResultadoDeLaRegla>(StringComparer.Ordinal);
+
+            foreach (var regla in ordenadas)
+            {
+                // DD-13: las dependencias que no resultaron TODAS Cumplida (incluye Omitida) bloquean la regla, que queda Omitida.
+                var dependenciasQueBloquean = new List<string>();
+                if (regla.DependeDe != null)
+                {
+                    foreach (var codigoDependencia in regla.DependeDe)
+                    {
+                        if (!resultadoPorCodigo.TryGetValue(codigoDependencia, out var resultadoDependencia))
+                        {
+                            // Decisión provisoria del constructor (no fijada por diseño ni por pruebas): una regla que depende
+                            // de otra que no está entre las activas falla cerrado en vez de decidir algo por su cuenta.
+                            throw new InvalidOperationException(
+                                $"La regla '{regla.Codigo}' depende de '{codigoDependencia}', que no está entre las reglas activas evaluadas.");
+                        }
+
+                        if (resultadoDependencia != ResultadoDeLaRegla.Cumplida)
+                        {
+                            dependenciasQueBloquean.Add(codigoDependencia);
+                        }
+                    }
+                }
+
+                ResultadoDeRegla resultado;
+                if (dependenciasQueBloquean.Count > 0)
+                {
+                    // El evaluador de una regla Omitida no se llama. La razón nombra a TODAS las dependencias directas que no fueron Cumplida.
+                    var razon = "Omitida: no se cumplió " + string.Join(", ", dependenciasQueBloquean) + ".";
+                    resultado = new ResultadoDeRegla(regla.Codigo, regla.Orden, ResultadoDeLaRegla.Omitida, razon, regla.Efecto);
+                }
+                else
+                {
+                    if (!_evaluadoresPorCodigo.TryGetValue(regla.Codigo, out var evaluador))
+                    {
+                        // Decisión provisoria del constructor (no fijada por diseño ni por pruebas): una regla activa sin
+                        // evaluador registrado falla cerrado en vez de decidir algo por su cuenta (02 §2.6: "es un error de configuración").
+                        throw new InvalidOperationException($"La regla activa '{regla.Codigo}' no tiene evaluador registrado.");
+                    }
+
+                    var veredicto = evaluador.Evaluar(contexto);
+                    var resultadoRegla = veredicto.Cumple ? ResultadoDeLaRegla.Cumplida : ResultadoDeLaRegla.NoCumplida;
+                    resultado = new ResultadoDeRegla(regla.Codigo, regla.Orden, resultadoRegla, veredicto.Razon, regla.Efecto);
+                }
+
+                resultados.Add(resultado);
+                resultadoPorCodigo[regla.Codigo] = resultado.Resultado;
+            }
+
+            return resultados;
         }
     }
 
@@ -107,25 +178,80 @@ namespace Sanic.Mppp.Plugins.Validacion
 
         public static EstadoDeLaFila DeLaFila(IEnumerable<ResultadoDeRegla> resultadosDeRegistro)
         {
-            throw new NotImplementedException();
+            if (resultadosDeRegistro == null)
+            {
+                throw new ArgumentNullException(nameof(resultadosDeRegistro));
+            }
+
+            var lista = resultadosDeRegistro as IList<ResultadoDeRegla> ?? resultadosDeRegistro.ToList();
+
+            // AUTORIZACION_CORREO_PLAN No cumplida manda: Sin autorización, aunque otras reglas también hayan fallado.
+            if (lista.Any(r => string.Equals(r.Codigo, CodigoAutorizacion, StringComparison.Ordinal) && r.Resultado == ResultadoDeLaRegla.NoCumplida))
+            {
+                return EstadoDeLaFila.SinAutorizacion;
+            }
+
+            // Una Omitida nunca cuenta como falla; solo una No cumplida con efecto Rechaza rechaza la fila.
+            if (lista.Any(r => r.Resultado == ResultadoDeLaRegla.NoCumplida && r.EfectoAplicado == EfectoDeLaRegla.Rechaza))
+            {
+                return EstadoDeLaFila.RechazadaEnValidacion;
+            }
+
+            return EstadoDeLaFila.Validada;
         }
 
         /// <summary>Los motivos de las reglas que FALLARON, todos y en orden, para `sanic_mensaje`. Las Omitidas y las Cumplidas no aportan.</summary>
         public static IList<string> MotivosDeLaFila(IEnumerable<ResultadoDeRegla> resultadosDeRegistro)
         {
-            throw new NotImplementedException();
+            if (resultadosDeRegistro == null)
+            {
+                throw new ArgumentNullException(nameof(resultadosDeRegistro));
+            }
+
+            // Cualquiera sea su efecto (Rechaza o Advierte): "los motivos de las reglas que fallaron, todos y no solo el primero".
+            return resultadosDeRegistro
+                .Where(r => r.Resultado == ResultadoDeLaRegla.NoCumplida)
+                .OrderBy(r => r.Orden)
+                .Select(r => r.Razon)
+                .ToList();
         }
 
         /// <summary>¿Las reglas del sobre rechazan la solicitud? (paso 4: falla alguna con efecto Rechaza).</summary>
         public static bool ElSobreRechaza(IEnumerable<ResultadoDeRegla> resultadosDeSolicitud)
         {
-            throw new NotImplementedException();
+            if (resultadosDeSolicitud == null)
+            {
+                throw new ArgumentNullException(nameof(resultadosDeSolicitud));
+            }
+
+            return resultadosDeSolicitud.Any(r => r.Resultado == ResultadoDeLaRegla.NoCumplida && r.EfectoAplicado == EfectoDeLaRegla.Rechaza);
         }
 
         /// <summary>Estado final de la solicitud (paso 7): Rechazada si el sobre rechaza o si ninguna fila quedó Validada; si no, En proceso.</summary>
         public static EstadoDeLaSolicitud DeLaSolicitud(IEnumerable<ResultadoDeRegla> resultadosDeSolicitud, IEnumerable<EstadoDeLaFila> estadosDeLasFilas)
         {
-            throw new NotImplementedException();
+            if (resultadosDeSolicitud == null)
+            {
+                throw new ArgumentNullException(nameof(resultadosDeSolicitud));
+            }
+
+            if (estadosDeLasFilas == null)
+            {
+                throw new ArgumentNullException(nameof(estadosDeLasFilas));
+            }
+
+            if (ElSobreRechaza(resultadosDeSolicitud))
+            {
+                return EstadoDeLaSolicitud.Rechazada;
+            }
+
+            // "Rechazada si ninguna fila es válida" (DD-09): también rechaza si no hay ninguna fila.
+            if (!estadosDeLasFilas.Any(f => f == EstadoDeLaFila.Validada))
+            {
+                return EstadoDeLaSolicitud.Rechazada;
+            }
+
+            return EstadoDeLaSolicitud.EnProceso;
         }
     }
 }
