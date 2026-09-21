@@ -1,7 +1,7 @@
 {
  "proyecto": "MPPP · fase 1",
  "criterio_hecho": "ciclo cerrado: construido, verificado en Dev y muestra exportada; si el ciclo enseñó algo nuevo, además el reporte aprobado por el aprobador",
- "en_curso": "3.2 Plan, 3.3 Autorizado, 3.6 Regla y 3.9 Resultado de regla — construidas y aprobadas por el verificador; cada una enseñó algo, falta la aprobación del aprobador",
+ "en_curso": "3.6 Regla, 3.9 Resultado de regla y 3.10 Bitácora — su primaria pasa a autonumérica y opcional (decisión del aprobador); en corrección",
  "grupos": {
   "P-01": "Solución",
   "P-02": "Choices globales",
@@ -151,14 +151,14 @@
    "grupo": "P-03",
    "nombre": "sanic_mppp_tbl_plan",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "3.3",
    "grupo": "P-03",
    "nombre": "sanic_mppp_tbl_autorizado",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "3.4",
@@ -207,7 +207,7 @@
    "grupo": "P-03",
    "nombre": "sanic_mppp_tbl_bitacora",
    "total": 1,
-   "hechos": 1
+   "hechos": 0
   },
   {
    "id": "4.1",

@@ -35,6 +35,7 @@ Se **genera**, no se dibuja a mano: `python3 herramientas/generar_er.py`. Cuando
 | DD-17 | **Un plan formato 11 solo admite clasificación ACH** (regla `FORMATO_11_SOLO_ACH`). | Regla de negocio informada por el aprobador. |
 | DD-18 | **Auditoría nativa activada en los catálogos** (Cliente, Plan, Autorizado, AutorizacionPlan, Parametro, Regla), tabla y columnas; **desactivada en la unidad histórica** (Solicitud, Fila, ResultadoRegla, Bitacora). **Notas y actividades desactivadas en todas.** | Aprobado por el aprobador el 2026-09-20. En un banco importa quién cambió un CIF, una autorización o un parámetro, y los catálogos tienen poco volumen. La unidad histórica ya lleva su trazabilidad en columnas propias y en la Bitácora (D-06), y su volumen es alto. La auditoría solo registra si además está activada a nivel de entorno. Notas y actividades se pueden activar después; desactivarlas, no. |
 | DD-19 | **El nombre visible de cada columna se fija en el playbook de su tabla** (`playbooks/tabla/`), no acá. | Este diccionario define nombres lógicos, tipos y reglas. El nombre visible es texto de negocio que se puede cambiar después sin romper nada; el nombre lógico, no. |
+| DD-20 | **Las primarias de Regla, ResultadoRegla y Bitácora son autonuméricas y opcionales**: `REG-{SEQNUM:4}`, `RES-{SEQNUM:10}` y `BIT-{SEQNUM:10}`. Se llenan solas; nadie las digita ni las calcula. | Decisión del aprobador (2026-09-20), al cerrar D-4 y D-5. Cumple BP-PP-192 (la primaria nunca es texto libre) sin un plugin más: en esas tres tablas el nombre tiene poca relevancia (`01` §4), y lo que identifica al registro es otra cosa (el código de la regla; la solicitud y el código de regla; la solicitud y la fecha del evento). Bitácora deja de necesitar el step de nombre calculado. |
 
 ## 1. Choices globales
 
@@ -139,7 +140,7 @@ Largos de la plantilla vigente (ficha §9): Nombre ≤44 · Identificación 1–
 ### 2.6 `sanic_mppp_tbl_regla` (CatálogoReglas de solicitud, RF-06, D-04)
 | Columna | Tipo | Req | Nota |
 |---|---|---|---|
-| `sanic_nombre` | T(200) | S | Primaria. |
+| `sanic_nombre` | T(200) autonumérico | | Primaria **autonumérica y opcional**: `REG-{SEQNUM:4}`. Se llena sola; la identidad de la regla es `sanic_codigo` (DD-20). |
 | `sanic_codigo` | T(50) | S | **Clave** `sanic_mppp_key_regla_codigo`. El código C# tiene un evaluador por código; una regla activa sin evaluador es un error de configuración. |
 | `sanic_nivel` | C:nivelregla | S | *Correo*: la evalúa el plugin liviano, sin abrir la plantilla. *Solicitud*: una vez, sobre el correo y su adjunto. *Registro*: por cada fila. |
 | `sanic_orden` | E | S | Orden de evaluación dentro de su nivel. |
@@ -213,10 +214,10 @@ Las filas totalmente vacías de la plantilla no generan Fila.
 ### 3.3 `sanic_mppp_tbl_resultadoregla`
 Guarda el resultado de las reglas de **nivel Solicitud**, una fila por regla. El de las reglas de nivel Registro vive en `sanic_mensaje` de cada Fila (`definicion.md` D-05: sin tabla adicional).
 
-`sanic_nombre` T(200) · `sanic_solicitudid` L **parental** · `sanic_reglacodigo` T(50) S — **clave** `sanic_mppp_key_resultadoregla_solicitud_reglacodigo` · `sanic_reglaid` L:regla (restringido) · `sanic_resultado` C:resultadoregla S (Cumplida, No cumplida u **Omitida** porque falló una regla de la que dependía, DD-13; en ese caso `sanic_razon` dice cuál) · `sanic_razon` M(2000) · `sanic_efectoaplicado` C:efectoregla (foto del efecto que tenía la regla ese día: el catálogo es editable y el histórico tiene que seguir diciendo qué pasó) · `sanic_fechaevaluacion` F S · `sanic_orden` E.
+`sanic_nombre` T(200) autonumérico `RES-{SEQNUM:10}`, opcional (DD-20) · `sanic_solicitudid` L **parental** · `sanic_reglacodigo` T(50) S — **clave** `sanic_mppp_key_resultadoregla_solicitud_reglacodigo` · `sanic_reglaid` L:regla (restringido) · `sanic_resultado` C:resultadoregla S (Cumplida, No cumplida u **Omitida** porque falló una regla de la que dependía, DD-13; en ese caso `sanic_razon` dice cuál) · `sanic_razon` M(2000) · `sanic_efectoaplicado` C:efectoregla (foto del efecto que tenía la regla ese día: el catálogo es editable y el histórico tiene que seguir diciendo qué pasó) · `sanic_fechaevaluacion` F S · `sanic_orden` E.
 
 ### 3.4 `sanic_mppp_tbl_bitacora` (tabla estándar, sin TTL, D-07)
-`sanic_nombre` T(200) calculada · `sanic_solicitudid` L **parental**, único lookup · `sanic_fechaevento` F S · `sanic_evento` C:eventobitacora S · `sanic_origen` C:origenevento S · `sanic_numerofila` E (0 = evento de la solicitud; es un número, **no** un lookup a Fila) · `sanic_actortexto` T(200) (nombre de quien actuó, **en texto**, sin lookup) · `sanic_detalle` M(10000). Sin clave alternativa (DD-04).
+`sanic_nombre` T(200) autonumérico `BIT-{SEQNUM:10}`, opcional (DD-20) · `sanic_solicitudid` L **parental**, único lookup · `sanic_fechaevento` F S · `sanic_evento` C:eventobitacora S · `sanic_origen` C:origenevento S · `sanic_numerofila` E (0 = evento de la solicitud; es un número, **no** un lookup a Fila) · `sanic_actortexto` T(200) (nombre de quien actuó, **en texto**, sin lookup) · `sanic_detalle` M(10000). Sin clave alternativa (DD-04).
 
 ## 4. `sanic_mppp_tbl_corridahistorico` — fase 3 (D-36)
 Sin lookups a la unidad histórica. **Clave** = `sanic_corridaid` T(60). Se detalla al arrancar la fase 3.

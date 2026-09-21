@@ -15,7 +15,8 @@ Segunda excepción, también verificada: al crear la tabla la plataforma IGNORA
 el largo y el "requerida" de la columna primaria (la deja en 850 y opcional),
 salvo que sea autonumérica. Enseguida de crear se reenvía su definición
 completa con PUT y se publica. `--corregir-primaria` repara una tabla que ya
-existe cuando esa es su ÚNICA diferencia (nunca otra cosa).
+existe cuando su ÚNICA diferencia es la primaria: largo, requerida, o pasar
+de texto común a autonumérica (nunca otra cosa, y nunca al revés).
 Las columnas lookup no van acá: nacen con su relación.
 Nunca modifica ni borra: si la tabla existe y no coincide, informa `difiere`.
 
@@ -490,6 +491,9 @@ def ajustar_primaria(dv, datos, identidad):
     definicion = {k: v for k, v in actual.items() if k != "@odata.context"}
     definicion["@odata.type"] = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
     definicion["MaxLength"] = p["largo"]
+    if p["autonumerico"]:
+        # Volver autonumérica una primaria de texto que ya existe es el mismo PUT (ensayado el 2026-09-20).
+        definicion["AutoNumberFormat"] = p["autonumerico"]
     definicion["RequiredLevel"] = {**nivel, "Value": "ApplicationRequired" if p["requerida"] else "None"}
     est, cuerpo, _ = escribir_metadatos(dv, "PUT", ruta, definicion, solucion=identidad["solucion"], cabeceras={"MSCRM.MergeLabels": "true"})
     if est != 204:
@@ -502,8 +506,15 @@ def ajustar_primaria(dv, datos, identidad):
 
 
 def _solo_difiere_la_primaria(datos, diffs):
+    """Lo único que `--corregir-primaria` acepta reparar: largo, requerida y,
+    si el playbook la quiere autonumérica, darle su formato. Quitarle el
+    formato a una columna que ya es autonumérica NO: eso no lo pide ningún
+    playbook y cambiaría cómo se numeran los registros."""
     n = datos["primaria"]["nombre"]
-    return bool(diffs) and all(d.startswith((f"{n}.MaxLength:", f"{n}.RequiredLevel:")) for d in diffs)
+    admitidas = [f"{n}.MaxLength:", f"{n}.RequiredLevel:"]
+    if datos["primaria"]["autonumerico"]:
+        admitidas.append(f"{n}.AutoNumberFormat:")
+    return bool(diffs) and all(d.startswith(tuple(admitidas)) for d in diffs)
 
 
 def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_primaria=False, publicar=False):
@@ -522,7 +533,7 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_p
         if not actual["diffs"]:
             return "ya_existia", componente, (
                 "la tabla existía y su única diferencia era la columna primaria, que la plataforma había creado con sus valores "
-                f"por defecto; se corrigió (largo y requerida) y ahora coincide en todo; pertenece a '{solucion}'"
+                f"por defecto o como texto común; se corrigió (largo, requerida o formato autonumérico) y ahora coincide en todo; pertenece a '{solucion}'"
             )
     if actual["existe"] and publicar and not solo_verificar and not actual["diffs"]:
         # Publicar es inofensivo y se puede repetir: sirve cuando una corrida anterior ajustó la primaria y el publicar falló.

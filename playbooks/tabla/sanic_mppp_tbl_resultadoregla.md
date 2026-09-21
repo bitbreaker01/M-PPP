@@ -38,11 +38,11 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
   "auditoria": false,
   "primaria": {
     "nombre": "sanic_nombre",
-    "displayname": "Nombre",
-    "descripcion": "Nombre que arma la solución al registrar el resultado. Nadie lo digita.",
+    "displayname": "Número",
+    "descripcion": "Número que la plataforma asigna sola al crear el registro. Nadie lo digita.",
     "largo": 200,
     "requerida": false,
-    "autonumerico": ""
+    "autonumerico": "RES-{SEQNUM:10}"
   },
   "columnas": [
     {
@@ -113,8 +113,8 @@ Decisiones que este playbook toma y el diccionario no traía:
 
 | Decisión | Valor | Por qué |
 |---|---|---|
+| Nombre visible de la primaria | `Número` | Es un autonumérico (`02` DD-20); "Nombre" confundiría |
 | Nombres visibles de las columnas | los de la sección 2 | Texto de negocio (`02` DD-19) |
-| La primaria es opcional, como dice el diccionario | `requerida: false` | `02` §3.3 no la marca `S`, a diferencia de las demás tablas. La arma la solución y nadie la digita (`01` §4); el playbook no cambia lo que el diccionario decide. Si fuera una omisión del diccionario, se corrige ahí con el aprobador y se ajusta después: el nivel de requerida se puede cambiar sin costo |
 | Rango de las columnas enteras | `sanic_orden`: 0 a 100000 | El diccionario dice `E` sin rango; se fija uno amplio y sin negativos. Se puede ampliar después |
 
 Viene del diseño, no lo decide este playbook: **auditoría nativa, notas y actividades** = desactivada · no · no (`02` DD-18: es parte de la unidad histórica, que ya lleva su trazabilidad en columnas propias y en la Bitácora).
@@ -128,7 +128,7 @@ Las de la receta (`patrones.md` §2.2), con estos valores esperados:
 | 1 | La solución existe, no es managed, y su publisher coincide en unique name, prefijo y prefijo de opciones | los de la sección 1 |
 | 2 | El `lcid` es el idioma base y está provisionado | `1033` en los dos |
 | 3 | Cada choice global que usa una columna existe | `sanic_mppp_ch_efectoregla`, `sanic_mppp_ch_resultadoregla` (construidos) |
-| 4 | Todo lo que usa el playbook está verificado contra la plataforma | tipos choice, entero, fechahora, memo, texto: verificados en el ensayo del 2026-09-20 |
+| 4 | Todo lo que usa el playbook está verificado contra la plataforma | tipos autonumerico, choice, entero, fechahora, memo, texto; primaria autonumérica: verificados en el ensayo del 2026-09-20 |
 
 Si alguna falla: estado `bloqueado`, no se crea nada.
 
@@ -151,7 +151,7 @@ python3 herramientas/construir/muestra_tabla.py playbooks/tabla/sanic_mppp_tbl_r
 |---|---|---|
 | 1 | `GET EntityDefinitions(LogicalName='sanic_mppp_tbl_resultadoregla')` | 200 · `OwnershipType = UserOwned` · `IsManaged = false` · `IsCustomEntity = true` · `HasNotes = false` · `HasActivities = false` · `IsAuditEnabled = false` · `PrimaryNameAttribute = sanic_nombre` |
 | 2 | Nombre, plural y descripción en 1033 | los de la sección 2; ninguna etiqueta en otro idioma |
-| 3 | Columnas (7): tipo, requerida, protegida, auditoría, nombre visible, descripción y lo propio de su tipo | `sanic_nombre` texto 200 opcional · `sanic_reglacodigo` texto 50 requerida · `sanic_resultado` choice `sanic_mppp_ch_resultadoregla` requerida · `sanic_razon` multilínea 2000 opcional · `sanic_efectoaplicado` choice `sanic_mppp_ch_efectoregla` opcional · `sanic_fechaevaluacion` fecha y hora (usuario local) requerida · `sanic_orden` entero 0–100000 opcional; ninguna auditada |
+| 3 | Columnas (7): tipo, requerida, protegida, auditoría, nombre visible, descripción y lo propio de su tipo | `sanic_nombre` autonumérico `RES-{SEQNUM:10}` (largo 200) opcional · `sanic_reglacodigo` texto 50 requerida · `sanic_resultado` choice `sanic_mppp_ch_resultadoregla` requerida · `sanic_razon` multilínea 2000 opcional · `sanic_efectoaplicado` choice `sanic_mppp_ch_efectoregla` opcional · `sanic_fechaevaluacion` fecha y hora (usuario local) requerida · `sanic_orden` entero 0–100000 opcional; ninguna auditada |
 | 4 | Ninguna columna propia de más | salvo lookups, que nacen con su relación |
 | 5 | Pertenece a la solución de la sección 1 | una fila en `solutioncomponents` (tipo de componente 1) |
 | 6 | Segunda ejecución sin `--solo-verificar` | estado `ya_existia`, código de salida 0 |

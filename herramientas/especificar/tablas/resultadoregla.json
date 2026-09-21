@@ -13,11 +13,11 @@
   "auditoria": false,
   "primaria": {
    "nombre": "sanic_nombre",
-   "displayname": "Nombre",
-   "descripcion": "Nombre que arma la solución al registrar el resultado. Nadie lo digita.",
+   "displayname": "Número",
+   "descripcion": "Número que la plataforma asigna sola al crear el registro. Nadie lo digita.",
    "largo": 200,
    "requerida": false,
-   "autonumerico": ""
+   "autonumerico": "RES-{SEQNUM:10}"
   },
   "columnas": [
    {
@@ -84,14 +84,14 @@
  },
  "decisiones": [
   [
+   "Nombre visible de la primaria",
+   "`Número`",
+   "Es un autonumérico (`02` DD-20); \"Nombre\" confundiría"
+  ],
+  [
    "Nombres visibles de las columnas",
    "los de la sección 2",
    "Texto de negocio (`02` DD-19)"
-  ],
-  [
-   "La primaria es opcional, como dice el diccionario",
-   "`requerida: false`",
-   "`02` §3.3 no la marca `S`, a diferencia de las demás tablas. La arma la solución y nadie la digita (`01` §4); el playbook no cambia lo que el diccionario decide. Si fuera una omisión del diccionario, se corrige ahí con el aprobador y se ajusta después: el nivel de requerida se puede cambiar sin costo"
   ],
   [
    "Rango de las columnas enteras",

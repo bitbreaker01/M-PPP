@@ -38,11 +38,11 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
   "auditoria": true,
   "primaria": {
     "nombre": "sanic_nombre",
-    "displayname": "Nombre",
-    "descripcion": "Nombre de la regla, para las personas.",
+    "displayname": "Número",
+    "descripcion": "Número que la plataforma asigna sola al crear el registro. Nadie lo digita.",
     "largo": 200,
-    "requerida": true,
-    "autonumerico": ""
+    "requerida": false,
+    "autonumerico": "REG-{SEQNUM:4}"
   },
   "columnas": [
     {
@@ -114,6 +114,7 @@ Decisiones que este playbook toma y el diccionario no traía:
 
 | Decisión | Valor | Por qué |
 |---|---|---|
+| Nombre visible de la primaria | `Número` | Es un autonumérico (`02` DD-20); "Nombre" confundiría |
 | Nombres visibles de las columnas | `Nombre`, `Código`, `Nivel`, `Orden`, `Depende de`, `Efecto`, `Mensaje para el cliente` | Texto de negocio (`02` DD-19) |
 | Rango de las columnas enteras | `sanic_orden`: 0 a 100000 | El diccionario dice `E` sin rango; se fija uno amplio y sin negativos. Se puede ampliar después |
 
@@ -128,7 +129,7 @@ Las de la receta (`patrones.md` §2.2), con estos valores esperados:
 | 1 | La solución existe, no es managed, y su publisher coincide en unique name, prefijo y prefijo de opciones | los de la sección 1 |
 | 2 | El `lcid` es el idioma base y está provisionado | `1033` en los dos |
 | 3 | Cada choice global que usa una columna existe | `sanic_mppp_ch_efectoregla`, `sanic_mppp_ch_nivelregla` (construidos) |
-| 4 | Todo lo que usa el playbook está verificado contra la plataforma | tipos choice, entero, memo, texto; auditoría de tabla y de columna: verificados en el ensayo del 2026-09-20 |
+| 4 | Todo lo que usa el playbook está verificado contra la plataforma | tipos autonumerico, choice, entero, memo, texto; primaria autonumérica, auditoría de tabla y de columna: verificados en el ensayo del 2026-09-20 |
 
 Si alguna falla: estado `bloqueado`, no se crea nada.
 
@@ -151,7 +152,7 @@ python3 herramientas/construir/muestra_tabla.py playbooks/tabla/sanic_mppp_tbl_r
 |---|---|---|
 | 1 | `GET EntityDefinitions(LogicalName='sanic_mppp_tbl_regla')` | 200 · `OwnershipType = UserOwned` · `IsManaged = false` · `IsCustomEntity = true` · `HasNotes = false` · `HasActivities = false` · `IsAuditEnabled = true` · `PrimaryNameAttribute = sanic_nombre` |
 | 2 | Nombre, plural y descripción en 1033 | los de la sección 2; ninguna etiqueta en otro idioma |
-| 3 | Columnas (7): tipo, requerida, protegida, auditoría, nombre visible, descripción y lo propio de su tipo | `sanic_nombre` texto 200 requerida · `sanic_codigo` texto 50 requerida · `sanic_nivel` choice `sanic_mppp_ch_nivelregla` requerida · `sanic_orden` entero 0–100000 requerida · `sanic_dependede` texto 500 opcional · `sanic_efecto` choice `sanic_mppp_ch_efectoregla` requerida · `sanic_mensajecliente` multilínea 2000 opcional; todas auditadas |
+| 3 | Columnas (7): tipo, requerida, protegida, auditoría, nombre visible, descripción y lo propio de su tipo | `sanic_nombre` autonumérico `REG-{SEQNUM:4}` (largo 200) opcional · `sanic_codigo` texto 50 requerida · `sanic_nivel` choice `sanic_mppp_ch_nivelregla` requerida · `sanic_orden` entero 0–100000 requerida · `sanic_dependede` texto 500 opcional · `sanic_efecto` choice `sanic_mppp_ch_efectoregla` requerida · `sanic_mensajecliente` multilínea 2000 opcional; todas auditadas |
 | 4 | Ninguna columna propia de más | salvo lookups, que nacen con su relación |
 | 5 | Pertenece a la solución de la sección 1 | una fila en `solutioncomponents` (tipo de componente 1) |
 | 6 | Segunda ejecución sin `--solo-verificar` | estado `ya_existia`, código de salida 0 |

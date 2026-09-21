@@ -31,7 +31,7 @@ TABLAS = {
         ("sanic_clienteid", "→ Cliente", "FK"),
     ]),
     "regla": dict(x=1240, y=90, color=CAT, titulo="Regla", logico="sanic_mppp_tbl_regla", filas=[
-        ("sanic_nombre", "T(200)", "PK"),
+        ("sanic_nombre", "REG-{SEQNUM:4}", "PK"),
         ("sanic_codigo", "T(50)", "AK"),
         ("sanic_nivel", "Solicitud · Registro", ""),
         ("sanic_orden", "Entero", ""),
@@ -54,7 +54,7 @@ TABLAS = {
         ("sanic_descripcion", "Multilínea", ""),
     ]),
     "bitacora": dict(x=40, y=600, color=UH, titulo="Bitacora", logico="sanic_mppp_tbl_bitacora", filas=[
-        ("sanic_nombre", "T(200)", "PK"),
+        ("sanic_nombre", "BIT-{SEQNUM:10}", "PK"),
         ("sanic_solicitudid", "→ Solicitud", "FK"),
         ("sanic_fechaevento", "Fecha y hora", ""),
         ("sanic_evento", "Choice", ""),
@@ -112,7 +112,7 @@ TABLAS = {
         ("sanic_aprobadapor", "→ systemuser + fecha", "FK"),
     ]),
     "resultadoregla": dict(x=1240, y=600, color=UH, titulo="ResultadoRegla", logico="sanic_mppp_tbl_resultadoregla", filas=[
-        ("sanic_nombre", "T(200)", "PK"),
+        ("sanic_nombre", "RES-{SEQNUM:10}", "PK"),
         ("sanic_solicitudid", "→ Solicitud", "AK FK"),
         ("sanic_reglacodigo", "T(50)", "AK"),
         ("sanic_reglaid", "→ Regla", "FK"),

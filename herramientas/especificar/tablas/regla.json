@@ -13,11 +13,11 @@
   "auditoria": true,
   "primaria": {
    "nombre": "sanic_nombre",
-   "displayname": "Nombre",
-   "descripcion": "Nombre de la regla, para las personas.",
+   "displayname": "Número",
+   "descripcion": "Número que la plataforma asigna sola al crear el registro. Nadie lo digita.",
    "largo": 200,
-   "requerida": true,
-   "autonumerico": ""
+   "requerida": false,
+   "autonumerico": "REG-{SEQNUM:4}"
   },
   "columnas": [
    {
@@ -84,6 +84,11 @@
   ]
  },
  "decisiones": [
+  [
+   "Nombre visible de la primaria",
+   "`Número`",
+   "Es un autonumérico (`02` DD-20); \"Nombre\" confundiría"
+  ],
   [
    "Nombres visibles de las columnas",
    "`Nombre`, `Código`, `Nivel`, `Orden`, `Depende de`, `Efecto`, `Mensaje para el cliente`",

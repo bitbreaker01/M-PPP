@@ -13,11 +13,11 @@
   "auditoria": false,
   "primaria": {
    "nombre": "sanic_nombre",
-   "displayname": "Nombre",
-   "descripcion": "Nombre calculado por la solución. Nadie lo digita.",
+   "displayname": "Número",
+   "descripcion": "Número que la plataforma asigna sola al crear el registro. Nadie lo digita.",
    "largo": 200,
    "requerida": false,
-   "autonumerico": ""
+   "autonumerico": "BIT-{SEQNUM:10}"
   },
   "columnas": [
    {
@@ -84,14 +84,14 @@
  },
  "decisiones": [
   [
+   "Nombre visible de la primaria",
+   "`Número`",
+   "Es un autonumérico (`02` DD-20); \"Nombre\" confundiría"
+  ],
+  [
    "Nombres visibles de las columnas",
    "los de la sección 2",
    "Texto de negocio (`02` DD-19)"
-  ],
-  [
-   "La primaria es opcional, como dice el diccionario",
-   "`requerida: false`",
-   "`02` §3.4 no la marca `S`, a diferencia de las demás tablas. La arma la solución y nadie la digita (`01` §4); el playbook no cambia lo que el diccionario decide. Si fuera una omisión del diccionario, se corrige ahí con el aprobador y se ajusta después: el nivel de requerida se puede cambiar sin costo"
   ],
   [
    "Rango de las columnas enteras",
@@ -107,7 +107,6 @@
  "fuera_de_alcance": [
   "El lookup `sanic_solicitudid` (parental, el único de la tabla) y su relación: inventario 4.7.",
   "Esta tabla no tiene clave alternativa (`02` DD-04).",
-  "El cálculo de `sanic_nombre`: plugin, inventario 7.11.",
   "Vistas, formulario y seguridad de la tabla: inventario 12 y 6."
  ]
 }

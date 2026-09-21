@@ -457,6 +457,33 @@ class Caminos(Base):
         self.assertEqual(estado, "difiere")
         self.assertFalse(cliente.hubo_escritura())
 
+    def test_corregir_primaria_tambien_la_vuelve_autonumerica(self):
+        """Decisión del aprobador (2026-09-20): la primaria de una tabla que ya
+        existe pasa de texto a autonumérica y opcional. Es el mismo PUT."""
+        auto = con_cambio(con_cambio(COMPLETO, ["primaria", "autonumerico"], "REG-{SEQNUM:4}"), ["primaria", "requerida"], False)
+        # el entorno todavía la tiene como texto común, requerida
+        pt = filas_por_tipo(COMPLETO)
+        gen = [fila_generica(COMPLETO["primaria"], True)] + [fila_generica(c) for c in COMPLETO["columnas"]] + SISTEMA
+        cliente = armar(ClienteSimulado(), auto, por_tipo=pt, genericas=gen)
+        estado, _, detalle = self.con_cliente(cliente, auto)
+        self.assertEqual(estado, "difiere", detalle)
+        self.assertIn("sanic_nombre.AutoNumberFormat", detalle)
+        self.assertIn("sanic_nombre.RequiredLevel", detalle)
+        self.assertFalse(cliente.hubo_escritura())
+        cliente = armar(ClienteSimulado(), auto, por_tipo=pt, genericas=gen)
+        self.con_cliente(cliente, auto, corregir_primaria=True)
+        puts = [l for l in cliente.llamadas if l["metodo"] == "PUT"]
+        self.assertEqual(len(puts), 1)
+        self.assertEqual(puts[0]["cuerpo"]["AutoNumberFormat"], "REG-{SEQNUM:4}")
+        self.assertEqual(puts[0]["cuerpo"]["RequiredLevel"]["Value"], "None")
+        self.assertEqual(puts[0]["cuerpo"]["MaxLength"], 200)
+        # y al revés no: quitarle el formato a una autonumérica NO lo hace la herramienta
+        entorno_auto = con_cambio(pt, ["String", 0, "AutoNumberFormat"], "X-{SEQNUM:4}")
+        cliente = armar(ClienteSimulado(), COMPLETO, por_tipo=entorno_auto)
+        estado, _, detalle = self.con_cliente(cliente, COMPLETO, corregir_primaria=True)
+        self.assertEqual(estado, "difiere", detalle)
+        self.assertFalse(cliente.hubo_escritura())
+
     def test_ya_existia_no_escribe(self):
         cliente = armar(ClienteSimulado(), COMPLETO)
         estado, _, detalle = self.con_cliente(cliente, COMPLETO)
