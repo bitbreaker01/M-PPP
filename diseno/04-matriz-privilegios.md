@@ -57,7 +57,7 @@ Mismo criterio en Solicitud para los humanos: solo `sanic_requiererevision` (el 
 | Cliente, Plan | — | R:O | R:O |
 | Autorizado, AutorizacionPlan | — | — | R:O |
 | CorridaHistorico (fase 3) | — | — | C R W : O |
-| Privilegios varios | Ejecutar flujos, leer environment variables y connection references | — | `prvBulkDelete` · `prvOverrideCreatedOnCreatedBy` (para `overriddencreatedon`, D-36) |
+| Privilegios varios | Ejecutar flujos (ya viene en App Opener: `prvFlow`, `prvWorkflowExecution`). Leer environment variables: `prvReadEnvironmentVariableDefinition` : O. Leer connection references: `prvReadconnectionreference` : O (nombres exactos leídos de Dev y aprobados el 2026-09-21) | — | `prvBulkDelete` · `prvOverrideCreatedOnCreatedBy` (para `overriddencreatedon`, D-36) |
 | Custom API | `sanic_mppp_capi_clasificarcorreo`, `sanic_mppp_capi_validarsolicitud` | `sanic_mppp_capi_obtenerfilaspendientes`, `sanic_mppp_capi_registrarresultadorpa` | — |
 
 - El **RPA no escribe ninguna tabla**: todo pasa por su Custom API, que graba como SYSTEM. Rol mínimo de verdad (D-14, RNF-07).

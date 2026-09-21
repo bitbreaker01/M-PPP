@@ -1,0 +1,43 @@
+{
+ "inventario": "6.6",
+ "matriz": "§3",
+ "componente": {
+  "tipo": "rol",
+  "nombre": "SR - MPPP - Servicio de ingesta",
+  "descripcion": "Cuenta de servicio de los flujos: da de alta y actualiza la solicitud, escribe eventos en la bitácora, lee los parámetros de vigilancia y ejecuta las Custom API de clasificación y validación. No lee filas, clientes, planes ni autorizados.",
+  "base": "App Opener",
+  "tablas": {
+   "sanic_mppp_tbl_solicitud": {
+    "crear": "organizacion",
+    "leer": "organizacion",
+    "escribir": "organizacion",
+    "anexar": "organizacion",
+    "anexar_a": "organizacion"
+   },
+   "sanic_mppp_tbl_bitacora": {
+    "crear": "organizacion",
+    "anexar": "organizacion"
+   },
+   "sanic_mppp_tbl_parametro": {
+    "leer": "organizacion"
+   }
+  },
+  "otros_privilegios": {
+   "prvReadEnvironmentVariableDefinition": "organizacion",
+   "prvReadconnectionreference": "organizacion"
+  }
+ },
+ "viene_del_diseno": [
+  "Privilegios sobre tablas: `04` §3, columna Servicio de ingesta.",
+  "`prvReadEnvironmentVariableDefinition` y `prvReadconnectionreference`: `04` §3, \"Privilegios varios\" (nombres exactos aprobados el 2026-09-21). No existe un privilegio aparte para el valor de una variable de entorno: va con la definición.",
+  "\"Ejecutar flujos\" (`prvFlow`, `prvWorkflowExecution` y los de `Workflow`) ya viene en App Opener: no se declara.",
+  "Las Custom API `clasificarcorreo` y `validarsolicitud` se ejecutan con `prvCreatesanic_mppp_tbl_solicitud` (D-9), que este rol tiene por `crear` sobre Solicitud: no hace falta otro privilegio.",
+  "No lee Fila, Cliente, Plan ni Autorizado a propósito: eso lo hace el plugin como SYSTEM (`04` §1 y §3).",
+  "Se parte de \"App Opener\", no de \"Basic User\" (`04` §2)."
+ ],
+ "fuera_de_alcance": [
+  "Asignar el rol a la cuenta de servicio y licenciarla: tarea de administración 13.2.",
+  "El registro de las Custom API con su `ExecutePrivilegeName`: inventario 8.",
+  "A confirmar cuando existan los flujos: que con este rol la cuenta de servicio puede ser dueña de los cinco flujos y correrlos; si falta un privilegio, se agrega a la matriz y después acá."
+ ]
+}
