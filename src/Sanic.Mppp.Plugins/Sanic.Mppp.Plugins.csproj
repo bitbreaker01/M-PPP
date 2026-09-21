@@ -14,5 +14,15 @@
     <PackageReference Include="Microsoft.CrmSdk.CoreAssemblies" Version="9.0.2.60" PrivateAssets="All" />
     <!-- Permite compilar para .NET Framework sin Windows ni Visual Studio. -->
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
+    <!-- Lector de la plantilla Excel (7.2). Va como ensamblado dependiente dentro del paquete de plugins: corrió en el sandbox
+         real en el spike C-05 parte B (6,5 MB sin comprimir). La versión es la que se probó ahí: no se sube sin volver a probar. -->
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- En un proyecto de estilo SDK para .NET Framework no viene por defecto (spike C-05, local y sandbox). -->
+    <Reference Include="System.IO.Compression" />
+    <!-- DataContractJsonSerializer: los parámetros JSON se leen con lo que ya trae el framework.
+         Microsoft advierte no depender de System.Text.Json en un plugin (la versión del sandbox puede ser otra). -->
+    <Reference Include="System.Runtime.Serialization" />
   </ItemGroup>
 </Project>
