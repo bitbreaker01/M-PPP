@@ -13,7 +13,7 @@
   "auditoria": false,
   "primaria": {
    "nombre": "sanic_nombre",
-   "displayname": "Número",
+   "displayname": "Numero",
    "descripcion": "Número de la solicitud. Es lo que se le cita al cliente.",
    "largo": 100,
    "requerida": true,
@@ -52,7 +52,7 @@
    },
    {
     "nombre": "sanic_motivoclasificacion",
-    "displayname": "Motivo de clasificación",
+    "displayname": "Motivo de clasificacion",
     "descripcion": "Por qué el correo fue a Por clasificar. Vacía si se procesó.",
     "tipo": "texto",
     "requerida": false,
@@ -225,7 +225,7 @@
    },
    {
     "nombre": "sanic_filasvalidas",
-    "displayname": "Filas válidas",
+    "displayname": "Filas validas",
     "descripcion": "Filas que pasaron la validación.",
     "tipo": "entero",
     "requerida": false,
@@ -247,7 +247,7 @@
    },
    {
     "nombre": "sanic_versionparametros",
-    "displayname": "Versión de parámetros",
+    "displayname": "Version de parametros",
     "descripcion": "Versiones de los parámetros de plantilla usadas para validar esta solicitud.",
     "tipo": "texto",
     "requerida": false,
@@ -257,7 +257,7 @@
    },
    {
     "nombre": "sanic_reintentosvalidacion",
-    "displayname": "Reintentos de validación",
+    "displayname": "Reintentos de validacion",
     "descripcion": "Veces que el flujo de vigilancia reintentó la validación.",
     "tipo": "entero",
     "requerida": false,
@@ -268,19 +268,19 @@
    },
    {
     "nombre": "sanic_requiererevision",
-    "displayname": "Requiere revisión",
+    "displayname": "Requiere revision",
     "descripcion": "Marca la solicitud para que la revise una persona: envío iniciado sin cerrar, máximo de reintentos o error de la validación.",
     "tipo": "sino",
     "requerida": false,
     "protegida": false,
     "auditoria": false,
-    "etiqueta_si": "Sí",
+    "etiqueta_si": "Si",
     "etiqueta_no": "No",
     "defecto": false
    },
    {
     "nombre": "sanic_motivorevision",
-    "displayname": "Motivo de revisión",
+    "displayname": "Motivo de revision",
     "descripcion": "Por qué la solicitud requiere revisión.",
     "tipo": "memo",
     "requerida": false,
@@ -293,7 +293,7 @@
  "decisiones": [
   [
    "Nombre visible de la primaria",
-   "`Número`",
+   "`Numero`",
    "Es el número que se le cita al cliente (`MPPP-00000123`)"
   ],
   [
@@ -308,7 +308,7 @@
   ],
   [
    "Sí/No de `sanic_requiererevision`",
-   "`Sí` / `No`, por defecto `No`",
+   "`Si` / `No`, por defecto `No`",
    "Una solicitud nace sin necesidad de revisión"
   ],
   [

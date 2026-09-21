@@ -4,7 +4,7 @@
  "componente": {
   "tipo": "clave",
   "nombre": "sanic_mppp_key_parametro_nombre_version",
-  "displayname": "KEY - MPPP - Parámetro - Nombre y versión",
+  "displayname": "KEY - MPPP - Parametro - Nombre y version",
   "tabla": "sanic_mppp_tbl_parametro",
   "columnas": [
    "sanic_nombre",

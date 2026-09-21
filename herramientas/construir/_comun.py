@@ -389,6 +389,17 @@ def escribir_metadatos(dv, metodo, ruta, cuerpo, dormir=None, **kw):
         dormir(ESPERA_BLOQUEO_SEGUNDOS)
 
 
+def exigir_sin_tildes(texto, campo):
+    """BP-PP-197: ningún nombre visible lleva tildes, ñ ni otro carácter fuera
+    de ASCII. El nombre visible viaja por filtros de URL, XML de la solución,
+    scripts y nombres de archivo; y en un componente sin nombre lógico ES el
+    identificador. Las descripciones son prosa y no pasan por acá."""
+    malos = sorted({c for c in texto if ord(c) > 126 or ord(c) < 32})
+    if malos:
+        raise ErrorPlaybook(f"{campo} = {texto!r} lleva caracteres fuera de ASCII ({' '.join(malos)}): los nombres visibles van sin tildes ni ñ (BP-PP-197); "
+                            "se escribe la palabra sin la tilde, no se la cambia por otra")
+
+
 def nombre_de_archivo(texto):
     """Nombre de archivo para un componente que no tiene nombre lógico (un rol,
     un perfil): su nombre visible en minúscula, sin tildes y con guiones bajos.

@@ -47,7 +47,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
   "columnas": [
     {
       "nombre": "sanic_codigo",
-      "displayname": "Código",
+      "displayname": "Codigo",
       "descripcion": "Código del plan en el AS400. Único en todo el banco. Alfanumérico, en mayúscula, rellenado con ceros a la izquierda hasta 4. Es clave alternativa.",
       "tipo": "texto",
       "largo": 4,
@@ -83,7 +83,7 @@ Decisiones que este playbook toma y el diccionario no traía:
 
 | Decisión | Valor | Por qué |
 |---|---|---|
-| Nombres visibles de las columnas | `Nombre`, `Código`, `Tipo de formato`, `Moneda` | Texto de negocio (`02` DD-19) |
+| Nombres visibles de las columnas | `Nombre`, `Codigo`, `Tipo de formato`, `Moneda` | Texto de negocio (`02` DD-19) |
 | La primaria es requerida, como dice el diccionario, aunque sea calculada | `requerida: true` | `02` §2.2 la marca `S`. La calcula un plugin PreOperation y nadie la digita (`01` §4): en el formulario va **en solo lectura u oculta** (BP-PP-192), y una columna requerida en solo lectura u oculta **no bloquea el guardado** (Learn, *Troubleshoot form issues*: "Business required column doesn't block saving"). Eso se resuelve en el playbook del formulario, no bajando el nivel de requerida |
 | Auditoría nativa, notas y actividades | activada · no · no | `02` DD-18: es un catálogo |
 

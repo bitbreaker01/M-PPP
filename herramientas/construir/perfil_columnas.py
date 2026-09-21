@@ -34,6 +34,7 @@ from _comun import (  # noqa: E402
     dividir_secciones,
     escribir_metadatos,
     exigir_forma,
+    exigir_sin_tildes,
     leer_entorno,
     leer_texto,
     obtener_componente,
@@ -58,7 +59,7 @@ CLAVES_PERMISO = {"tabla": str, "columna": str, "leer": bool, "crear": bool, "ac
 # ---------------------------------------------------------------------------
 # Validación sin red
 # ---------------------------------------------------------------------------
-def validar_playbook(datos, identidad):
+def _validar_estructura(datos, identidad):
     faltan, sobran = sorted(set(CLAVES) - set(datos)), sorted(set(datos) - set(CLAVES))
     if faltan or sobran:
         raise ErrorPlaybook(f"claves del perfil inválidas: faltan {faltan or 'ninguna'}, sobran {sobran or 'ninguna'}")
@@ -97,6 +98,11 @@ def _cuerpo_permiso(p, perfil_id):
     return {"entityname": p["tabla"], "attributelogicalname": p["columna"],
             **{api: PERMITIDO if p[campo] else NO_PERMITIDO for campo, api in CAMPOS.items()},
             "canreadunmasked": NO_PERMITIDO, "fieldsecurityprofileid@odata.bind": f"/fieldsecurityprofiles({perfil_id})"}
+
+
+def validar_playbook(datos, identidad):
+    _validar_estructura(datos, identidad)
+    exigir_sin_tildes(datos["nombre"], "'nombre'")
 
 
 # ---------------------------------------------------------------------------

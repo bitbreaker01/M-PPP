@@ -32,13 +32,41 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
   "displayname": "CH - MPPP - Estado de la fila",
   "descripcion": "Estado de una fila de la plantilla, desde la validación hasta su resultado en el AS400. La usa la tabla Fila.",
   "opciones": [
-    { "valor": 159460001, "etiqueta": "Rechazada en validación", "descripcion": "Terminal. No cumplió una regla de registro" },
-    { "valor": 159460002, "etiqueta": "Sin autorización", "descripcion": "Terminal. El remitente no tiene una autorización vigente sobre el plan" },
-    { "valor": 159460003, "etiqueta": "Validada", "descripcion": "Lista para que el ejecutivo la digite" },
-    { "valor": 159460004, "etiqueta": "Digitada", "descripcion": "Digitada en el AS400; espera la aprobación del supervisor" },
-    { "valor": 159460005, "etiqueta": "Aprobada", "descripcion": "Terminal. Aprobada en el AS400" },
-    { "valor": 159460006, "etiqueta": "Rechazada en AS400", "descripcion": "Terminal. El AS400 la rechazó" },
-    { "valor": 159460007, "etiqueta": "Anulada", "descripcion": "Terminal. Un ejecutivo la anuló con motivo" }
+    {
+      "valor": 159460001,
+      "etiqueta": "Rechazada en validacion",
+      "descripcion": "Terminal. No cumplió una regla de registro"
+    },
+    {
+      "valor": 159460002,
+      "etiqueta": "Sin autorizacion",
+      "descripcion": "Terminal. El remitente no tiene una autorización vigente sobre el plan"
+    },
+    {
+      "valor": 159460003,
+      "etiqueta": "Validada",
+      "descripcion": "Lista para que el ejecutivo la digite"
+    },
+    {
+      "valor": 159460004,
+      "etiqueta": "Digitada",
+      "descripcion": "Digitada en el AS400; espera la aprobación del supervisor"
+    },
+    {
+      "valor": 159460005,
+      "etiqueta": "Aprobada",
+      "descripcion": "Terminal. Aprobada en el AS400"
+    },
+    {
+      "valor": 159460006,
+      "etiqueta": "Rechazada en AS400",
+      "descripcion": "Terminal. El AS400 la rechazó"
+    },
+    {
+      "valor": 159460007,
+      "etiqueta": "Anulada",
+      "descripcion": "Terminal. Un ejecutivo la anuló con motivo"
+    }
   ]
 }
 ```
@@ -77,7 +105,7 @@ Las comprobaciones de la receta, con estos valores esperados:
 |---|---|---|
 | 1 | `GET GlobalOptionSetDefinitions(Name='sanic_mppp_ch_estadofila')` | 200 · `IsGlobal = true` · `OptionSetType = Picklist` · `IsManaged = false` |
 | 2 | Display name y descripción en 1033 | los de la sección 2 |
-| 3 | Opciones, en orden, con valor, etiqueta y descripción | `159460001 = Rechazada en validación`, `159460002 = Sin autorización`, `159460003 = Validada`, `159460004 = Digitada`, `159460005 = Aprobada`, `159460006 = Rechazada en AS400`, `159460007 = Anulada`; ninguna más; ninguna etiqueta en otro idioma |
+| 3 | Opciones, en orden, con valor, etiqueta y descripción | `159460001 = Rechazada en validacion`, `159460002 = Sin autorizacion`, `159460003 = Validada`, `159460004 = Digitada`, `159460005 = Aprobada`, `159460006 = Rechazada en AS400`, `159460007 = Anulada`; ninguna más; ninguna etiqueta en otro idioma |
 | 4 | Pertenece a la solución de la sección 1 | exactamente una fila en `solutioncomponents` |
 | 5 | Segunda ejecución de la herramienta sin `--solo-verificar` | estado `ya_existia`, código de salida 0, no cambia nada |
 

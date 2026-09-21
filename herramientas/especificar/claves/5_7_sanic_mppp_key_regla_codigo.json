@@ -4,7 +4,7 @@
  "componente": {
   "tipo": "clave",
   "nombre": "sanic_mppp_key_regla_codigo",
-  "displayname": "KEY - MPPP - Regla - Código",
+  "displayname": "KEY - MPPP - Regla - Codigo",
   "tabla": "sanic_mppp_tbl_regla",
   "columnas": [
    "sanic_codigo"

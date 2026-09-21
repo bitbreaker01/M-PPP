@@ -29,8 +29,8 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
 {
   "tipo": "tabla",
   "nombre": "sanic_mppp_tbl_bitacora",
-  "displayname": "Bitácora",
-  "displayname_plural": "Bitácoras",
+  "displayname": "Bitacora",
+  "displayname_plural": "Bitacoras",
   "descripcion": "Renglón de la bitácora de una solicitud: qué pasó, cuándo, qué pieza lo registró y quién actuó.",
   "propiedad": "usuario",
   "notas": false,
@@ -38,7 +38,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
   "auditoria": false,
   "primaria": {
     "nombre": "sanic_nombre",
-    "displayname": "Número",
+    "displayname": "Numero",
     "descripcion": "Número que la plataforma asigna sola al crear el registro. Nadie lo digita.",
     "largo": 200,
     "requerida": false,
@@ -76,7 +76,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     },
     {
       "nombre": "sanic_numerofila",
-      "displayname": "Número de fila",
+      "displayname": "Numero de fila",
       "descripcion": "Fila a la que se refiere el evento; 0 si es un evento de la solicitud. Es un número, no un lookup a Fila.",
       "tipo": "entero",
       "requerida": false,
@@ -113,7 +113,7 @@ Decisiones que este playbook toma y el diccionario no traía:
 
 | Decisión | Valor | Por qué |
 |---|---|---|
-| Nombre visible de la primaria | `Número` | Es un autonumérico (`02` DD-20); "Nombre" confundiría |
+| Nombre visible de la primaria | `Numero` | Es un autonumérico (`02` DD-20); "Nombre" confundiría |
 | Nombres visibles de las columnas | los de la sección 2 | Texto de negocio (`02` DD-19) |
 | Rango de las columnas enteras | `sanic_numerofila`: 0 a 100000 | El diccionario dice `E` sin rango; se fija uno amplio y sin negativos. Se puede ampliar después |
 

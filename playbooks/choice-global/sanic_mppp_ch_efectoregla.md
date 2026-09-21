@@ -32,9 +32,21 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
   "displayname": "CH - MPPP - Efecto de la regla",
   "descripcion": "Qué pasa cuando una regla falla. La usan las tablas Regla y ResultadoRegla.",
   "opciones": [
-    { "valor": 159460001, "etiqueta": "Rechaza", "descripcion": "Regla de solicitud: se responde al cliente con el motivo. Regla de registro: se rechaza esa fila" },
-    { "valor": 159460002, "etiqueta": "Envía a revisión", "descripcion": "Solo reglas de solicitud: no se responde; la revisa un ejecutivo" },
-    { "valor": 159460003, "etiqueta": "Advierte", "descripcion": "Se registra y el proceso sigue" }
+    {
+      "valor": 159460001,
+      "etiqueta": "Rechaza",
+      "descripcion": "Regla de solicitud: se responde al cliente con el motivo. Regla de registro: se rechaza esa fila"
+    },
+    {
+      "valor": 159460002,
+      "etiqueta": "Envia a revision",
+      "descripcion": "Solo reglas de solicitud: no se responde; la revisa un ejecutivo"
+    },
+    {
+      "valor": 159460003,
+      "etiqueta": "Advierte",
+      "descripcion": "Se registra y el proceso sigue"
+    }
   ]
 }
 ```
@@ -73,7 +85,7 @@ Las comprobaciones de la receta, con estos valores esperados:
 |---|---|---|
 | 1 | `GET GlobalOptionSetDefinitions(Name='sanic_mppp_ch_efectoregla')` | 200 · `IsGlobal = true` · `OptionSetType = Picklist` · `IsManaged = false` |
 | 2 | Display name y descripción en 1033 | los de la sección 2 |
-| 3 | Opciones, en orden, con valor, etiqueta y descripción | `159460001 = Rechaza`, `159460002 = Envía a revisión`, `159460003 = Advierte`; ninguna más; ninguna etiqueta en otro idioma |
+| 3 | Opciones, en orden, con valor, etiqueta y descripción | `159460001 = Rechaza`, `159460002 = Envia a revision`, `159460003 = Advierte`; ninguna más; ninguna etiqueta en otro idioma |
 | 4 | Pertenece a la solución de la sección 1 | exactamente una fila en `solutioncomponents` |
 | 5 | Segunda ejecución de la herramienta sin `--solo-verificar` | estado `ya_existia`, código de salida 0, no cambia nada |
 

@@ -43,6 +43,7 @@ from _comun import (  # noqa: E402
     etiqueta_y_otros_idiomas,
     exigir_etiqueta,
     exigir_forma,
+    exigir_sin_tildes,
     leer_texto,
     obtener_componente,
     obtener_identidad,
@@ -143,7 +144,7 @@ def _validar_autonumerico(formato, donde):
         raise ErrorPlaybook(f"{donde} = {formato!r} no tiene ningún marcador ({{SEQNUM:n}}, {{RANDSTRING:n}} o {{DATETIMEUTC:formato}})")
 
 
-def validar_playbook(datos, identidad):
+def _validar_estructura(datos, identidad):
     _validar_bloque(datos, CLAVES_TABLA, "la tabla")
     prefijo, abrev = identidad["prefijo"], identidad["abrev"]
     _validar_nombre(datos["nombre"], rf"{prefijo}_{abrev}_tbl_[a-z0-9]+", "'nombre'")
@@ -219,6 +220,18 @@ def comprobar_verificadas(datos, verificadas, permitir_no_verificadas):
             f"--permitir-no-verificadas solo vale sobre una tabla descartable, con '{INFIJO_DESCARTABLE}' en el nombre; "
             f"{datos['nombre']!r} no lo es. Sin verificar: {faltan}"
         )
+
+
+def validar_playbook(datos, identidad):
+    _validar_estructura(datos, identidad)
+    exigir_sin_tildes(datos["displayname"], "'displayname'")
+    exigir_sin_tildes(datos["displayname_plural"], "'displayname_plural'")
+    exigir_sin_tildes(datos["primaria"]["displayname"], "primaria.displayname")
+    for i, c in enumerate(datos["columnas"]):
+        exigir_sin_tildes(c["displayname"], f"columnas[{i}].displayname ({c['nombre']})")
+        for etiqueta in ("etiqueta_si", "etiqueta_no"):
+            if etiqueta in c:
+                exigir_sin_tildes(c[etiqueta], f"columnas[{i}].{etiqueta} ({c['nombre']})")
 
 
 # ---------------------------------------------------------------------------

@@ -29,12 +29,24 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
 {
   "tipo": "choice-global",
   "nombre": "sanic_mppp_ch_clasificacion",
-  "displayname": "CH - MPPP - Clasificación",
+  "displayname": "CH - MPPP - Clasificacion",
   "descripcion": "Cómo se paga la referencia: cuenta del banco, transferencia a otro banco o cheque. La usa la tabla Fila.",
   "opciones": [
-    { "valor": 159460001, "etiqueta": "BAC", "descripcion": "Cuenta en BAC" },
-    { "valor": 159460002, "etiqueta": "ACH", "descripcion": "Transferencia a una cuenta de otro banco" },
-    { "valor": 159460003, "etiqueta": "CK", "descripcion": "Cheque" }
+    {
+      "valor": 159460001,
+      "etiqueta": "BAC",
+      "descripcion": "Cuenta en BAC"
+    },
+    {
+      "valor": 159460002,
+      "etiqueta": "ACH",
+      "descripcion": "Transferencia a una cuenta de otro banco"
+    },
+    {
+      "valor": 159460003,
+      "etiqueta": "CK",
+      "descripcion": "Cheque"
+    }
   ]
 }
 ```

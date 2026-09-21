@@ -74,7 +74,7 @@ Ejemplo: `1.0.0.14` es el export 14 camino a la primera entrega; `1.1.0.3` la se
 
 ## 4. Idioma y forma
 
-- Nombres lógicos: regla 3 de la sección 1. Display names en español correcto, con tildes.
+- Nombres lógicos: regla 3 de la sección 1. **Nombres visibles: en español, sin tildes ni ñ** (BP-PP-197, decisión del aprobador del 2026-09-21): tablas, columnas, choices y sus opciones, claves, lookups, roles, perfiles, y todo lo que venga después (flujos, vistas, formularios, steps, variables). Se escribe la palabra sin la tilde (`Numero`, `Autorizacion`). Las descripciones son prosa y sí llevan ortografía completa.
 - Código C#: identificadores en inglés para lo técnico (`ValidationPipeline`, `IRowRule`) y en español para el dominio tal como lo nombra el negocio (`Solicitud`, `Fila`, `Gestion`). Nunca se traduce un término del glosario del panorama. El código C# sí usa PascalCase: la regla de minúsculas es solo para nombres lógicos de la plataforma.
 - **Fechas de auditoría propias** (RNF-01, D-06): se llaman `sanic_fecha<evento>` (`sanic_fecharespondida`) y quién lo hizo `sanic_<evento>por` (`sanic_digitadapor`, lookup a `systemuser`). Toda columna de fecha y hora usa el comportamiento **Usuario local**: Dataverse guarda el instante en UTC y se lo muestra a cada persona en su hora. Es lo que permite restar dos fechas para medir el tiempo de ciclo y que el histórico en Azure quede en UTC sin ambigüedad. Ese comportamiento prácticamente no se puede cambiar después de crear la columna.
 - **Columna primaria** de cada tabla: `sanic_nombre`. Nunca la digita una persona: la calcula un plugin o un flujo con el formato que indique el diccionario, o es **autonumérica** cuando el nombre tiene poca relevancia.

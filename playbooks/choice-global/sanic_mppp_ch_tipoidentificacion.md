@@ -29,14 +29,34 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
 {
   "tipo": "choice-global",
   "nombre": "sanic_mppp_ch_tipoidentificacion",
-  "displayname": "CH - MPPP - Tipo de identificación",
+  "displayname": "CH - MPPP - Tipo de identificacion",
   "descripcion": "Tipo de documento de identidad del titular de la referencia. La usa la tabla Fila.",
   "opciones": [
-    { "valor": 159460001, "etiqueta": "CNA", "descripcion": "Cédula nacional" },
-    { "valor": 159460002, "etiqueta": "CRE", "descripcion": "Cédula de residencia" },
-    { "valor": 159460003, "etiqueta": "PAS", "descripcion": "Pasaporte" },
-    { "valor": 159460004, "etiqueta": "PEX", "descripcion": "Persona extranjera" },
-    { "valor": 159460005, "etiqueta": "RUC", "descripcion": "Registro único de contribuyente" }
+    {
+      "valor": 159460001,
+      "etiqueta": "CNA",
+      "descripcion": "Cédula nacional"
+    },
+    {
+      "valor": 159460002,
+      "etiqueta": "CRE",
+      "descripcion": "Cédula de residencia"
+    },
+    {
+      "valor": 159460003,
+      "etiqueta": "PAS",
+      "descripcion": "Pasaporte"
+    },
+    {
+      "valor": 159460004,
+      "etiqueta": "PEX",
+      "descripcion": "Persona extranjera"
+    },
+    {
+      "valor": 159460005,
+      "etiqueta": "RUC",
+      "descripcion": "Registro único de contribuyente"
+    }
   ]
 }
 ```

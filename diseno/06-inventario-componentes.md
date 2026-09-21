@@ -115,10 +115,10 @@ Después de las relaciones, porque varias incluyen un lookup. La activación del
 | 6.2 | Security role | `SR - MPPP - Ejecutivo` | todas las tablas | 1 |
 | 6.3 | Security role | `SR - MPPP - Supervisor` | ídem | 1 |
 | 6.4 | Security role | `SR - MPPP - Administrador de planes` | ídem | 1 |
-| 6.5 | Security role | `SR - MPPP - Administrador técnico` | ídem | 1 |
+| 6.5 | Security role | `SR - MPPP - Administrador tecnico` | ídem | 1 |
 | 6.6 | Security role | `SR - MPPP - Servicio de ingesta` | ídem + Custom API 8.1 | 1 |
 | 6.7 | Security role | `SR - MPPP - RPA` | Custom API de fase 2 | 2 |
-| 6.8 | Security role | `SR - MPPP - Histórico` | | 3 |
+| 6.8 | Security role | `SR - MPPP - Historico` | | 3 |
 
 ## 7. Código de plugins — P-08 (C#, TDD estricto, sin FakeXrmEasy)
 

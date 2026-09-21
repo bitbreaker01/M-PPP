@@ -38,7 +38,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
   "auditoria": false,
   "primaria": {
     "nombre": "sanic_nombre",
-    "displayname": "Número",
+    "displayname": "Numero",
     "descripcion": "Número de la solicitud. Es lo que se le cita al cliente.",
     "largo": 100,
     "requerida": true,
@@ -77,7 +77,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     },
     {
       "nombre": "sanic_motivoclasificacion",
-      "displayname": "Motivo de clasificación",
+      "displayname": "Motivo de clasificacion",
       "descripcion": "Por qué el correo fue a Por clasificar. Vacía si se procesó.",
       "tipo": "texto",
       "requerida": false,
@@ -250,7 +250,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     },
     {
       "nombre": "sanic_filasvalidas",
-      "displayname": "Filas válidas",
+      "displayname": "Filas validas",
       "descripcion": "Filas que pasaron la validación.",
       "tipo": "entero",
       "requerida": false,
@@ -272,7 +272,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     },
     {
       "nombre": "sanic_versionparametros",
-      "displayname": "Versión de parámetros",
+      "displayname": "Version de parametros",
       "descripcion": "Versiones de los parámetros de plantilla usadas para validar esta solicitud.",
       "tipo": "texto",
       "requerida": false,
@@ -282,7 +282,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     },
     {
       "nombre": "sanic_reintentosvalidacion",
-      "displayname": "Reintentos de validación",
+      "displayname": "Reintentos de validacion",
       "descripcion": "Veces que el flujo de vigilancia reintentó la validación.",
       "tipo": "entero",
       "requerida": false,
@@ -293,19 +293,19 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     },
     {
       "nombre": "sanic_requiererevision",
-      "displayname": "Requiere revisión",
+      "displayname": "Requiere revision",
       "descripcion": "Marca la solicitud para que la revise una persona: envío iniciado sin cerrar, máximo de reintentos o error de la validación.",
       "tipo": "sino",
       "requerida": false,
       "protegida": false,
       "auditoria": false,
-      "etiqueta_si": "Sí",
+      "etiqueta_si": "Si",
       "etiqueta_no": "No",
       "defecto": false
     },
     {
       "nombre": "sanic_motivorevision",
-      "displayname": "Motivo de revisión",
+      "displayname": "Motivo de revision",
       "descripcion": "Por qué la solicitud requiere revisión.",
       "tipo": "memo",
       "requerida": false,
@@ -321,10 +321,10 @@ Decisiones que este playbook toma y el diccionario no traía:
 
 | Decisión | Valor | Por qué |
 |---|---|---|
-| Nombre visible de la primaria | `Número` | Es el número que se le cita al cliente (`MPPP-00000123`) |
+| Nombre visible de la primaria | `Numero` | Es el número que se le cita al cliente (`MPPP-00000123`) |
 | Nombres visibles de las columnas | los de la sección 2; las fechas se nombran con el hecho y "el" (`Recibido el`, `Cerrada el`) para que en una vista se lean solas | Texto de negocio (`02` DD-19) |
 | Rango de las columnas enteras | cantidades de filas: 0 a 100000 (la ventana de lectura es de 100 filas; queda margen); adjuntos y reintentos: 0 a 1000 | El diccionario dice `E` sin rango; se fija uno amplio y sin negativos. Se puede ampliar después |
-| Sí/No de `sanic_requiererevision` | `Sí` / `No`, por defecto `No` | Una solicitud nace sin necesidad de revisión |
+| Sí/No de `sanic_requiererevision` | `Si` / `No`, por defecto `No` | Una solicitud nace sin necesidad de revisión |
 | Tamaño máximo de los archivos | `25600` KB y `10240` KB | 25 MB el correo y 10 MB el Excel (`02` §3.1) |
 
 Viene del diseño, no lo decide este playbook: **auditoría nativa, notas y actividades** = desactivada · no · no (`02` DD-18: es parte de la unidad histórica, que ya lleva su trazabilidad en columnas propias y en la Bitácora).

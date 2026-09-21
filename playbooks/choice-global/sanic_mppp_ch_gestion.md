@@ -29,12 +29,24 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
 {
   "tipo": "choice-global",
   "nombre": "sanic_mppp_ch_gestion",
-  "displayname": "CH - MPPP - Gestión",
+  "displayname": "CH - MPPP - Gestion",
   "descripcion": "Qué pide el cliente para una referencia: incluirla, excluirla o modificarla. La usa la tabla Fila.",
   "opciones": [
-    { "valor": 159460001, "etiqueta": "Inclusión", "descripcion": "Agregar la referencia al plan" },
-    { "valor": 159460002, "etiqueta": "Exclusión", "descripcion": "Quitar la referencia del plan" },
-    { "valor": 159460003, "etiqueta": "Modificación", "descripcion": "Cambiar datos de una referencia que ya está en el plan" }
+    {
+      "valor": 159460001,
+      "etiqueta": "Inclusion",
+      "descripcion": "Agregar la referencia al plan"
+    },
+    {
+      "valor": 159460002,
+      "etiqueta": "Exclusion",
+      "descripcion": "Quitar la referencia del plan"
+    },
+    {
+      "valor": 159460003,
+      "etiqueta": "Modificacion",
+      "descripcion": "Cambiar datos de una referencia que ya está en el plan"
+    }
   ]
 }
 ```
@@ -73,7 +85,7 @@ Las comprobaciones de la receta, con estos valores esperados:
 |---|---|---|
 | 1 | `GET GlobalOptionSetDefinitions(Name='sanic_mppp_ch_gestion')` | 200 · `IsGlobal = true` · `OptionSetType = Picklist` · `IsManaged = false` |
 | 2 | Display name y descripción en 1033 | los de la sección 2 |
-| 3 | Opciones, en orden, con valor, etiqueta y descripción | `159460001 = Inclusión`, `159460002 = Exclusión`, `159460003 = Modificación`; ninguna más; ninguna etiqueta en otro idioma |
+| 3 | Opciones, en orden, con valor, etiqueta y descripción | `159460001 = Inclusion`, `159460002 = Exclusion`, `159460003 = Modificacion`; ninguna más; ninguna etiqueta en otro idioma |
 | 4 | Pertenece a la solución de la sección 1 | exactamente una fila en `solutioncomponents` |
 | 5 | Segunda ejecución de la herramienta sin `--solo-verificar` | estado `ya_existia`, código de salida 0, no cambia nada |
 

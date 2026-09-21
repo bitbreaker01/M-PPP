@@ -29,8 +29,8 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
 {
   "tipo": "tabla",
   "nombre": "sanic_mppp_tbl_parametro",
-  "displayname": "Parámetro",
-  "displayname_plural": "Parámetros",
+  "displayname": "Parametro",
+  "displayname_plural": "Parametros",
   "descripcion": "Parámetro de configuración de la solución, versionado. Rige la versión activa más alta de cada código; la vigente nunca se edita.",
   "propiedad": "usuario",
   "notas": false,
@@ -38,7 +38,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
   "auditoria": true,
   "primaria": {
     "nombre": "sanic_nombre",
-    "displayname": "Código",
+    "displayname": "Codigo",
     "descripcion": "Código del parámetro, en minúscula y separado por puntos. Con la versión forma la clave alternativa.",
     "largo": 100,
     "requerida": true,
@@ -47,7 +47,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
   "columnas": [
     {
       "nombre": "sanic_version",
-      "displayname": "Versión",
+      "displayname": "Version",
       "descripcion": "Versión del parámetro. Rige la versión activa más alta.",
       "tipo": "entero",
       "requerida": true,
@@ -78,7 +78,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     },
     {
       "nombre": "sanic_descripcion",
-      "displayname": "Descripción",
+      "displayname": "Descripcion",
       "descripcion": "Para qué sirve el parámetro y qué formato tiene su valor.",
       "tipo": "memo",
       "requerida": false,
@@ -94,8 +94,8 @@ Decisiones que este playbook toma y el diccionario no traía:
 
 | Decisión | Valor | Por qué |
 |---|---|---|
-| Nombre visible de la primaria | `Código` | La primaria **es** el código (BP-PP-192) |
-| Nombres visibles de las columnas | `Versión`, `Tipo`, `Valor`, `Descripción` | Texto de negocio (`02` DD-19) |
+| Nombre visible de la primaria | `Codigo` | La primaria **es** el código (BP-PP-192) |
+| Nombres visibles de las columnas | `Version`, `Tipo`, `Valor`, `Descripcion` | Texto de negocio (`02` DD-19) |
 | Rango de las columnas enteras | `sanic_version`: 1 a 2147483647 | El diccionario dice `E` sin rango; se fija uno amplio y sin negativos. Se puede ampliar después |
 
 Viene del diseño, no lo decide este playbook: **auditoría nativa, notas y actividades** = activada · no · no (`02` DD-18: es un catálogo).

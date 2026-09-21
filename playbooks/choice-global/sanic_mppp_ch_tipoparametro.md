@@ -29,12 +29,24 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
 {
   "tipo": "choice-global",
   "nombre": "sanic_mppp_ch_tipoparametro",
-  "displayname": "CH - MPPP - Tipo de parámetro",
+  "displayname": "CH - MPPP - Tipo de parametro",
   "descripcion": "Cómo se interpreta el valor de un parámetro. La usa la tabla Parametro.",
   "opciones": [
-    { "valor": 159460001, "etiqueta": "Texto", "descripcion": "" },
-    { "valor": 159460002, "etiqueta": "Número", "descripcion": "" },
-    { "valor": 159460003, "etiqueta": "JSON", "descripcion": "" }
+    {
+      "valor": 159460001,
+      "etiqueta": "Texto",
+      "descripcion": ""
+    },
+    {
+      "valor": 159460002,
+      "etiqueta": "Numero",
+      "descripcion": ""
+    },
+    {
+      "valor": 159460003,
+      "etiqueta": "JSON",
+      "descripcion": ""
+    }
   ]
 }
 ```
@@ -73,7 +85,7 @@ Las comprobaciones de la receta, con estos valores esperados:
 |---|---|---|
 | 1 | `GET GlobalOptionSetDefinitions(Name='sanic_mppp_ch_tipoparametro')` | 200 · `IsGlobal = true` · `OptionSetType = Picklist` · `IsManaged = false` |
 | 2 | Display name y descripción en 1033 | los de la sección 2 |
-| 3 | Opciones, en orden, con valor, etiqueta y descripción | `159460001 = Texto`, `159460002 = Número`, `159460003 = JSON`; ninguna más; ninguna etiqueta en otro idioma |
+| 3 | Opciones, en orden, con valor, etiqueta y descripción | `159460001 = Texto`, `159460002 = Numero`, `159460003 = JSON`; ninguna más; ninguna etiqueta en otro idioma |
 | 4 | Pertenece a la solución de la sección 1 | exactamente una fila en `solutioncomponents` |
 | 5 | Segunda ejecución de la herramienta sin `--solo-verificar` | estado `ya_existia`, código de salida 0, no cambia nada |
 

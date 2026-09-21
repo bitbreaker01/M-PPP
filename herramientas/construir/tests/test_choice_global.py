@@ -751,7 +751,7 @@ class Reutilizacion18Opciones(Base):
         opciones = [
             {
                 "valor": 159460000 + i,
-                "etiqueta": f"Opción {i} (á/ñ) — variante",
+                "etiqueta": f"Opcion {i} (a/n) - variante",
                 "descripcion": f"Descripción larga de la opción {i}, con \"comillas\" y una / barra",
             }
             for i in range(1, 19)

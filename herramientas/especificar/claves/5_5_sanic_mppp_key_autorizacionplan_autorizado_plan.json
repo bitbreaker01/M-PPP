@@ -4,7 +4,7 @@
  "componente": {
   "tipo": "clave",
   "nombre": "sanic_mppp_key_autorizacionplan_autorizado_plan",
-  "displayname": "KEY - MPPP - Autorización - Autorizado y plan",
+  "displayname": "KEY - MPPP - Autorizacion - Autorizado y plan",
   "tabla": "sanic_mppp_tbl_autorizacionplan",
   "columnas": [
    "sanic_autorizadoid",

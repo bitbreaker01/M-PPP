@@ -29,7 +29,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
 {
   "tipo": "clave",
   "nombre": "sanic_mppp_key_plan_codigo",
-  "displayname": "KEY - MPPP - Plan - Código",
+  "displayname": "KEY - MPPP - Plan - Codigo",
   "tabla": "sanic_mppp_tbl_plan",
   "columnas": [
     "sanic_codigo"
@@ -47,7 +47,7 @@ Decisiones que este playbook toma y el diseño no traía:
 
 | Decisión | Valor | Por qué |
 |---|---|---|
-| Nombre visible de la clave | «KEY - MPPP - Plan - Código» | El inventario trae el nombre lógico; el visible sigue el patrón `KEY - MPPP - Tabla - Campos` (`01` §2) |
+| Nombre visible de la clave | «KEY - MPPP - Plan - Codigo» | El inventario trae el nombre lógico; el visible sigue el patrón `KEY - MPPP - Tabla - Campos` (`01` §2) |
 
 Viene del diseño, no lo decide este playbook:
 
@@ -86,7 +86,7 @@ python3 herramientas/construir/tabla.py playbooks/tabla/sanic_mppp_tbl_plan.md -
 
 | # | Comprobación | Esperado |
 |---|---|---|
-| 1 | `GET EntityDefinitions(LogicalName='sanic_mppp_tbl_plan')/Keys(LogicalName='sanic_mppp_key_plan_codigo')` | 200 · `IsManaged = false` · nombre visible «KEY - MPPP - Plan - Código» en 1033, sin etiquetas en otro idioma |
+| 1 | `GET EntityDefinitions(LogicalName='sanic_mppp_tbl_plan')/Keys(LogicalName='sanic_mppp_key_plan_codigo')` | 200 · `IsManaged = false` · nombre visible «KEY - MPPP - Plan - Codigo» en 1033, sin etiquetas en otro idioma |
 | 2 | Columnas de la clave (`KeyAttributes`, sin importar el orden) | `sanic_codigo` |
 | 3 | Índice (`EntityKeyIndexStatus`) | `Active` |
 | 4 | Pertenencia a la solución | la de la tabla: `sanic_mppp_tbl_plan` está una vez en la solución de la sección 1, con todos sus subcomponentes (una clave no es un componente propio) |

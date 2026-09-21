@@ -22,7 +22,7 @@ Mismo criterio en Solicitud para los humanos: solo `sanic_requiererevision` (el 
 
 ## 2. Roles humanos
 
-| Tabla | SR - MPPP - Ejecutivo | SR - MPPP - Supervisor | SR - MPPP - Administrador de planes | SR - MPPP - Administrador técnico |
+| Tabla | SR - MPPP - Ejecutivo | SR - MPPP - Supervisor | SR - MPPP - Administrador de planes | SR - MPPP - Administrador tecnico |
 |---|---|---|---|---|
 | Cliente | R:O | R:O | C R W Ap At As : O | — |
 | Plan | R:O | R:O | C R W Ap At : O | — |
@@ -46,7 +46,7 @@ Mismo criterio en Solicitud para los humanos: solo `sanic_requiererevision` (el 
 
 ## 3. Identidades de aplicación
 
-| Tabla | SR - MPPP - Servicio de ingesta (cuenta de servicio, los cinco flujos) | SR - MPPP - RPA (application user, fase 2) | SR - MPPP - Histórico (application user, fase 3) |
+| Tabla | SR - MPPP - Servicio de ingesta (cuenta de servicio, los cinco flujos) | SR - MPPP - RPA (application user, fase 2) | SR - MPPP - Historico (application user, fase 3) |
 |---|---|---|---|
 | Solicitud | C R W Ap At : O | R:O | C R W **D** Ap At : O |
 | Fila | — | R:O | C R **D** Ap : O |

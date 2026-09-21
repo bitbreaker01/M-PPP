@@ -29,7 +29,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
 {
   "tipo": "tabla",
   "nombre": "sanic_mppp_tbl_autorizacionplan",
-  "displayname": "Autorización",
+  "displayname": "Autorizacion",
   "displayname_plural": "Autorizaciones",
   "descripcion": "Autorización de un correo para operar sobre un plan, con su evidencia firmada. Sin evidencia cargada, la autorización no vale.",
   "propiedad": "usuario",
@@ -72,7 +72,7 @@ Decisiones que este playbook toma y el diccionario no traía:
 
 | Decisión | Valor | Por qué |
 |---|---|---|
-| Nombre visible de la tabla | `Autorización` / `Autorizaciones` | Es como la nombra la app (`05` §4); el nombre lógico sigue siendo `autorizacionplan` |
+| Nombre visible de la tabla | `Autorizacion` / `Autorizaciones` | Es como la nombra la app (`05` §4); el nombre lógico sigue siendo `autorizacionplan` |
 | Nombres visibles de las columnas | `Nombre`, `Documento firmado`, `Fecha del documento` | Texto de negocio (`02` DD-19) |
 | La primaria es requerida, como dice el diccionario, aunque sea calculada | `requerida: true` | La calcula la solución y nadie la digita (`01` §4): en el formulario va en solo lectura u oculta (BP-PP-192), y una columna requerida en solo lectura u oculta no bloquea el guardado (Learn, *Troubleshoot form issues*). Eso se resuelve en el playbook del formulario, no bajando el nivel de requerida |
 | La evidencia es obligatoria pero la columna **no** es requerida | `requerida: false` | Un archivo solo se puede cargar con el registro ya creado; la obligatoriedad se cumple cerrando por defecto (`02` §2.4) |

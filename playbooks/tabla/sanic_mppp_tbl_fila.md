@@ -47,7 +47,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
   "columnas": [
     {
       "nombre": "sanic_numerofila",
-      "displayname": "Número de fila",
+      "displayname": "Numero de fila",
       "descripcion": "Posición de la fila en la plantilla, de 1 en adelante. Con la solicitud forma la clave alternativa.",
       "tipo": "entero",
       "requerida": true,
@@ -58,7 +58,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     },
     {
       "nombre": "sanic_gestion",
-      "displayname": "Gestión",
+      "displayname": "Gestion",
       "descripcion": "Qué pide el cliente. Vacía si el valor recibido no era válido.",
       "tipo": "choice",
       "requerida": false,
@@ -68,7 +68,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     },
     {
       "nombre": "sanic_clasificacion",
-      "displayname": "Clasificación",
+      "displayname": "Clasificacion",
       "descripcion": "Cómo se paga la referencia. Vacía si el valor recibido no era válido.",
       "tipo": "choice",
       "requerida": false,
@@ -88,7 +88,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     },
     {
       "nombre": "sanic_tipoidentificacion",
-      "displayname": "Tipo de identificación",
+      "displayname": "Tipo de identificacion",
       "descripcion": "Tipo de documento del titular. Vacía si el valor recibido no era válido.",
       "tipo": "choice",
       "requerida": false,
@@ -108,7 +108,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     },
     {
       "nombre": "sanic_numeroplan",
-      "displayname": "Número de plan",
+      "displayname": "Numero de plan",
       "descripcion": "Código del plan tal como quedó normalizado (4 caracteres).",
       "tipo": "texto",
       "requerida": false,
@@ -128,7 +128,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     },
     {
       "nombre": "sanic_numeroidentificacion",
-      "displayname": "Número de identificación",
+      "displayname": "Numero de identificacion",
       "descripcion": "Número del documento de identidad del titular, como llegó. Dato sensible.",
       "tipo": "texto",
       "requerida": false,
@@ -138,7 +138,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     },
     {
       "nombre": "sanic_numerocuenta",
-      "displayname": "Número de cuenta",
+      "displayname": "Numero de cuenta",
       "descripcion": "Número de la cuenta, como llegó. Dato sensible.",
       "tipo": "texto",
       "requerida": false,

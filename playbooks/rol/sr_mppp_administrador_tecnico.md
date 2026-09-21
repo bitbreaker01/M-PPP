@@ -1,4 +1,4 @@
-# Playbook: rol · SR - MPPP - Administrador técnico
+# Playbook: rol · SR - MPPP - Administrador tecnico
 
 ## 1. Identidad
 
@@ -28,7 +28,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
 ```json
 {
   "tipo": "rol",
-  "nombre": "SR - MPPP - Administrador técnico",
+  "nombre": "SR - MPPP - Administrador tecnico",
   "descripcion": "Administra lo técnico: parámetros y catálogo de reglas. No ve datos de negocio. Se asigna a pedido y se retira al terminar.",
   "base": "App Opener",
   "tablas": {

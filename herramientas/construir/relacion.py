@@ -41,6 +41,7 @@ from _comun import (  # noqa: E402
     escribir_metadatos,
     etiqueta_web_api,
     exigir_forma,
+    exigir_sin_tildes,
     leer_entorno,
     leer_texto,
     nivel_requerido,
@@ -100,7 +101,7 @@ def _corto(tabla, prefijo, abrev):
     return tabla[len(inicio):] if tabla.startswith(inicio) else tabla
 
 
-def validar_playbook(datos, identidad):
+def _validar_estructura(datos, identidad):
     _validar_bloque(datos, CLAVES, "la relación")
     prefijo, abrev = identidad["prefijo"], identidad["abrev"]
     patron_tabla = rf"{prefijo}_{abrev}_tbl_[a-z0-9]+"
@@ -124,6 +125,11 @@ def validar_playbook(datos, identidad):
         raise ErrorPlaybook(f"lookup.nombre = {k['nombre']!r} no cumple {prefijo}_[a-z0-9]+ (todo en minúscula, BP-PP-184)")
     if len(k["nombre"]) > LARGO_MAXIMO_IDENTIFICADOR:
         raise ErrorPlaybook(f"lookup.nombre tiene {len(k['nombre'])} caracteres; el máximo es {LARGO_MAXIMO_IDENTIFICADOR}")
+
+
+def validar_playbook(datos, identidad):
+    _validar_estructura(datos, identidad)
+    exigir_sin_tildes(datos["lookup"]["displayname"], "lookup.displayname")
 
 
 # ---------------------------------------------------------------------------

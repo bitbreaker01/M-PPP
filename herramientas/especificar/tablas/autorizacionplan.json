@@ -4,7 +4,7 @@
  "componente": {
   "tipo": "tabla",
   "nombre": "sanic_mppp_tbl_autorizacionplan",
-  "displayname": "Autorización",
+  "displayname": "Autorizacion",
   "displayname_plural": "Autorizaciones",
   "descripcion": "Autorización de un correo para operar sobre un plan, con su evidencia firmada. Sin evidencia cargada, la autorización no vale.",
   "propiedad": "usuario",
@@ -44,7 +44,7 @@
  "decisiones": [
   [
    "Nombre visible de la tabla",
-   "`Autorización` / `Autorizaciones`",
+   "`Autorizacion` / `Autorizaciones`",
    "Es como la nombra la app (`05` §4); el nombre lógico sigue siendo `autorizacionplan`"
   ],
   [

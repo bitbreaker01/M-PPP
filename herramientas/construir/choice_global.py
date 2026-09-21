@@ -41,6 +41,7 @@ from _comun import (  # noqa: E402
     etiqueta_y_otros_idiomas,
     exigir_etiqueta,
     exigir_forma,
+    exigir_sin_tildes,
     leer_texto,
     obtener_componente,
     obtener_identidad,
@@ -111,6 +112,9 @@ def validar_nombres(datos, identidad):
     esperado_dn = f"CH - {abrev.upper()} - "
     if not datos["displayname"].startswith(esperado_dn) or datos["displayname"] == esperado_dn:
         raise ErrorPlaybook(f"'displayname' ({datos['displayname']!r}) no cumple 'CH - {abrev.upper()} - Nombre'")
+    exigir_sin_tildes(datos["displayname"], "'displayname'")
+    for i, op in enumerate(datos["opciones"]):
+        exigir_sin_tildes(op["etiqueta"], f"opciones[{i}].etiqueta")
 
 
 def validar_rango_offline(datos, identidad):

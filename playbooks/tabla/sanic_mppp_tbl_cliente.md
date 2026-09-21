@@ -38,7 +38,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
   "auditoria": true,
   "primaria": {
     "nombre": "sanic_nombre",
-    "displayname": "Razón social",
+    "displayname": "Razon social",
     "descripcion": "Razón social de la empresa cliente.",
     "largo": 200,
     "requerida": true,
@@ -73,7 +73,7 @@ Decisiones que este playbook toma y el diccionario no traía (las aprueba el apr
 
 | Decisión | Valor | Por qué |
 |---|---|---|
-| Nombre visible de la primaria | `Razón social` | El diccionario dice qué guarda; "Nombre" a secas no le dice nada a quien carga un cliente |
+| Nombre visible de la primaria | `Razon social` | El diccionario dice qué guarda; "Nombre" a secas no le dice nada a quien carga un cliente |
 | Nombres visibles de las columnas | `CIF BAC`, `CIF COM` | Así los nombra el negocio |
 | Auditoría nativa de la tabla y de sus columnas | activada | Es un catálogo de poco volumen, y en un banco importa quién cambió un CIF o reasignó un cliente. Solo registra si además la auditoría está activada a nivel de entorno |
 | Notas y actividades | desactivadas | No se usan; activarlas después es posible, desactivarlas no |

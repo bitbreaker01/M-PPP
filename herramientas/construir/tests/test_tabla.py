@@ -54,7 +54,7 @@ COMPLETO = {
         col("sanic_detalle", "memo", largo=2000),
         col("sanic_orden", "entero", minimo=0, maximo=9999),
         col("sanic_moneda", "choice", choice="sanic_mppp_ch_moneda"),
-        col("sanic_activado", "sino", etiqueta_si="Sí", etiqueta_no="No", defecto=False),
+        col("sanic_activado", "sino", etiqueta_si="Si", etiqueta_no="No", defecto=False),
         col("sanic_fechadocumento", "fecha"),
         col("sanic_fechaevento", "fechahora"),
         col("sanic_documento", "archivo", tamano_kb=10240),
@@ -322,7 +322,7 @@ class Payload(unittest.TestCase):
         self.assertNotIn("OptionSet", c["sanic_moneda"])
         b = c["sanic_activado"]
         self.assertIs(b["DefaultValue"], False)
-        self.assertEqual(b["OptionSet"]["TrueOption"]["Label"]["LocalizedLabels"][0]["Label"], "Sí")
+        self.assertEqual(b["OptionSet"]["TrueOption"]["Label"]["LocalizedLabels"][0]["Label"], "Si")
         self.assertEqual(b["OptionSet"]["FalseOption"]["Value"], 0)
         self.assertEqual((c["sanic_fechadocumento"]["Format"], c["sanic_fechadocumento"]["DateTimeBehavior"]), ("DateOnly", {"Value": "DateOnly"}))
         self.assertEqual((c["sanic_fechaevento"]["Format"], c["sanic_fechaevento"]["DateTimeBehavior"]), ("DateAndTime", {"Value": "UserLocal"}))
@@ -507,14 +507,14 @@ class Caminos(Base):
         """Al volverla autonumérica cambia su papel (de nombre a número): el
         nombre visible y la descripción van en el mismo PUT. Lo detectó el
         constructor el 2026-09-20: sin esto la reparación no alcanzaba."""
-        nuevo = con_cambio(con_cambio(con_cambio(COMPLETO, ["primaria", "autonumerico"], "REG-{SEQNUM:4}"), ["primaria", "displayname"], "Número"),
+        nuevo = con_cambio(con_cambio(con_cambio(COMPLETO, ["primaria", "autonumerico"], "REG-{SEQNUM:4}"), ["primaria", "displayname"], "Numero"),
                            ["primaria", "descripcion"], "Número que la plataforma asigna sola.")
         gen = [fila_generica(COMPLETO["primaria"], True)] + [fila_generica(c) for c in COMPLETO["columnas"]] + SISTEMA
         cliente = armar(ClienteSimulado(), nuevo, por_tipo=filas_por_tipo(COMPLETO), genericas=gen)
         self.con_cliente(cliente, nuevo, corregir_primaria=True)
         puts = [l for l in cliente.llamadas if l["metodo"] == "PUT"]
         self.assertEqual(len(puts), 1)
-        self.assertEqual(puts[0]["cuerpo"]["DisplayName"], tb.etiqueta_web_api("Número", 1033))
+        self.assertEqual(puts[0]["cuerpo"]["DisplayName"], tb.etiqueta_web_api("Numero", 1033))
         self.assertEqual(puts[0]["cuerpo"]["Description"], tb.etiqueta_web_api("Número que la plataforma asigna sola.", 1033))
         # pero el nombre visible de OTRA columna no lo repara
         otra = con_cambio(gen, [1, "DisplayName"], label("Otro"))

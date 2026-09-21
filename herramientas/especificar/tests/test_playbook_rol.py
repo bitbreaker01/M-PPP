@@ -52,7 +52,7 @@ class ContraLaMatriz(unittest.TestCase):
         m = leer_matriz()
         self.assertEqual(m["SR - MPPP - Ejecutivo"]["sanic_mppp_tbl_solicitud"], {"leer": "organizacion", "escribir": "organizacion", "anexar_a": "organizacion"})
         self.assertEqual(m["SR - MPPP - Supervisor"]["sanic_mppp_tbl_solicitud"], {"leer": "organizacion", "anexar_a": "organizacion"})
-        self.assertEqual(set(m["SR - MPPP - Administrador técnico"]), {"sanic_mppp_tbl_parametro", "sanic_mppp_tbl_regla"})
+        self.assertEqual(set(m["SR - MPPP - Administrador tecnico"]), {"sanic_mppp_tbl_parametro", "sanic_mppp_tbl_regla"})
         self.assertIn("asignar", m["SR - MPPP - Administrador de planes"]["sanic_mppp_tbl_cliente"])
         self.assertNotIn("sanic_mppp_tbl_fila", m["SR - MPPP - Administrador de planes"])
 

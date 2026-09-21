@@ -29,7 +29,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
 {
   "tipo": "clave",
   "nombre": "sanic_mppp_key_fila_solicitud_numerofila",
-  "displayname": "KEY - MPPP - Fila - Solicitud y número de fila",
+  "displayname": "KEY - MPPP - Fila - Solicitud y numero de fila",
   "tabla": "sanic_mppp_tbl_fila",
   "columnas": [
     "sanic_solicitudid",
@@ -48,7 +48,7 @@ Decisiones que este playbook toma y el diseño no traía:
 
 | Decisión | Valor | Por qué |
 |---|---|---|
-| Nombre visible de la clave | «KEY - MPPP - Fila - Solicitud y número de fila» | El inventario trae el nombre lógico; el visible sigue el patrón `KEY - MPPP - Tabla - Campos` (`01` §2) |
+| Nombre visible de la clave | «KEY - MPPP - Fila - Solicitud y numero de fila» | El inventario trae el nombre lógico; el visible sigue el patrón `KEY - MPPP - Tabla - Campos` (`01` §2) |
 
 Viene del diseño, no lo decide este playbook:
 
@@ -87,7 +87,7 @@ python3 herramientas/construir/tabla.py playbooks/tabla/sanic_mppp_tbl_fila.md -
 
 | # | Comprobación | Esperado |
 |---|---|---|
-| 1 | `GET EntityDefinitions(LogicalName='sanic_mppp_tbl_fila')/Keys(LogicalName='sanic_mppp_key_fila_solicitud_numerofila')` | 200 · `IsManaged = false` · nombre visible «KEY - MPPP - Fila - Solicitud y número de fila» en 1033, sin etiquetas en otro idioma |
+| 1 | `GET EntityDefinitions(LogicalName='sanic_mppp_tbl_fila')/Keys(LogicalName='sanic_mppp_key_fila_solicitud_numerofila')` | 200 · `IsManaged = false` · nombre visible «KEY - MPPP - Fila - Solicitud y numero de fila» en 1033, sin etiquetas en otro idioma |
 | 2 | Columnas de la clave (`KeyAttributes`, sin importar el orden) | `sanic_solicitudid` · `sanic_numerofila` |
 | 3 | Índice (`EntityKeyIndexStatus`) | `Active` |
 | 4 | Pertenencia a la solución | la de la tabla: `sanic_mppp_tbl_fila` está una vez en la solución de la sección 1, con todos sus subcomponentes (una clave no es un componente propio) |

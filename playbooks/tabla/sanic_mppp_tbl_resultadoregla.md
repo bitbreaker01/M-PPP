@@ -38,7 +38,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
   "auditoria": false,
   "primaria": {
     "nombre": "sanic_nombre",
-    "displayname": "Número",
+    "displayname": "Numero",
     "descripcion": "Número que la plataforma asigna sola al crear el registro. Nadie lo digita.",
     "largo": 200,
     "requerida": false,
@@ -47,7 +47,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
   "columnas": [
     {
       "nombre": "sanic_reglacodigo",
-      "displayname": "Código de la regla",
+      "displayname": "Codigo de la regla",
       "descripcion": "Código de la regla evaluada. Con la solicitud forma la clave alternativa.",
       "tipo": "texto",
       "requerida": true,
@@ -67,7 +67,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     },
     {
       "nombre": "sanic_razon",
-      "displayname": "Razón",
+      "displayname": "Razon",
       "descripcion": "Por qué no se cumplió, o qué regla la bloqueó si quedó omitida.",
       "tipo": "memo",
       "requerida": false,
@@ -113,7 +113,7 @@ Decisiones que este playbook toma y el diccionario no traía:
 
 | Decisión | Valor | Por qué |
 |---|---|---|
-| Nombre visible de la primaria | `Número` | Es un autonumérico (`02` DD-20); "Nombre" confundiría |
+| Nombre visible de la primaria | `Numero` | Es un autonumérico (`02` DD-20); "Nombre" confundiría |
 | Nombres visibles de las columnas | los de la sección 2 | Texto de negocio (`02` DD-19) |
 | Rango de las columnas enteras | `sanic_orden`: 0 a 100000 | El diccionario dice `E` sin rango; se fija uno amplio y sin negativos. Se puede ampliar después |
 

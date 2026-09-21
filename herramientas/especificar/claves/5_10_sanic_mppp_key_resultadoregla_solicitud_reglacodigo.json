@@ -4,7 +4,7 @@
  "componente": {
   "tipo": "clave",
   "nombre": "sanic_mppp_key_resultadoregla_solicitud_reglacodigo",
-  "displayname": "KEY - MPPP - Resultado de regla - Solicitud y código de regla",
+  "displayname": "KEY - MPPP - Resultado de regla - Solicitud y codigo de regla",
   "tabla": "sanic_mppp_tbl_resultadoregla",
   "columnas": [
    "sanic_solicitudid",

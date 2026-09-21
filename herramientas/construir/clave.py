@@ -36,6 +36,7 @@ from _comun import (  # noqa: E402
     escribir_metadatos,
     etiqueta_web_api,
     exigir_forma,
+    exigir_sin_tildes,
     leer_entorno,
     leer_texto,
     obtener_componente,
@@ -69,7 +70,7 @@ CLAVES = {"tipo": str, "nombre": str, "displayname": str, "tabla": str, "columna
 # ---------------------------------------------------------------------------
 # Validación sin red
 # ---------------------------------------------------------------------------
-def validar_playbook(datos, identidad):
+def _validar_estructura(datos, identidad):
     faltan, sobran = sorted(set(CLAVES) - set(datos)), sorted(set(datos) - set(CLAVES))
     if faltan or sobran:
         raise ErrorPlaybook(f"claves de la clave alternativa inválidas: faltan {faltan or 'ninguna'}, sobran {sobran or 'ninguna'}")
@@ -104,6 +105,11 @@ def validar_playbook(datos, identidad):
     repetidas = sorted({c for c in columnas if columnas.count(c) > 1})
     if repetidas:
         raise ErrorPlaybook(f"'columnas' trae una columna repetida: {repetidas}")
+
+
+def validar_playbook(datos, identidad):
+    _validar_estructura(datos, identidad)
+    exigir_sin_tildes(datos["displayname"], "'displayname'")
 
 
 # ---------------------------------------------------------------------------

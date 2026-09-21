@@ -35,6 +35,7 @@ from _comun import (  # noqa: E402
     dividir_secciones,
     escribir_metadatos,
     exigir_forma,
+    exigir_sin_tildes,
     leer_entorno,
     leer_texto,
     obtener_componente,
@@ -62,7 +63,7 @@ CLAVES = {"tipo": str, "nombre": str, "descripcion": str, "base": str, "tablas":
 # ---------------------------------------------------------------------------
 # Validación sin red
 # ---------------------------------------------------------------------------
-def validar_playbook(datos, identidad):
+def _validar_estructura(datos, identidad):
     faltan, sobran = sorted(set(CLAVES) - set(datos)), sorted(set(datos) - set(CLAVES))
     if faltan or sobran:
         raise ErrorPlaybook(f"claves del rol inválidas: faltan {faltan or 'ninguna'}, sobran {sobran or 'ninguna'}")
@@ -100,6 +101,11 @@ def validar_playbook(datos, identidad):
             raise ErrorPlaybook(f"otros_privilegios.{nombre}: el alcance {alcance!r} no existe; son {sorted(ALCANCES)}")
     if not datos["tablas"] and not datos["otros_privilegios"]:
         raise ErrorPlaybook("el rol no declara ningún privilegio propio ('tablas' y 'otros_privilegios' vacíos): sería una copia del rol base")
+
+
+def validar_playbook(datos, identidad):
+    _validar_estructura(datos, identidad)
+    exigir_sin_tildes(datos["nombre"], "'nombre'")
 
 
 # ---------------------------------------------------------------------------

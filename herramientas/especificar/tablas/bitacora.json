@@ -4,8 +4,8 @@
  "componente": {
   "tipo": "tabla",
   "nombre": "sanic_mppp_tbl_bitacora",
-  "displayname": "Bitácora",
-  "displayname_plural": "Bitácoras",
+  "displayname": "Bitacora",
+  "displayname_plural": "Bitacoras",
   "descripcion": "Renglón de la bitácora de una solicitud: qué pasó, cuándo, qué pieza lo registró y quién actuó.",
   "propiedad": "usuario",
   "notas": false,
@@ -13,7 +13,7 @@
   "auditoria": false,
   "primaria": {
    "nombre": "sanic_nombre",
-   "displayname": "Número",
+   "displayname": "Numero",
    "descripcion": "Número que la plataforma asigna sola al crear el registro. Nadie lo digita.",
    "largo": 200,
    "requerida": false,
@@ -51,7 +51,7 @@
    },
    {
     "nombre": "sanic_numerofila",
-    "displayname": "Número de fila",
+    "displayname": "Numero de fila",
     "descripcion": "Fila a la que se refiere el evento; 0 si es un evento de la solicitud. Es un número, no un lookup a Fila.",
     "tipo": "entero",
     "requerida": false,
@@ -85,7 +85,7 @@
  "decisiones": [
   [
    "Nombre visible de la primaria",
-   "`Número`",
+   "`Numero`",
    "Es un autonumérico (`02` DD-20); \"Nombre\" confundiría"
   ],
   [

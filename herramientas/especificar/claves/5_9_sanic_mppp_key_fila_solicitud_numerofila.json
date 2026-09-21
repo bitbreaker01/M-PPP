@@ -4,7 +4,7 @@
  "componente": {
   "tipo": "clave",
   "nombre": "sanic_mppp_key_fila_solicitud_numerofila",
-  "displayname": "KEY - MPPP - Fila - Solicitud y número de fila",
+  "displayname": "KEY - MPPP - Fila - Solicitud y numero de fila",
   "tabla": "sanic_mppp_tbl_fila",
   "columnas": [
    "sanic_solicitudid",
