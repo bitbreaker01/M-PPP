@@ -1,7 +1,7 @@
 {
  "proyecto": "MPPP · fase 1",
  "criterio_hecho": "ciclo cerrado: construido, verificado en Dev y muestra exportada; si el ciclo enseñó algo nuevo, además el reporte aprobado por el aprobador",
- "en_curso": "P-08 Código de plugins (C#) — por arrancar: falta acordar con el aprobador cómo es el ciclo para código de producto y cómo conviven 'nunca compilar' y TDD estricto",
+ "en_curso": "P-08 Código de plugins — 7.1 Dominio hecho; sigue 7.2 Plantilla (lector del Excel, reglas LP-01 a LP-08)",
  "grupos": {
   "P-01": "Solución",
   "P-02": "Choices globales",
@@ -404,7 +404,7 @@
    "grupo": "P-08",
    "nombre": "Dominio/",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "7.2",
