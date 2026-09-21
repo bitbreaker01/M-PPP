@@ -686,7 +686,7 @@
               <Name>sanic_nombre</Name>
               <LogicalName>sanic_nombre</LogicalName>
               <RequiredLevel>none</RequiredLevel>
-              <DisplayMask>PrimaryName|ValidForAdvancedFind|ValidForForm|ValidForGrid|RequiredForForm</DisplayMask>
+              <DisplayMask>PrimaryName|ReadOnlyInUI|ValidForAdvancedFind|ValidForForm|ValidForGrid|RequiredForForm</DisplayMask>
               <ImeMode>auto</ImeMode>
               <ValidForUpdateApi>1</ValidForUpdateApi>
               <ValidForReadApi>1</ValidForReadApi>
@@ -706,7 +706,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat />
+              <AutoNumberFormat>BIT-{SEQNUM:10}</AutoNumberFormat>
               <IsSearchable>1</IsSearchable>
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>1</IsRetrievable>
@@ -715,10 +715,10 @@
               <MaxLength>200</MaxLength>
               <Length>400</Length>
               <displaynames>
-                <displayname description="Nombre" languagecode="1033" />
+                <displayname description="Número" languagecode="1033" />
               </displaynames>
               <Descriptions>
-                <Description description="Nombre calculado por la solución. Nadie lo digita." languagecode="1033" />
+                <Description description="Número que la plataforma asigna sola al crear el registro. Nadie lo digita." languagecode="1033" />
               </Descriptions>
             </attribute>
             <attribute PhysicalName="sanic_numerofila">
@@ -1120,7 +1120,7 @@
                             <row>
                               <cell id="{fcbe6392-80a7-4d75-8381-994442465940}" showlabel="true" locklevel="0">
                                 <labels>
-                                  <label description="Nombre" languagecode="1033" />
+                                  <label description="Número" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" disabled="false" />
                               </cell>
@@ -1197,7 +1197,7 @@
                             <row>
                               <cell id="{5e5232b8-e0c4-4959-8355-e543b39f430a}">
                                 <labels>
-                                  <label description="Nombre" languagecode="1033" />
+                                  <label description="Número" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" />
                               </cell>
@@ -1251,7 +1251,7 @@
                             <row>
                               <cell id="{498dadc1-5c4d-4162-b8eb-6151365e2e6f}">
                                 <labels>
-                                  <label description="Nombre" languagecode="1033" />
+                                  <label description="Número" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" />
                               </cell>

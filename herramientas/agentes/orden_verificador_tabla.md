@@ -15,6 +15,7 @@ Fuentes de verdad, en este orden: `diseno/02-diccionario-datos.md` ({DICCIONARIO
 4. Nombres: reglas de `/home/gmaker/projects/gmaker-plugins/plugins/plataforma-power-platform/skills/power-platform-practicas/references/convenciones-nombres.md` y `diseno/01-convenciones.md`.
 
 ## Reglas duras
+- **Si el sistema de permisos te bloquea o te niega un comando, NO lo reintentes**, ni igual ni con variantes: un bloqueo de permisos es una decisión, no una falla pasajera. Pará ahí mismo y reportá qué comando fue y el mensaje exacto del bloqueo. (Distinto es el aviso de la propia herramienta "espero 30 s y reintento": eso lo maneja ella sola.)
 - SOLO LECTURA: solo `GET`; nunca POST/PUT/PATCH/DELETE; nunca `tabla.py` sin `--solo-verificar`; nunca `--guardar`, `--publicar`, `--corregir-primaria`. No modifiques ningún archivo. No leas `local/pp_secrets.env`. No uses `pac`. Sin commits. No uses cat/grep/find/sed/ls: usá Read/Grep/Glob o `rg`, `batcat`, `eza`.
 - En paralelo otro agente puede estar construyendo OTRA tabla: no la mires ni la juzgues, y no te sorprendas si aparece en el entorno o en `git status`.
 - Si encontrás un defecto, NO lo arregles: reportalo con evidencia.

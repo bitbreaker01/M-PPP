@@ -11,6 +11,7 @@ El playbook `playbooks/tabla/{TABLA}.md` (tipo `tabla`). Su formato está en `/h
 5. Pegá en tu reporte la ÚLTIMA línea (el JSON) de cada ejecución, tal cual.
 
 ## Reglas duras
+- **Si el sistema de permisos te bloquea o te niega un comando, NO lo reintentes**, ni igual ni con variantes: un bloqueo de permisos es una decisión, no una falla pasajera. Pará ahí mismo y reportá qué comando fue y el mensaje exacto del bloqueo. (Distinto es el aviso de la propia herramienta "espero 30 s y reintento": eso lo maneja ella sola.)
 - NO escribas ni modifiques NINGÚN archivo: ni herramientas, ni pruebas, ni playbooks, ni skills, ni nada en `gmaker-plugins`. La única escritura permitida es la de `muestra_tabla.py --guardar` en `playbooks/tabla/muestras/`.
 - Si una herramienta da `error`, `bloqueado` o `difiere`, o algo no coincide: NO la parchees, NO reintentes con variantes ni con otros flags (`--corregir-primaria`, `--publicar`, `--permitir-no-verificadas`), NO llames al Web API por tu cuenta para arreglarlo, NO borres nada. Pará y reportá la evidencia exacta (comando y salida completa). Resolverlo es trabajo del arquitecto.
 - No leas ni imprimas `local/pp_secrets.env`. No uses `pac`. No hagas commits. No uses cat/grep/find/sed/ls: usá Read/Grep/Glob o `rg`, `batcat`, `eza`.
