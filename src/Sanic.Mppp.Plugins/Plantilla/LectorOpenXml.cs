@@ -78,46 +78,14 @@ namespace Sanic.Mppp.Plugins.Plantilla
 
         // LP-01: la configuración la arma código nuestro (a mano, o ConfiguracionPlantilla.DesdeJson). Una configuración
         // mal armada es un error de PROGRAMACIÓN, nunca "archivo inválido": por eso se valida ANTES del try que atrapa
-        // las excepciones del SDK, y con ArgumentException (no con el resultado ConError). Mismas reglas que
-        // ConfiguracionPlantilla.DesdeJson valida al leer de JSON, traducidas a excepción en vez de a FormatException.
+        // las excepciones del SDK, y con ArgumentException (no con el resultado ConError). Usa la MISMA función que
+        // ConfiguracionPlantilla.DesdeJson (revisión de código, 2026-09-21): antes tenía reglas propias, más laxas, y una
+        // configuración armada a mano con EncabezadoEsperado = null pasaba como válida.
         private static void ValidarConfiguracion(ConfiguracionPlantilla configuracion)
         {
-            if (configuracion.Campos == null || configuracion.Campos.Count == 0)
-                throw new ArgumentException("La configuración de lectura no trae ningún campo.", nameof(configuracion));
-
-            foreach (CampoPlantilla campo in configuracion.Campos)
-            {
-                if (campo == null)
-                    throw new ArgumentException("La configuración de lectura trae un campo nulo.", nameof(configuracion));
-
-                if (string.IsNullOrWhiteSpace(campo.Columna) || !ConfiguracionPlantilla.RegexColumna.IsMatch(campo.Columna.Trim()))
-                    throw new ArgumentException(
-                        $"La configuración de lectura trae una columna inválida ('{campo.Columna}').", nameof(configuracion));
-            }
-
-            if (string.IsNullOrWhiteSpace(configuracion.Hoja))
-                throw new ArgumentException("La configuración de lectura no indica la hoja.", nameof(configuracion));
-
-            if (configuracion.FilaEncabezado < 1)
-                throw new ArgumentException(
-                    "La configuración de lectura tiene una fila de encabezado inválida: debe ser 1 o mayor.", nameof(configuracion));
-
-            if (configuracion.PrimeraFila <= configuracion.FilaEncabezado)
-                throw new ArgumentException(
-                    "La configuración de lectura tiene una primera fila inválida: tiene que ser posterior a la fila de encabezado.",
-                    nameof(configuracion));
-
-            if (configuracion.CantidadFilas < 1)
-                throw new ArgumentException(
-                    "La configuración de lectura tiene una cantidad de filas inválida: debe ser 1 o mayor.", nameof(configuracion));
-
-            // LP-08: misma función que usa ConfiguracionPlantilla.DesdeJson, para que la regla no se separe con el tiempo.
-            if (!ConfiguracionPlantilla.VentanaCabeEnHoja(configuracion.PrimeraFila, configuracion.CantidadFilas))
-                throw new ArgumentException(string.Format(
-                    CultureInfo.InvariantCulture,
-                    "La configuración de lectura define una ventana que no cabe en una hoja de Excel (hasta la fila {0}).",
-                    ConfiguracionPlantilla.FilaMaximaHojaExcel),
-                    nameof(configuracion));
+            string motivo = ConfiguracionPlantilla.Invalidez(configuracion);
+            if (motivo != null)
+                throw new ArgumentException($"La configuración de lectura {motivo}", nameof(configuracion));
         }
 
         // LP-02: lee como mucho máximo + 1 bytes a memoria. Si el stream tiene más, se corta ahí mismo: nunca se sigue
@@ -169,9 +137,15 @@ namespace Sanic.Mppp.Plugins.Plantilla
         {
             // LP-03: tope de bytes descomprimidos, ANTES de intentar abrir con el SDK. Es su propio try:
             // System.IO.Compression también procesa contenido hostil y puede tirar excepciones propias.
-            string errorZip;
-            if (!TamanoDescomprimidoDentroDelTope(contenido, _limites.TamanoMaximoBytesDescomprimidos, out errorZip))
-                return ResultadoLecturaPlantilla.ConError(errorZip);
+            string errorZip, detalleZip;
+            if (!TamanoDescomprimidoDentroDelTope(contenido, _limites.TamanoMaximoBytesDescomprimidos, out errorZip, out detalleZip))
+            {
+                // detalleZip != null: la librería no pudo ni abrir el zip para contar sus entradas (LP-01, no LP-03):
+                // el cliente no puede terminar en un rechazo distinto según en qué punto exacto falló la lectura.
+                return detalleZip != null
+                    ? ResultadoLecturaPlantilla.ConErrorTecnico(ArchivoIlegible, detalleZip)
+                    : ResultadoLecturaPlantilla.ConError(errorZip);
+            }
 
             // Lógica propia (no toca el SDK): se calcula ANTES del try de LP-01 para que ese try no tenga más
             // responsabilidad que atrapar las excepciones del SDK (hallazgo de la revisión de código, 2026-09-21).
@@ -186,7 +160,10 @@ namespace Sanic.Mppp.Plugins.Plantilla
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException || ex is StackOverflowException || ex is System.Threading.ThreadAbortException))
             {
-                return ResultadoLecturaPlantilla.ConError($"archivo inválido: {ex.Message}");
+                // Al cliente le llega SOLO la constante ArchivoIlegible: el tipo y el mensaje de la excepción (jerga del
+                // SDK) van a DetalleTecnico, para la traza (ITracingService), nunca para un correo a alguien de fuera del
+                // banco (hallazgo de la re-revisión, 2026-09-21).
+                return ResultadoLecturaPlantilla.ConErrorTecnico(ArchivoIlegible, DetalleTecnicoDe(ex));
             }
 
             if (datos.Error != null)
@@ -208,10 +185,14 @@ namespace Sanic.Mppp.Plugins.Plantilla
             return ResultadoLecturaPlantilla.ConFilas(filas, advertencias);
         }
 
-        // LP-03: suma el tamaño DECLARADO (metadata del zip, sin inflar nada) de cada entrada.
-        private static bool TamanoDescomprimidoDentroDelTope(byte[] contenido, long maximoBytesDescomprimidos, out string error)
+        // LP-03: suma el tamaño DECLARADO (metadata del zip, sin inflar nada) de cada entrada. `detalle` sale distinto de
+        // null únicamente cuando la librería no pudo ni abrir el zip (LP-01: mismo tratamiento que el try de más abajo,
+        // el texto para el cliente es ArchivoIlegible y el de la excepción va a DetalleTecnico); cuando `error` es por el
+        // tope de LP-03 (regla nuestra), `detalle` queda null.
+        private static bool TamanoDescomprimidoDentroDelTope(byte[] contenido, long maximoBytesDescomprimidos, out string error, out string detalle)
         {
             error = null;
+            detalle = null;
             try
             {
                 using (var stream = new MemoryStream(contenido, writable: false))
@@ -235,10 +216,14 @@ namespace Sanic.Mppp.Plugins.Plantilla
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException || ex is StackOverflowException || ex is System.Threading.ThreadAbortException))
             {
-                error = $"archivo inválido: {ex.Message}";
+                error = ArchivoIlegible;
+                detalle = DetalleTecnicoDe(ex);
                 return false;
             }
         }
+
+        // LP-01: lo que dijo la librería (tipo + mensaje), para ITracingService. Nunca se le muestra al cliente.
+        private static string DetalleTecnicoDe(Exception ex) => $"{ex.GetType()}: {ex.Message}";
 
         // ---- Todo lo de acá para abajo hasta CapturarCeldaCruda toca el SDK: vive dentro del try de
         // LeerDesdeBytesEnMemoria (LP-01). Solo devuelve datos propios (CeldaCruda, strings, ints), nunca tipos de
