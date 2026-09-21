@@ -1,0 +1,34 @@
+{
+ "inventario": "4.7",
+ "diccionario": "§3.4 y §5",
+ "componente": {
+  "tipo": "relacion",
+  "nombre": "sanic_mppp_solicitud_bitacora",
+  "tabla_padre": "sanic_mppp_tbl_solicitud",
+  "tabla_hija": "sanic_mppp_tbl_bitacora",
+  "comportamiento": "parental",
+  "lookup": {
+   "nombre": "sanic_solicitudid",
+   "displayname": "Solicitud",
+   "descripcion": "Solicitud a la que pertenece el renglón de bitácora. Es el único lookup de la tabla.",
+   "requerida": false,
+   "auditoria": false
+  }
+ },
+ "decisiones": [
+  [
+   "Nombre visible y descripción del lookup",
+   "«Solicitud»",
+   "El diccionario trae el nombre lógico; el texto de negocio lo fija el playbook (`02` DD-19)"
+  ]
+ ],
+ "viene_del_diseno": [
+  "Comportamiento `parental`: `02` §5 e inventario §4.",
+  "Requerida = no: el `Req` de `sanic_solicitudid` en `02` §3.4.",
+  "Auditoría del lookup = no: `02` DD-18: la tabla hija es de la unidad histórica, sin auditoría nativa."
+ ],
+ "fuera_de_alcance": [
+  "Esta tabla no tiene clave alternativa (`02` DD-04).",
+  "Vistas y formularios que muestran este lookup: inventario 12."
+ ]
+}

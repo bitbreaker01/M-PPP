@@ -1,0 +1,33 @@
+{
+ "inventario": "4.9",
+ "diccionario": "§3.3 y §5",
+ "componente": {
+  "tipo": "relacion",
+  "nombre": "sanic_mppp_regla_resultadoregla",
+  "tabla_padre": "sanic_mppp_tbl_regla",
+  "tabla_hija": "sanic_mppp_tbl_resultadoregla",
+  "comportamiento": "restringido",
+  "lookup": {
+   "nombre": "sanic_reglaid",
+   "displayname": "Regla",
+   "descripcion": "Regla del catálogo que se evaluó.",
+   "requerida": false,
+   "auditoria": false
+  }
+ },
+ "decisiones": [
+  [
+   "Nombre visible y descripción del lookup",
+   "«Regla»",
+   "El diccionario trae el nombre lógico; el texto de negocio lo fija el playbook (`02` DD-19)"
+  ]
+ ],
+ "viene_del_diseno": [
+  "Comportamiento `restringido`: `02` §5 e inventario §4.",
+  "Requerida = no: el `Req` de `sanic_reglaid` en `02` §3.3.",
+  "Auditoría del lookup = no: `02` DD-18: la tabla hija es de la unidad histórica, sin auditoría nativa."
+ ],
+ "fuera_de_alcance": [
+  "Vistas y formularios que muestran este lookup: inventario 12."
+ ]
+}

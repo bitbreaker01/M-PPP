@@ -1,0 +1,34 @@
+{
+ "inventario": "4.8",
+ "diccionario": "§3.2 y §5",
+ "componente": {
+  "tipo": "relacion",
+  "nombre": "sanic_mppp_plan_fila",
+  "tabla_padre": "sanic_mppp_tbl_plan",
+  "tabla_hija": "sanic_mppp_tbl_fila",
+  "comportamiento": "restringido",
+  "lookup": {
+   "nombre": "sanic_planid",
+   "displayname": "Plan",
+   "descripcion": "Plan al que se refiere la fila. Vacío si el plan no existe. De acá sale la empresa de la fila para la vista de mis clientes.",
+   "requerida": false,
+   "auditoria": false
+  }
+ },
+ "decisiones": [
+  [
+   "Nombre visible y descripción del lookup",
+   "«Plan»",
+   "El diccionario trae el nombre lógico; el texto de negocio lo fija el playbook (`02` DD-19)"
+  ]
+ ],
+ "viene_del_diseno": [
+  "Comportamiento `restringido`: `02` §5 e inventario §4.",
+  "Requerida = no: el `Req` de `sanic_planid` en `02` §3.2.",
+  "Auditoría del lookup = no: `02` DD-18: la tabla hija es de la unidad histórica, sin auditoría nativa."
+ ],
+ "fuera_de_alcance": [
+  "La búsqueda del plan a partir de `sanic_numeroplan`: código de validación, inventario 7.3.",
+  "Vistas y formularios que muestran este lookup: inventario 12."
+ ]
+}

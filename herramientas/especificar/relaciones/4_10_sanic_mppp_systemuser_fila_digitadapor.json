@@ -1,0 +1,44 @@
+{
+ "inventario": "4.10",
+ "diccionario": "§3.2",
+ "componente": {
+  "tipo": "relacion",
+  "nombre": "sanic_mppp_systemuser_fila_digitadapor",
+  "tabla_padre": "systemuser",
+  "tabla_hija": "sanic_mppp_tbl_fila",
+  "comportamiento": "restringido",
+  "lookup": {
+   "nombre": "sanic_digitadapor",
+   "displayname": "Digitada por",
+   "descripcion": "Quién marcó la fila como digitada. La escribe el plugin, nunca quien llama.",
+   "requerida": false,
+   "auditoria": false
+  }
+ },
+ "decisiones": [
+  [
+   "Sufijo en el nombre de la relación",
+   "`_digitadapor`",
+   "Hay dos relaciones entre `systemuser` y Fila: la regla `<padre>_<hijo>` (BP-PP-188) les daría el mismo nombre. Se agrega el nombre del lookup sin prefijo. **Pendiente de aprobación del aprobador: el nombre de una relación es irreversible**"
+  ],
+  [
+   "Nombre visible y descripción del lookup",
+   "«Digitada por»",
+   "El diccionario trae el nombre lógico; el texto de negocio lo fija el playbook (`02` DD-19)"
+  ],
+  [
+   "Comportamiento",
+   "`restringido`",
+   "El inventario la marca `R`. Un usuario del sistema no se borra (se deshabilita), así que en la práctica nunca se dispara"
+  ]
+ ],
+ "viene_del_diseno": [
+  "Comportamiento `restringido`: `02` §5 e inventario §4.",
+  "Requerida = no: el `Req` de `sanic_digitadapor` en `02` §3.2.",
+  "Auditoría del lookup = no: `02` DD-18: la tabla hija es de la unidad histórica, sin auditoría nativa."
+ ],
+ "fuera_de_alcance": [
+  "Quién puede escribir esta columna: plugin de transición, inventario 7.9.",
+  "Vistas y formularios que muestran este lookup: inventario 12."
+ ]
+}

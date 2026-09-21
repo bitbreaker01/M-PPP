@@ -1,0 +1,34 @@
+{
+ "inventario": "4.5",
+ "diccionario": "§3.2 y §5",
+ "componente": {
+  "tipo": "relacion",
+  "nombre": "sanic_mppp_solicitud_fila",
+  "tabla_padre": "sanic_mppp_tbl_solicitud",
+  "tabla_hija": "sanic_mppp_tbl_fila",
+  "comportamiento": "parental",
+  "lookup": {
+   "nombre": "sanic_solicitudid",
+   "displayname": "Solicitud",
+   "descripcion": "Solicitud a la que pertenece la fila.",
+   "requerida": true,
+   "auditoria": false
+  }
+ },
+ "decisiones": [
+  [
+   "Nombre visible y descripción del lookup",
+   "«Solicitud»",
+   "El diccionario trae el nombre lógico; el texto de negocio lo fija el playbook (`02` DD-19)"
+  ]
+ ],
+ "viene_del_diseno": [
+  "Comportamiento `parental`: `02` §5 e inventario §4.",
+  "Requerida = sí: el `Req` de `sanic_solicitudid` en `02` §3.2.",
+  "Auditoría del lookup = no: `02` DD-18: la tabla hija es de la unidad histórica, sin auditoría nativa."
+ ],
+ "fuera_de_alcance": [
+  "La clave alternativa `sanic_mppp_key_fila_solicitud_numerofila` usa este lookup: inventario 5.9, después de esta relación.",
+  "Vistas y formularios que muestran este lookup: inventario 12."
+ ]
+}

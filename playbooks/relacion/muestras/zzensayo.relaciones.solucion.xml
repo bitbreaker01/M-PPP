@@ -309,6 +309,41 @@
         </EntityRelationshipRole>
       </EntityRelationshipRoles>
     </EntityRelationship>
+    <EntityRelationship Name="sanic_mppp_zzotro_zzhija_tercera">
+      <EntityRelationshipType>OneToMany</EntityRelationshipType>
+      <IsCustomizable>1</IsCustomizable>
+      <IntroducedVersion>0.0.0.1</IntroducedVersion>
+      <IsHierarchical>0</IsHierarchical>
+      <ReferencingEntityName>sanic_mppp_tbl_zzhija</ReferencingEntityName>
+      <ReferencedEntityName>sanic_mppp_tbl_zzotro</ReferencedEntityName>
+      <CascadeAssign>NoCascade</CascadeAssign>
+      <CascadeDelete>Restrict</CascadeDelete>
+      <CascadeArchive>RemoveLink</CascadeArchive>
+      <CascadeReparent>NoCascade</CascadeReparent>
+      <CascadeShare>NoCascade</CascadeShare>
+      <CascadeUnshare>NoCascade</CascadeUnshare>
+      <CascadeRollupView>NoCascade</CascadeRollupView>
+      <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+      <ReferencingAttributeName>sanic_terceroid</ReferencingAttributeName>
+      <RelationshipDescription>
+        <Descriptions>
+          <Description description="Creación completa con lookup requerido y auditado." languagecode="1033" />
+        </Descriptions>
+      </RelationshipDescription>
+      <EntityRelationshipRoles>
+        <EntityRelationshipRole>
+          <NavPaneDisplayOption>UseCollectionName</NavPaneDisplayOption>
+          <NavPaneArea>Details</NavPaneArea>
+          <NavPaneOrder>10000</NavPaneOrder>
+          <NavigationPropertyName>sanic_terceroid</NavigationPropertyName>
+          <RelationshipRoleType>1</RelationshipRoleType>
+        </EntityRelationshipRole>
+        <EntityRelationshipRole>
+          <NavigationPropertyName>sanic_mppp_zzotro_zzhija_tercera</NavigationPropertyName>
+          <RelationshipRoleType>0</RelationshipRoleType>
+        </EntityRelationshipRole>
+      </EntityRelationshipRoles>
+    </EntityRelationship>
     <EntityRelationship Name="sanic_mppp_zzpadre_zzhija">
       <EntityRelationshipType>OneToMany</EntityRelationshipType>
       <IsCustomizable>1</IsCustomizable>

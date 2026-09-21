@@ -1,0 +1,34 @@
+{
+ "inventario": "4.4",
+ "diccionario": "§2.4 y §5",
+ "componente": {
+  "tipo": "relacion",
+  "nombre": "sanic_mppp_plan_autorizacionplan",
+  "tabla_padre": "sanic_mppp_tbl_plan",
+  "tabla_hija": "sanic_mppp_tbl_autorizacionplan",
+  "comportamiento": "restringido",
+  "lookup": {
+   "nombre": "sanic_planid",
+   "displayname": "Plan",
+   "descripcion": "Plan sobre el que se autoriza al correo.",
+   "requerida": true,
+   "auditoria": true
+  }
+ },
+ "decisiones": [
+  [
+   "Nombre visible y descripción del lookup",
+   "«Plan»",
+   "El diccionario trae el nombre lógico; el texto de negocio lo fija el playbook (`02` DD-19)"
+  ]
+ ],
+ "viene_del_diseno": [
+  "Comportamiento `restringido`: `02` §5 e inventario §4.",
+  "Requerida = sí: el `Req` de `sanic_planid` en `02` §2.4.",
+  "Auditoría del lookup = sí: `02` DD-18: la tabla hija es un catálogo, sus columnas se auditan."
+ ],
+ "fuera_de_alcance": [
+  "La clave alternativa `sanic_mppp_key_autorizacionplan_autorizado_plan` usa este lookup: inventario 5.5, después de las relaciones 4.3 y 4.4.",
+  "Vistas y formularios que muestran este lookup: inventario 12."
+ ]
+}

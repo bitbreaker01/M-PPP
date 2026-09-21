@@ -1,0 +1,34 @@
+{
+ "inventario": "4.1",
+ "diccionario": "§2.2 y §5",
+ "componente": {
+  "tipo": "relacion",
+  "nombre": "sanic_mppp_cliente_plan",
+  "tabla_padre": "sanic_mppp_tbl_cliente",
+  "tabla_hija": "sanic_mppp_tbl_plan",
+  "comportamiento": "restringido",
+  "lookup": {
+   "nombre": "sanic_clienteid",
+   "displayname": "Cliente",
+   "descripcion": "Empresa cliente a la que pertenece el plan. Un plan es de una sola empresa.",
+   "requerida": true,
+   "auditoria": true
+  }
+ },
+ "decisiones": [
+  [
+   "Nombre visible y descripción del lookup",
+   "«Cliente»",
+   "El diccionario trae el nombre lógico; el texto de negocio lo fija el playbook (`02` DD-19)"
+  ]
+ ],
+ "viene_del_diseno": [
+  "Comportamiento `restringido`: `02` §5 e inventario §4.",
+  "Requerida = sí: el `Req` de `sanic_clienteid` en `02` §2.2.",
+  "Auditoría del lookup = sí: `02` DD-18: la tabla hija es un catálogo, sus columnas se auditan."
+ ],
+ "fuera_de_alcance": [
+  "La clave alternativa `sanic_mppp_key_plan_codigo` no usa este lookup (inventario 5.3).",
+  "Vistas y formularios que muestran este lookup: inventario 12."
+ ]
+}
