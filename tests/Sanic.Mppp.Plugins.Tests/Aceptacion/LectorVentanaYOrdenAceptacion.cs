@@ -120,10 +120,42 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
 
         // ------------------------------------------------------------------ LP-05: el orden se exige
         [Fact]
-        public void LP05_una_fila_fuera_de_orden_antes_de_terminar_la_ventana_invalida_el_archivo()
+        public void LP05_una_fila_que_retrocede_dentro_de_lo_recorrido_invalida_el_archivo()
         {
-            // El caso que encontró el revisor del spike: una fila 500 escrita antes que la 6 hacía que la 6 se perdiera en silencio.
-            Invalido(Leer(Ventana(), Encabezado(), Fila(500, Celda("C500", "x")), Datos(6)), "orden");
+            Invalido(Leer(Ventana(), Encabezado(), Datos(7), Datos(6)), "orden");
+            Invalido(Leer(Ventana(), Encabezado(), Datos(6), Datos(8), Datos(7)), "orden");
+        }
+
+        [Fact]
+        public void LP04_un_salto_EN_ORDEN_mas_alla_de_la_ventana_corta_la_lectura_y_no_invalida_nada()
+        {
+            // Corregida tras la revisión de código (2026-09-21). El caso legítimo: el cliente llenó una sola fila, Excel no escribió las filas
+            // vacías, y lo siguiente que hay en la hoja es una nota al pie en la fila 500. La 500 está en orden ascendente: solo queda más allá
+            // de la ventana. LP-04, literal: "deja de leer en la primera fila que queda más allá de la última configurada".
+            var r = Leer(Ventana(), Encabezado(), Datos(6), Fila(500, CeldaDanada("C500")));
+            Assert.True(r.EsValido, string.Join(" | ", r.Errores));
+            Assert.Equal(new[] { 6 }, r.Filas.Select(f => f.NumeroFilaExcel));
+        }
+
+        [Fact]
+        public void LP04_lo_que_venga_despues_del_corte_no_se_ve_ni_siquiera_si_era_una_fila_de_la_ventana()
+        {
+            // El costo de LP-04, dicho con todas las letras: un archivo armado a mano con la fila 500 ANTES que la 6 se corta en la 500, y la 6
+            // no se ve. Detectarlo exigiría seguir leyendo, que es el costo no acotado que el aprobador eliminó. Excel nunca escribe ese archivo,
+            // y quien lo arme a propósito no gana nada que no consiga con solo no mandar la fila 6. (Aclaración D-12 en diseno/PENDIENTES.md.)
+            var r = Leer(Ventana(), Encabezado(), Fila(500, Celda("C500", "x")), Datos(6));
+            Assert.True(r.EsValido, string.Join(" | ", r.Errores));
+            Assert.Empty(r.Filas);
+        }
+
+        [Fact]
+        public void LP04_una_celda_EN_ORDEN_mas_alla_de_la_ultima_columna_corta_la_fila_y_no_invalida_nada()
+        {
+            // Trae C, no trae D (la última configurada) y después trae Z: en orden, solo que fuera de la ventana. D queda vacío.
+            var r = Leer(Ventana(), Encabezado(), Fila(6, Celda("C6", "c6"), CeldaDanada("Z6")));
+            Assert.True(r.EsValido, string.Join(" | ", r.Errores));
+            Assert.Equal("c6", r.Filas.Single().Valores["C"]);
+            Assert.Equal(string.Empty, r.Filas.Single().Valores["D"]);
         }
 
         [Fact]
@@ -168,6 +200,50 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Throws<ArgumentNullException>(() => new LectorOpenXml(null));
         }
 
+        public static IEnumerable<object[]> ConfiguracionesMalArmadasAMano()
+        {
+            yield return new object[] { "campos nulos", new Action<ConfiguracionPlantilla>(c => c.Campos = null) };
+            yield return new object[] { "campos vacíos", new Action<ConfiguracionPlantilla>(c => c.Campos = new List<CampoPlantilla>()) };
+            yield return new object[] { "un campo nulo", new Action<ConfiguracionPlantilla>(c => c.Campos.Add(null)) };
+            yield return new object[] { "columna inválida", new Action<ConfiguracionPlantilla>(c => c.Campos[0].Columna = "1A") };
+            yield return new object[] { "hoja nula", new Action<ConfiguracionPlantilla>(c => c.Hoja = null) };
+            yield return new object[] { "encabezado en fila 0", new Action<ConfiguracionPlantilla>(c => c.FilaEncabezado = 0) };
+            yield return new object[] { "datos antes del encabezado", new Action<ConfiguracionPlantilla>(c => c.PrimeraFila = c.FilaEncabezado) };
+            yield return new object[] { "sin filas", new Action<ConfiguracionPlantilla>(c => c.CantidadFilas = 0) };
+            yield return new object[] { "ventana que desborda", new Action<ConfiguracionPlantilla>(c => c.CantidadFilas = int.MaxValue) };
+        }
+
+        [Theory]
+        [MemberData(nameof(ConfiguracionesMalArmadasAMano))]
+        public void Una_configuracion_mal_armada_a_mano_es_un_error_de_programacion_nunca_un_archivo_invalido(string caso, Action<ConfiguracionPlantilla> romper)
+        {
+            // LP-01: un bug nuestro no se disfraza de archivo corrupto. Hallazgo de la revisión de código: con `Campos = null` salía "archivo inválido".
+            var config = Ventana();
+            romper(config);
+            var ex = Assert.ThrowsAny<ArgumentException>(() => new LectorOpenXml().Leer(ConFilas(Hoja, Encabezado(), Datos(6)), config));
+            Assert.False(string.IsNullOrWhiteSpace(ex.Message), caso);
+        }
+
+        // ------------------------------------------------------------------ LP-07: una celda booleana tampoco se pierde callada
+        [Theory]
+        [InlineData("1", "1")]
+        [InlineData("0", "0")]
+        public void LP07_una_celda_booleana_valida_se_lee_como_1_o_0(string crudo, string esperado)
+        {
+            var r = Leer(Ventana(), Encabezado(), Fila(6, CeldaBooleana("C6", crudo), Celda("D6", "d6")));
+            Assert.True(r.EsValido, string.Join(" | ", r.Errores));
+            Assert.Equal(esperado, r.Filas.Single().Valores["C"]);
+        }
+
+        [Theory]
+        [InlineData("2")]
+        [InlineData("verdadero")]
+        [InlineData("")]
+        public void LP07_una_celda_booleana_con_un_valor_que_no_es_1_ni_0_invalida_el_archivo(string crudo)
+        {
+            Invalido(Leer(Ventana(), Encabezado(), Fila(6, CeldaBooleana("C6", crudo), Celda("D6", "d6"))), "C6");
+        }
+
         // ------------------------------------------------------------------ LP-08: todo es parámetro, y viene en JSON
         private const string JsonValido =
             "{\"hoja\":\"Plantilla\",\"filaEncabezado\":11,\"primeraFila\":12,\"cantidadFilas\":100,"
@@ -193,6 +269,9 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         [InlineData("{\"hoja\":\"P\",\"filaEncabezado\":11,\"primeraFila\":11,\"cantidadFilas\":100,\"campos\":[{\"nombre\":\"a\",\"columna\":\"D\",\"encabezado\":\"x\"}]}")]
         [InlineData("{\"hoja\":\"P\",\"filaEncabezado\":11,\"primeraFila\":12,\"cantidadFilas\":0,\"campos\":[{\"nombre\":\"a\",\"columna\":\"D\",\"encabezado\":\"x\"}]}")]
         [InlineData("{\"hoja\":\"P\",\"filaEncabezado\":11,\"primeraFila\":12,\"cantidadFilas\":100,\"campos\":[]}")]
+        // La ventana tiene que caber en una hoja de Excel (1.048.576 filas): si no, la cuenta desborda y el error sale disfrazado.
+        [InlineData("{\"hoja\":\"P\",\"filaEncabezado\":11,\"primeraFila\":12,\"cantidadFilas\":2147483647,\"campos\":[{\"nombre\":\"a\",\"columna\":\"D\",\"encabezado\":\"x\"}]}")]
+        [InlineData("{\"hoja\":\"P\",\"filaEncabezado\":11,\"primeraFila\":1048570,\"cantidadFilas\":100,\"campos\":[{\"nombre\":\"a\",\"columna\":\"D\",\"encabezado\":\"x\"}]}")]
         [InlineData("{\"hoja\":\"P\",\"filaEncabezado\":11,\"primeraFila\":12,\"cantidadFilas\":100}")]
         [InlineData("{\"hoja\":\"P\",\"filaEncabezado\":11,\"primeraFila\":12,\"cantidadFilas\":100,\"campos\":[{\"nombre\":\"a\",\"columna\":\"1A\",\"encabezado\":\"x\"}]}")]
         [InlineData("{\"hoja\":\"P\",\"filaEncabezado\":11,\"primeraFila\":12,\"cantidadFilas\":100,\"campos\":[{\"nombre\":\"a\",\"columna\":\"\",\"encabezado\":\"x\"}]}")]

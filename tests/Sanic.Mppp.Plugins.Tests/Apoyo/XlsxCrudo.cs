@@ -22,6 +22,12 @@ namespace Sanic.Mppp.Plugins.Tests.Apoyo
             return $"<c r=\"{referencia}\" t=\"s\"><v>999</v></c>";
         }
 
+        /// <summary>Celda booleana (t="b") con el valor crudo que se le pida: "1", "0", o basura.</summary>
+        public static string CeldaBooleana(string referencia, string valorCrudo)
+        {
+            return $"<c r=\"{referencia}\" t=\"b\"><v>{valorCrudo}</v></c>";
+        }
+
         public static string Fila(int numero, params string[] celdas)
         {
             return $"<row r=\"{numero}\">{string.Concat(celdas)}</row>";
