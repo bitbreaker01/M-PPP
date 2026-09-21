@@ -178,6 +178,9 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             yield return new object[] { "código nulo", null, new[] { new DefinicionDeRegla { Codigo = null, Orden = 1 } } };
             yield return new object[] { "código en blanco", null, new[] { new DefinicionDeRegla { Codigo = "  ", Orden = 1 } } };
             yield return new object[] { "definición nula", null, new DefinicionDeRegla[] { null } };
+            // Con más de un elemento ordenar OBLIGA a mirar cada definición: la validación va antes que el orden.
+            yield return new object[] { "definición nula entre otras válidas", null, new[] { Regla("A", 1), null, Regla("B", 2) } };
+            yield return new object[] { "definición nula al principio", null, new[] { null, Regla("A", 1) } };
             yield return new object[] { "código repetido", "A", new[] { Regla("A", 1), Regla("A", 2) } };
             yield return new object[] { "dependencia nula", "B", new[] { Regla("A", 1), Regla("B", 2, new string[] { null }) } };
             yield return new object[] { "dependencia en blanco", "B", new[] { Regla("A", 1), Regla("B", 2, " ") } };
