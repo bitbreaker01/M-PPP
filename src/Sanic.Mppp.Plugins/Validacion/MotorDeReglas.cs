@@ -34,32 +34,58 @@ namespace Sanic.Mppp.Plugins.Validacion
         public IList<string> DependeDe { get; set; }
 
         public EfectoDeLaRegla Efecto { get; set; }
+
+        /// <summary>
+        /// `sanic_mensajecliente` (D-19): PLANTILLA del texto para el cliente, con marcadores `{valor}`, `{campo}`, `{plan}`, `{regla}`.
+        /// Puede ser nulo o vacío: entonces rige el texto por defecto del evaluador. La compone <see cref="MensajeAlCliente"/>.
+        /// </summary>
+        public string MensajeCliente { get; set; }
     }
 
-    /// <summary>Lo que devuelve un evaluador: cumple o no, y por qué no (texto para el cliente).</summary>
+    /// <summary>
+    /// Lo que devuelve un evaluador: cumple o no, y por qué no. El evaluador NO conoce el catálogo (D-19): entrega su texto por defecto
+    /// (completo, ya redactado para el cliente), los valores de los marcadores, y la precisión del caso; el mensaje final lo arma
+    /// <see cref="MensajeAlCliente"/> con la plantilla del catálogo.
+    /// </summary>
     public sealed class Veredicto
     {
-        private Veredicto(bool cumple, string razon)
+        private static readonly IDictionary<string, string> SinMarcadores = new Dictionary<string, string>();
+
+        private Veredicto(bool cumple, string razon, IDictionary<string, string> marcadores, string precision)
         {
             Cumple = cumple;
             Razon = razon;
+            Marcadores = marcadores == null ? SinMarcadores : new Dictionary<string, string>(marcadores, StringComparer.Ordinal);
+            Precision = string.IsNullOrWhiteSpace(precision) ? null : precision.Trim();
         }
 
         public bool Cumple { get; }
 
+        /// <summary>Texto POR DEFECTO para el cliente (el caso general): rige cuando el catálogo no trae plantilla o la trae mal escrita.</summary>
         public string Razon { get; }
 
-        public static Veredicto Cumplida() => new Veredicto(true, null);
+        /// <summary>Valores de los marcadores que este evaluador sabe completar (`valor`, `campo`, `plan`...). Nunca nulo. `regla` lo pone el motor.</summary>
+        public IDictionary<string, string> Marcadores { get; }
+
+        /// <summary>
+        /// Lo que SOLO el evaluador sabe del caso y se agrega después del texto general, venga del catálogo o sea el por defecto
+        /// (los errores del lector de plantilla; cuál de los dos casos de la autorización). Nulo si no hay.
+        /// </summary>
+        public string Precision { get; }
+
+        public static Veredicto Cumplida() => new Veredicto(true, null, null, null);
 
         /// <summary>La razón es obligatoria: una regla que falla sin decir por qué es un error de programación.</summary>
-        public static Veredicto NoCumplida(string razon)
+        public static Veredicto NoCumplida(string razon) => NoCumplida(razon, null, null);
+
+        public static Veredicto NoCumplida(string razon, IDictionary<string, string> marcadores, string precision)
         {
             if (string.IsNullOrWhiteSpace(razon))
             {
                 throw new ArgumentException("Una regla que no se cumple tiene que decir por qué.", nameof(razon));
             }
 
-            return new Veredicto(false, razon);
+            return new Veredicto(false, razon, marcadores, precision);
         }
     }
 
