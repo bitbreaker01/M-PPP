@@ -93,9 +93,9 @@ code{background:var(--line);padding:1px 5px;border-radius:3px;word-break:break-w
 
   <section class="estado" aria-label="Estado actual">
     <div><span>Dónde estamos</span><b>Ronda de construcción abierta</b></div>
-    <div><span>Progreso</span><b>2 de 156 componentes</b></div>
-    <div><span>Dev</span><b>Solución + choice «moneda»</b></div>
-    <div><span>Madurez del tipo «choice»</span><b>2 de 3 ciclos limpios</b></div>
+    <div><span>Progreso</span><b>16 de 156 componentes</b></div>
+    <div><span>Dev</span><b>Solución, 14 choices, tabla Cliente</b></div>
+    <div><span>Tipos con herramienta</span><b>choice (maduro) · tabla (1 de 3)</b></div>
   </section>
 
   <section>
@@ -111,7 +111,7 @@ code{background:var(--line);padding:1px 5px;border-radius:3px;word-break:break-w
       <li class="paso orq"><div class="num">2</div><div class="cuerpo">
         <div class="cab"><h3>Escribir el playbook</h3><span class="chip orq">Orquestador</span></div>
         <p>Con la skill <code>power-platform-especificar</code>. Ocho secciones fijas: identidad, qué se crea, precondiciones, cómo se construye, verificación, qué pasa si ya existe, reversa y fuera de alcance. Todo dato sale del diseño aprobado; nada se inventa acá.</p>
-        <p>Si el tipo de componente todavía no tiene herramienta, <b>también la escribe el orquestador</b>, con sus pruebas sin red: diseñar una herramienta es decidir, y eso no se delega.</p>
+        <p>Si el tipo de componente todavía no tiene herramienta, <b>también la escribe el orquestador</b>, con sus pruebas sin red, y la <b>ensaya contra la plataforma sobre componentes descartables</b> (<code>zz</code>) que borra al terminar. Es lo único que el orquestador ejecuta contra Dev: desarrollar la herramienta, no construir el componente.</p>
         <p class="sale">Deja <b>un Markdown por componente</b> en <code>playbooks/&lt;tipo&gt;/</code> y, la primera vez de cada tipo, <code>herramientas/construir/&lt;tipo&gt;.py</code></p>
       </div></li>
 
@@ -121,15 +121,15 @@ code{background:var(--line);padding:1px 5px;border-radius:3px;word-break:break-w
       </div></li>
 
       <li class="paso son"><div class="num">3</div><div class="cuerpo">
-        <div class="cab"><h3>Construir</h3><span class="chip son">Sonnet, o el orquestador</span></div>
-        <p>Ejecutar la herramienta contra Dev con el playbook: precondiciones → crear → verificar; segunda ejecución y modo solo verificar. La herramienta valida todo antes de escribir, se puede repetir sin daño y nunca borra. Cuando es un solo comando lo corre el orquestador; un lote de playbooks ya maduros va a un agente Sonnet.</p>
-        <p class="sale">Entrega <b>el estado</b> (creado · ya existía · difiere · bloqueado · error). Si la herramienta falla por un defecto propio, el agente no la parchea: devuelve <b>bloqueado</b> con la evidencia.</p>
+        <div class="cab"><h3>Construir</h3><span class="chip son">constructor-componente · Sonnet</span></div>
+        <p>Siempre un agente, nunca el orquestador. Comprueba el playbook contra las reglas de completitud y contra el diccionario, ejecuta la herramienta contra Dev (precondiciones → crear → verificar), la corre otra vez para comprobar que no cambia nada, y corre las verificaciones del playbook.</p>
+        <p class="sale">Entrega <b>el estado</b> y <b>sus tropiezos</b>, separados por culpable: el playbook, la skill de especificar, la receta o la herramienta. Si algo falla <b>no lo parchea</b>: para y devuelve la evidencia.</p>
       </div></li>
 
       <li class="paso son"><div class="num">4</div><div class="cuerpo">
-        <div class="cab"><h3>Revisar lo nuevo</h3><span class="chip son">revisor-construccion · Sonnet</span></div>
-        <p>Solo cuando hay algo nuevo que revisar: una herramienta recién escrita o cambiada. Agente sin contexto previo y con mandato adversarial; prueba cada campo con el tipo equivocado y busca un falso éxito.</p>
-        <span class="vuelve">↩ máximo dos vueltas por clase de defecto: si reaparece lo mismo un nivel más adentro, el orquestador replantea la solución</span>
+        <div class="cab"><h3>Verificar</h3><span class="chip son">revisor-construccion · Sonnet</span></div>
+        <p>Otro agente, sin el contexto del primero y con mandato adversarial, solo lectura: arma su propia lista de lo que debería existir a partir del diseño, y la compara contra el entorno y contra el XML exportado. No le cree al informe del constructor.</p>
+        <span class="vuelve">↩ si algo falla, vuelve al orquestador, no al constructor: el arreglo es de la herramienta, de la receta o del playbook · máximo dos vueltas por clase de defecto</span>
       </div></li>
 
       <li class="paso orq"><div class="num">5</div><div class="cuerpo">
@@ -175,7 +175,7 @@ code{background:var(--line);padding:1px 5px;border-radius:3px;word-break:break-w
   </section>
 
   <section class="nota">
-    <p><b>Quién hace qué.</b> Playbooks, herramientas, pruebas, retrospectiva y mejoras de skills: el orquestador. Ejecución mecánica y revisión adversarial con receta cerrada: agentes Sonnet. Decidir: vos.</p>
+    <p><b>Quién hace qué.</b> Cada componente es un loop. El orquestador escribe el playbook, las herramientas, las recetas y las skills, y cuando a un agente algo le falla lo resuelve mejorándolas, no haciendo él lo mecánico. Construir y verificar cada componente: agentes Sonnet. Decidir: vos.</p>
     <p><b>Por qué no hay un agente que compruebe el entorno.</b> La exportación de la muestra real ya es una comprobación independiente de lo que dice la herramienta, y además deja el catálogo de propiedades. Un agente menos y una espera menos.</p>
   </section>
 </div>
