@@ -451,6 +451,8 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
 
             Assert.False(resultado.EsValido);
             Assert.Contains(resultado.Errores, e => e.Contains("descomprimid"));
+            // Un zip legible que SUPERA el tope es un rechazo por una regla nuestra, no un archivo ilegible: no trae detalle técnico.
+            Assert.Null(resultado.DetalleTecnico);
         }
 
 
