@@ -83,21 +83,19 @@ code{background:var(--line);padding:1px 5px;border-radius:3px;word-break:break-w
 <div class="wrap">
   <header>
     <h1>Cómo se construye cada componente</h1>
-    <p class="lead">Un componente, un ciclo, un reporte. El diseño y la especificación los hace el modelo grande; lo mecánico lo hacen agentes baratos; y nada toca el entorno ni tus skills sin que vos abras la compuerta.</p>
+    <p class="lead">Un componente, un ciclo. El diseño, la especificación, las herramientas y las mejoras de skills son del arquitecto; los agentes Sonnet son carpinteros que aplican lo que se les dicta; y nada toca el entorno sin tu orden.</p>
     <div class="actores" aria-label="Quién interviene">
       <span class="chip vos">Vos <small>· decidís</small></span>
       <span class="chip orq">Orquestador <small>· modelo grande, hilo principal</small></span>
-      <span class="chip son">Agente Sonnet <small>· construye y revisa</small></span>
-      <span class="chip hai">Agente Haiku <small>· comprueba el entorno</small></span>
-      <span class="nuevo">nuevo</span><span style="font-size:12.5px;color:var(--muted)">= lo que pediste hoy y todavía no está escrito en los agentes</span>
+      <span class="chip son">Agente Sonnet <small>· carpintero: ejecuta y revisa con receta cerrada</small></span>
     </div>
   </header>
 
   <section class="estado" aria-label="Estado actual">
-    <div><span>Dónde estamos</span><b>Detenidos antes de la compuerta A</b></div>
-    <div><span>Ciclos completos</span><b>1 · choice global «moneda»</b></div>
-    <div><span>Dev</span><b>Vacío: solo la solución</b></div>
-    <div><span>Madurez del tipo «choice»</span><b>1 de 3 ciclos limpios</b></div>
+    <div><span>Dónde estamos</span><b>Ronda de construcción abierta</b></div>
+    <div><span>Progreso</span><b>2 de 156 componentes</b></div>
+    <div><span>Dev</span><b>Solución + choice «moneda»</b></div>
+    <div><span>Madurez del tipo «choice»</span><b>2 de 3 ciclos limpios</b></div>
   </section>
 
   <section>
@@ -113,7 +111,8 @@ code{background:var(--line);padding:1px 5px;border-radius:3px;word-break:break-w
       <li class="paso orq"><div class="num">2</div><div class="cuerpo">
         <div class="cab"><h3>Escribir el playbook</h3><span class="chip orq">Orquestador</span></div>
         <p>Con la skill <code>power-platform-especificar</code>. Ocho secciones fijas: identidad, qué se crea, precondiciones, cómo se construye, verificación, qué pasa si ya existe, reversa y fuera de alcance. Todo dato sale del diseño aprobado; nada se inventa acá.</p>
-        <p class="sale">Deja <b>un Markdown por componente</b> en <code>playbooks/&lt;tipo&gt;/</code></p>
+        <p>Si el tipo de componente todavía no tiene herramienta, <b>también la escribe el orquestador</b>, con sus pruebas sin red: diseñar una herramienta es decidir, y eso no se delega.</p>
+        <p class="sale">Deja <b>un Markdown por componente</b> en <code>playbooks/&lt;tipo&gt;/</code> y, la primera vez de cada tipo, <code>herramientas/construir/&lt;tipo&gt;.py</code></p>
       </div></li>
 
       <li class="compuerta"><div class="num">A</div><div class="cuerpo">
@@ -122,48 +121,38 @@ code{background:var(--line);padding:1px 5px;border-radius:3px;word-break:break-w
       </div></li>
 
       <li class="paso son"><div class="num">3</div><div class="cuerpo">
-        <div class="cab"><h3>Construir</h3><span class="chip son">constructor-componente · Sonnet</span></div>
-        <ul>
-          <li>Con la skill <code>power-platform-construir</code> y la receta del tipo.</li>
-          <li>Si el tipo todavía no tiene herramienta, la escribe primero con sus pruebas sin red (cliente simulado). Una herramienta por tipo, en <code>herramientas/construir/</code>.</li>
-          <li>La ejecuta contra Dev: precondiciones → crear → verificar. Valida todo antes de escribir, se puede repetir sin daño y nunca borra.</li>
-        </ul>
-        <p class="sale">Entrega <b>el estado</b> (creado · ya existía · difiere · bloqueado · error) y <b>sus tropiezos</b>: qué le faltó, le sobró o le resultó ambiguo del playbook.</p>
+        <div class="cab"><h3>Construir</h3><span class="chip son">Sonnet, o el orquestador</span></div>
+        <p>Ejecutar la herramienta contra Dev con el playbook: precondiciones → crear → verificar; segunda ejecución y modo solo verificar. La herramienta valida todo antes de escribir, se puede repetir sin daño y nunca borra. Cuando es un solo comando lo corre el orquestador; un lote de playbooks ya maduros va a un agente Sonnet.</p>
+        <p class="sale">Entrega <b>el estado</b> (creado · ya existía · difiere · bloqueado · error). Si la herramienta falla por un defecto propio, el agente no la parchea: devuelve <b>bloqueado</b> con la evidencia.</p>
       </div></li>
 
       <li class="paso son"><div class="num">4</div><div class="cuerpo">
-        <div class="cab"><h3>Revisar</h3><span class="chip son">revisor-construccion · Sonnet</span></div>
-        <p>Otro agente, sin el contexto del primero y con mandato adversarial: compara herramienta y resultado contra el playbook y la receta, y busca cómo romperlo.</p>
-        <p class="sale">Veredicto: <b>aprobado</b> · <b>aprobado con observaciones</b> · <b>rechazado</b></p>
-        <span class="vuelve">↩ si rechaza, vuelve al paso 3 · en el ciclo 1 fueron dos vueltas</span>
+        <div class="cab"><h3>Revisar lo nuevo</h3><span class="chip son">revisor-construccion · Sonnet</span></div>
+        <p>Solo cuando hay algo nuevo que revisar: una herramienta recién escrita o cambiada. Agente sin contexto previo y con mandato adversarial; prueba cada campo con el tipo equivocado y busca un falso éxito.</p>
+        <span class="vuelve">↩ máximo dos vueltas por clase de defecto: si reaparece lo mismo un nivel más adentro, el orquestador replantea la solución</span>
       </div></li>
 
-      <li class="paso hai"><div class="num">5</div><div class="cuerpo">
-        <div class="cab"><h3>Comprobar el entorno</h3><span class="chip hai">verificador-entorno · Haiku</span></div>
-        <p>Solo lectura, y sin creerle a nadie: el componente existe en Dev tal como dice el playbook, está dentro de la solución y no cambió nada más. En el ciclo 1 esta comprobación la hice yo a mano; el agente ya está definido.</p>
+      <li class="paso orq"><div class="num">5</div><div class="cuerpo">
+        <div class="cab"><h3>Exportar la muestra real</h3><span class="chip orq">Orquestador</span></div>
+        <p>Se exporta el componente recién creado y se guarda su forma completa, tal como la devuelve la plataforma: qué propiedades mandamos nosotros, cuáles completó ella sola, y qué textos van embebidos en el XML (los que necesitan un título por idioma).</p>
+        <p class="sale">Es la <b>verificación independiente</b> del componente y la evidencia para el <b>catálogo de propiedades</b> del tipo: lo que evita el «falta la propiedad X» al reimportar. Se exporta por el Web API (<code>ExportSolution</code>).</p>
       </div></li>
 
       <li class="paso orq"><div class="num">6</div><div class="cuerpo">
-        <div class="cab"><h3>Exportar la muestra real</h3><span class="nuevo">nuevo</span><span class="chip orq">Orquestador</span></div>
-        <p>Se exporta el componente recién creado y se guarda su forma completa, tal como la devuelve la plataforma: qué propiedades mandamos nosotros, cuáles completó ella sola, y qué textos van embebidos en el XML (los que necesitan un título por idioma).</p>
-        <p class="sale">Es la evidencia para el <b>catálogo de propiedades</b> del tipo: lo que evita el «falta la propiedad X» al reimportar.</p>
-      </div></li>
-
-      <li class="paso orq"><div class="num">7</div><div class="cuerpo">
         <div class="cab"><h3>Retrospectiva</h3><span class="chip orq">Orquestador</span></div>
-        <p>Cada tropiezo se anota en <code>tropiezos.md</code> y se clasifica por lo que falló. De ahí sale una <b>propuesta</b> de cambios, con archivo y texto exacto. No se aplica nada todavía.</p>
+        <p>Cada tropiezo se anota en <code>tropiezos.md</code> y se clasifica por lo que falló. Si el ciclo <b>no enseñó nada nuevo</b>, el componente se da por aprobado y se sigue con el siguiente, sin esperarte.</p>
       </div></li>
 
       <li class="compuerta"><div class="num">B</div><div class="cuerpo">
-        <div class="cab"><h3>Reporte, y tu aprobación</h3><span class="nuevo">nuevo</span><span class="chip vos">Vos</span></div>
-        <p>Te cuento qué se construyó y cómo quedó verificado, qué se aprendió, y qué cambio de skill propongo. Vos aprobás, corregís o rechazás cada cambio. Reemplaza a la aprobación permanente que revocaste.</p>
+        <div class="cab"><h3>Reporte, solo si se aprendió algo</h3><span class="chip vos">Vos</span></div>
+        <p>Cuando el ciclo enseñó algo nuevo, te cuento qué se construyó, cómo quedó verificado, qué se aprendió y qué cambio propongo en las skills o en las herramientas. Vos aprobás, corregís o rechazás. Así aprendés vos también, sin frenar los componentes que salen iguales al anterior.</p>
       </div></li>
 
-      <li class="paso orq"><div class="num">8</div><div class="cuerpo">
+      <li class="paso orq"><div class="num">7</div><div class="cuerpo">
         <div class="cab"><h3>Aplicar lo aprobado y cerrar</h3><span class="chip orq">Orquestador</span></div>
         <ul>
-          <li>Se editan las skills en <code>gmaker-plugins</code> (sin commit: eso lo revisás vos al final del proyecto), y se corren su verificador de contratos y sus pruebas.</li>
-          <li>Commit en M-PPP: playbook, herramienta, muestra exportada.</li>
+          <li>El orquestador edita las skills y los roles en <code>gmaker-plugins</code> (sin commit: eso lo revisás vos al final del proyecto) y corre sus pruebas de contrato.</li>
+          <li>Commit en M-PPP: playbook, herramienta, muestra exportada. El contador avanza: <code>python3 herramientas/progreso.py</code>.</li>
         </ul>
         <span class="vuelve">↩ vuelve al paso 1 con el siguiente componente</span>
       </div></li>
@@ -178,7 +167,7 @@ code{background:var(--line);padding:1px 5px;border-radius:3px;word-break:break-w
       <tbody>
         <tr><td>Al constructor le faltó un dato, o el playbook era ambiguo</td><td>Skill <code>power-platform-especificar</code>: la referencia de ese tipo de playbook</td><td>El playbook siguiente ya nace con ese dato</td></tr>
         <tr><td>La receta estaba mal, o la herramienta falló</td><td>Skill <code>power-platform-construir</code>: receta del tipo, y la herramienta con una prueba nueva</td><td>El constructor no repite el error</td></tr>
-        <tr><td>La plataforma pidió o completó propiedades que no conocíamos</td><td>Catálogo de propiedades del tipo, con la muestra exportada como evidencia <span class="nuevo">nuevo</span></td><td>Editar XML o JSON y reimportar deja de fallar por una propiedad ausente</td></tr>
+        <tr><td>La plataforma pidió o completó propiedades que no conocíamos</td><td>Catálogo de propiedades del tipo, con la muestra exportada como evidencia</td><td>Editar XML o JSON y reimportar deja de fallar por una propiedad ausente</td></tr>
         <tr><td>Apareció una regla que vale para cualquier proyecto</td><td>Skill <code>power-platform-practicas</code>: una regla con su identificador</td><td>Los revisores la exigen en todo proyecto</td></tr>
         <tr><td>El diseño estaba equivocado</td><td>Los documentos de <code>diseno/</code>, antes de seguir construyendo</td><td>No se arrastra el error a los componentes que dependen de él</td></tr>
       </tbody>
@@ -186,7 +175,7 @@ code{background:var(--line);padding:1px 5px;border-radius:3px;word-break:break-w
   </section>
 
   <section class="nota">
-    <p><b>Lo que todavía no está escrito.</b> El paso 6 y la compuerta B son de hoy. Viven en esta página y en mi memoria del proyecto, pero no en los archivos de los agentes ni en las skills. Escribirlos ahí es un cambio a tus skills, así que también espera tu visto bueno.</p>
-    <p><b>Dónde se gasta el modelo caro.</b> Solo en los pasos 1, 2, 6, 7 y 8, que son criterio y redacción. La construcción, la revisión y la comprobación corren en Sonnet y Haiku.</p>
+    <p><b>Quién hace qué.</b> Playbooks, herramientas, pruebas, retrospectiva y mejoras de skills: el orquestador. Ejecución mecánica y revisión adversarial con receta cerrada: agentes Sonnet. Decidir: vos.</p>
+    <p><b>Por qué no hay un agente que compruebe el entorno.</b> La exportación de la muestra real ya es una comprobación independiente de lo que dice la herramienta, y además deja el catálogo de propiedades. Un agente menos y una espera menos.</p>
   </section>
 </div>
