@@ -447,7 +447,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         [Fact]
         public void Si_el_sobre_rechaza_y_ademas_envia_a_revision_gana_la_revision_no_se_le_responde_al_cliente_sin_que_lo_mire_una_persona()
         {
-            // El diseño calla sobre este cruce: se fija la lectura conservadora y queda como decisión abierta D-39 en PENDIENTES.
+            // D-39 (aprobador, 2026-09-21): gana la revisión.
             var rs = new[] { R("TRAE_ADJUNTO", ResultadoDeLaRegla.NoCumplida), R("REVISAR", ResultadoDeLaRegla.NoCumplida, EfectoDeLaRegla.EnviaARevision) };
             Assert.Equal(EstadoDeLaSolicitud.NoReconocida, EstadosPorReglas.DeLaSolicitud(rs, new EstadoDeLaFila[0]));
         }

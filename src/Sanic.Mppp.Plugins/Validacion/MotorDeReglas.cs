@@ -455,7 +455,7 @@ namespace Sanic.Mppp.Plugins.Validacion
 
             var lista = resultadosDeSolicitud as IList<ResultadoDeRegla> ?? resultadosDeSolicitud.ToList();
 
-            // D-39 (lectura fijada en las pruebas, ABIERTA en diseno/PENDIENTES.md): una regla del sobre que "Envía a revisión"
+            // D-39 (aprobador, 2026-09-21): una regla del sobre que "Envía a revisión"
             // y no se cumplió manda por sobre el rechazo. Cumplida u Omitida no envían a nadie a revisión.
             if (lista.Any(r => r.Resultado == ResultadoDeLaRegla.NoCumplida && r.EfectoAplicado == EfectoDeLaRegla.EnviaARevision))
             {

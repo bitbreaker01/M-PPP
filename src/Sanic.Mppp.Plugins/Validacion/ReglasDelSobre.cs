@@ -191,7 +191,7 @@ namespace Sanic.Mppp.Plugins.Validacion
         private sealed class EstructuraPlantillaEvaluador : IEvaluador<SobreEnValidacion>
         {
             private const string RazonPorDefecto =
-                "El archivo de Excel no tiene la estructura de la plantilla esperada. Por favor, descargue la plantilla vigente y envíela sin modificar su formato ni sus encabezados.";
+                "El archivo de Excel no tiene la estructura de la plantilla esperada. Por favor, solicite la plantilla vigente a su ejecutivo y envíela sin modificar su formato ni sus encabezados.";
 
             public string Codigo => EstructuraPlantilla;
 

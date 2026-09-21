@@ -166,6 +166,15 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         }
 
         [Fact]
+        public void La_plantilla_vigente_se_le_pide_al_ejecutivo_el_cliente_no_tiene_de_donde_descargarla()
+        {
+            // Aprobador, 2026-09-21: el cliente recibe la plantilla de su ejecutivo; no hay un sitio de descarga.
+            var razon = Correr(new SobreEnValidacion(1, 1, () => ResultadoLecturaPlantilla.ConError("Falta la hoja 'Datos'.")))[3].Razon;
+            Assert.Contains("ejecutivo", razon);
+            Assert.DoesNotContain("descarg", razon, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Los_conteos_viajan_como_marcador_valor_para_que_el_negocio_los_cite()
         {
             var mensajes = new Dictionary<string, string>
