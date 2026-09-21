@@ -1,7 +1,7 @@
 {
  "proyecto": "MPPP · fase 1",
  "criterio_hecho": "ciclo cerrado: construido, verificado en Dev y muestra exportada; si el ciclo enseñó algo nuevo, además el reporte aprobado por el aprobador",
- "en_curso": "2.4 tipoformatoplan y 2.13 eventobitacora — construidos y verificados; enseñaron algo nuevo, falta la aprobación del reporte",
+ "en_curso": "P-03 tabla con sus columnas — diseñando el tipo (formato del playbook, receta y herramienta)",
  "grupos": {
   "P-01": "Solución",
   "P-02": "Choices globales",
@@ -67,7 +67,7 @@
    "grupo": "P-02",
    "nombre": "sanic_mppp_ch_tipoformatoplan",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "2.5",
@@ -130,7 +130,7 @@
    "grupo": "P-02",
    "nombre": "sanic_mppp_ch_eventobitacora",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "2.14",
