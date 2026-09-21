@@ -49,13 +49,18 @@ namespace Sanic.Mppp.Plugins.Validacion
     /// </summary>
     public sealed class Veredicto
     {
-        private static readonly IDictionary<string, string> SinMarcadores = new Dictionary<string, string>();
+        // Compartida por todos los veredictos sin marcadores: se puede porque es de SOLO LECTURA (revisión de código, 2026-09-21:
+        // un diccionario mutable estático compartido entre ejecuciones de un plugin es una corrupción esperando turno).
+        private static readonly IReadOnlyDictionary<string, string> SinMarcadores =
+            new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(new Dictionary<string, string>());
 
         private Veredicto(bool cumple, string razon, IDictionary<string, string> marcadores, string precision)
         {
             Cumple = cumple;
             Razon = razon;
-            Marcadores = marcadores == null ? SinMarcadores : new Dictionary<string, string>(marcadores, StringComparer.Ordinal);
+            Marcadores = marcadores == null
+                ? SinMarcadores
+                : new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(new Dictionary<string, string>(marcadores, StringComparer.Ordinal));
             Precision = string.IsNullOrWhiteSpace(precision) ? null : precision.Trim();
         }
 
@@ -64,8 +69,8 @@ namespace Sanic.Mppp.Plugins.Validacion
         /// <summary>Texto POR DEFECTO para el cliente (el caso general): rige cuando el catálogo no trae plantilla o la trae mal escrita.</summary>
         public string Razon { get; }
 
-        /// <summary>Valores de los marcadores que este evaluador sabe completar (`valor`, `campo`, `plan`...). Nunca nulo. `regla` lo pone el motor.</summary>
-        public IDictionary<string, string> Marcadores { get; }
+        /// <summary>Valores de los marcadores que este evaluador sabe completar (`valor`, `campo`, `plan`...). Nunca nulo, de solo lectura, copia de lo que trajo el evaluador. `regla` lo pone el motor.</summary>
+        public IReadOnlyDictionary<string, string> Marcadores { get; }
 
         /// <summary>
         /// Lo que SOLO el evaluador sabe del caso y se agrega después del texto general, venga del catálogo o sea el por defecto

@@ -116,6 +116,53 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Throws<ArgumentException>(() => Veredicto.NoCumplida(" ", marcadores, "precisión"));
         }
 
+        // ------------------------------------------------------------------ revisión de código, 2026-09-21
+        [Fact]
+        public void Los_marcadores_de_un_veredicto_son_de_solo_lectura_y_los_que_no_traen_ninguno_no_comparten_nada_mutable()
+        {
+            foreach (var v in new[] { Veredicto.Cumplida(), Veredicto.NoCumplida(PorDefecto), Falla(null, ("valor", "A")) })
+            {
+                if (v.Marcadores is IDictionary<string, string> mutable)
+                {
+                    Assert.True(mutable.IsReadOnly);
+                    Assert.Throws<NotSupportedException>(() => mutable.Add("x", "y"));
+                    Assert.Throws<NotSupportedException>(() => mutable["valor"] = "B");
+                    Assert.Throws<NotSupportedException>(() => mutable.Clear());
+                }
+            }
+
+            Assert.Empty(Veredicto.Cumplida().Marcadores);
+        }
+
+        [Fact]
+        public void Un_mensaje_compuesto_nunca_pasa_del_largo_maximo_venga_lo_largo_de_donde_venga()
+        {
+            Assert.Equal(450, MensajeAlCliente.LargoMaximo);
+            var largo = new string('x', 5000);
+
+            var porValor = MensajeAlCliente.Componer("Recibido: {valor}. Fin.", Falla(null, ("valor", largo)), "R");
+            var porPrecision = MensajeAlCliente.Componer(null, Falla(largo), "R");
+            var porPlantilla = MensajeAlCliente.Componer(largo, Falla(), "R");
+            var porDefecto = MensajeAlCliente.Componer(null, Veredicto.NoCumplida(largo), "R");
+
+            foreach (var texto in new[] { porValor, porPrecision, porPlantilla, porDefecto })
+            {
+                Assert.Equal(MensajeAlCliente.LargoMaximo, texto.Length);
+                Assert.EndsWith("…", texto);
+            }
+
+            Assert.StartsWith("Recibido: xxx", porValor);
+            Assert.StartsWith(PorDefecto + " xxx", porPrecision); // se corta la cola, el texto general queda
+        }
+
+        [Fact]
+        public void Un_mensaje_que_entra_justo_no_se_toca()
+        {
+            var justo = new string('x', MensajeAlCliente.LargoMaximo);
+            Assert.Equal(justo, MensajeAlCliente.Componer(justo, Falla(), "R"));
+            Assert.Equal(new string('x', MensajeAlCliente.LargoMaximo - 1) + "…", MensajeAlCliente.Componer(justo + "y", Falla(), "R"));
+        }
+
         // ------------------------------------------------------------------ el motor usa la plantilla del catálogo
         private sealed class EvaluadorQueFalla : IEvaluador<object>
         {

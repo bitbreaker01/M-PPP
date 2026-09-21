@@ -20,6 +20,14 @@ namespace Sanic.Mppp.Plugins.Validacion
     /// </summary>
     public static class MensajeAlCliente
     {
+        /// <summary>
+        /// Largo máximo de un mensaje compuesto (revisión de código, 2026-09-21). `sanic_mensaje` de la Fila es M(4000) y junta los
+        /// motivos de hasta ocho reglas, y después se le agrega el motivo de una anulación o devolución: 8 × 450 deja ese margen.
+        /// Un texto más largo se corta ahí y termina en "…" (que cuenta dentro del máximo). Sin este tope, un valor larguísimo en
+        /// el Excel termina en una excepción de Dataverse al guardar: reintentos, revisión manual y el cliente sin respuesta.
+        /// </summary>
+        public const int LargoMaximo = 450;
+
         /// <summary>Largo máximo de un valor del cliente citado en un mensaje.</summary>
         public const int LargoMaximoDeCita = 40;
 
@@ -92,7 +100,12 @@ namespace Sanic.Mppp.Plugins.Validacion
             }
 
             // El motor SIEMPRE gana en '{regla}' (D-19), aunque el evaluador haya traído un marcador propio con ese nombre.
-            var marcadores = new Dictionary<string, string>(veredicto.Marcadores, StringComparer.Ordinal);
+            var marcadores = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var marcador in veredicto.Marcadores)
+            {
+                marcadores[marcador.Key] = marcador.Value;
+            }
+
             marcadores["regla"] = codigoDeRegla;
 
             string texto = null;

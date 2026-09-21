@@ -221,6 +221,16 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         }
 
         [Fact]
+        public void Sueltas_y_con_un_solo_excel_estructura_y_filas_miran_la_lectura_de_verdad()
+        {
+            // Revisión de código, 2026-09-21: los casos sueltos con exactamente un Excel (el camino que SÍ abre la plantilla).
+            Assert.True(Evaluador(ReglasDelSobre.EstructuraPlantilla).Evaluar(new SobreEnValidacion(1, 1, () => Valida(0))).Cumple);
+            Assert.False(Evaluador(ReglasDelSobre.EstructuraPlantilla).Evaluar(new SobreEnValidacion(1, 1, () => ResultadoLecturaPlantilla.ConError("Falta la hoja."))).Cumple);
+            Assert.False(Evaluador(ReglasDelSobre.TieneFilas).Evaluar(new SobreEnValidacion(1, 1, () => Valida(0))).Cumple);
+            Assert.True(Evaluador(ReglasDelSobre.TieneFilas).Evaluar(new SobreEnValidacion(2, 1, () => Valida(3))).Cumple);
+        }
+
+        [Fact]
         public void Un_sobre_nulo_es_un_error_de_programacion()
         {
             Assert.All(ReglasDelSobre.Evaluadores(), e => Assert.Throws<ArgumentNullException>(() => e.Evaluar(null)));
