@@ -1,0 +1,93 @@
+{
+ "inventario": "3.5",
+ "diccionario": "§2.5",
+ "componente": {
+  "tipo": "tabla",
+  "nombre": "sanic_mppp_tbl_parametro",
+  "displayname": "Parámetro",
+  "displayname_plural": "Parámetros",
+  "descripcion": "Parámetro de configuración de la solución, versionado. Rige la versión activa más alta de cada código; la vigente nunca se edita.",
+  "propiedad": "usuario",
+  "notas": false,
+  "actividades": false,
+  "auditoria": true,
+  "primaria": {
+   "nombre": "sanic_nombre",
+   "displayname": "Código",
+   "descripcion": "Código del parámetro, en minúscula y separado por puntos. Con la versión forma la clave alternativa.",
+   "largo": 100,
+   "requerida": true,
+   "autonumerico": ""
+  },
+  "columnas": [
+   {
+    "nombre": "sanic_version",
+    "displayname": "Versión",
+    "descripcion": "Versión del parámetro. Rige la versión activa más alta.",
+    "tipo": "entero",
+    "requerida": true,
+    "protegida": false,
+    "auditoria": true,
+    "minimo": 1,
+    "maximo": 2147483647
+   },
+   {
+    "nombre": "sanic_tipo",
+    "displayname": "Tipo",
+    "descripcion": "Cómo se interpreta el valor: texto, número o JSON.",
+    "tipo": "choice",
+    "requerida": true,
+    "protegida": false,
+    "auditoria": true,
+    "choice": "sanic_mppp_ch_tipoparametro"
+   },
+   {
+    "nombre": "sanic_valor",
+    "displayname": "Valor",
+    "descripcion": "Valor del parámetro.",
+    "tipo": "memo",
+    "requerida": true,
+    "protegida": false,
+    "auditoria": true,
+    "largo": 100000
+   },
+   {
+    "nombre": "sanic_descripcion",
+    "displayname": "Descripción",
+    "descripcion": "Para qué sirve el parámetro y qué formato tiene su valor.",
+    "tipo": "memo",
+    "requerida": false,
+    "protegida": false,
+    "auditoria": true,
+    "largo": 2000
+   }
+  ]
+ },
+ "decisiones": [
+  [
+   "Nombre visible de la primaria",
+   "`Código`",
+   "La primaria **es** el código (BP-PP-192)"
+  ],
+  [
+   "Nombres visibles de las columnas",
+   "`Versión`, `Tipo`, `Valor`, `Descripción`",
+   "Texto de negocio (`02` DD-19)"
+  ],
+  [
+   "Rango de las columnas enteras",
+   "`sanic_version`: 1 a 2147483647",
+   "El diccionario dice `E` sin rango; se fija uno amplio y sin negativos. Se puede ampliar después"
+  ],
+  [
+   "Auditoría nativa, notas y actividades",
+   "activada · no · no",
+   "`02` DD-18: es un catálogo"
+  ]
+ ],
+ "fuera_de_alcance": [
+  "La clave alternativa `sanic_mppp_key_parametro_nombre_version`: inventario 5.6.",
+  "Los parámetros iniciales: datos semilla, inventario 9.1.",
+  "Vistas, formulario y seguridad de la tabla: inventario 12 y 6."
+ ]
+}

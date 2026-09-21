@@ -1,0 +1,109 @@
+{
+ "inventario": "3.6",
+ "diccionario": "§2.6",
+ "componente": {
+  "tipo": "tabla",
+  "nombre": "sanic_mppp_tbl_regla",
+  "displayname": "Regla",
+  "displayname_plural": "Reglas",
+  "descripcion": "Regla de validación del catálogo, con su nivel, su orden, las reglas de las que depende y su efecto. El código C# tiene un evaluador por código de regla.",
+  "propiedad": "usuario",
+  "notas": false,
+  "actividades": false,
+  "auditoria": true,
+  "primaria": {
+   "nombre": "sanic_nombre",
+   "displayname": "Nombre",
+   "descripcion": "Nombre de la regla, para las personas.",
+   "largo": 200,
+   "requerida": true,
+   "autonumerico": ""
+  },
+  "columnas": [
+   {
+    "nombre": "sanic_codigo",
+    "displayname": "Código",
+    "descripcion": "Código de la regla; identifica a su evaluador en el código. Es clave alternativa.",
+    "tipo": "texto",
+    "requerida": true,
+    "protegida": false,
+    "auditoria": true,
+    "largo": 50
+   },
+   {
+    "nombre": "sanic_nivel",
+    "displayname": "Nivel",
+    "descripcion": "A qué se aplica: al correo, a la solicitud o a cada registro.",
+    "tipo": "choice",
+    "requerida": true,
+    "protegida": false,
+    "auditoria": true,
+    "choice": "sanic_mppp_ch_nivelregla"
+   },
+   {
+    "nombre": "sanic_orden",
+    "displayname": "Orden",
+    "descripcion": "Orden de evaluación dentro de su nivel.",
+    "tipo": "entero",
+    "requerida": true,
+    "protegida": false,
+    "auditoria": true,
+    "minimo": 0,
+    "maximo": 100000
+   },
+   {
+    "nombre": "sanic_dependede",
+    "displayname": "Depende de",
+    "descripcion": "Códigos de las reglas de las que depende, separados por coma. Si alguna no resultó cumplida, esta regla se omite.",
+    "tipo": "texto",
+    "requerida": false,
+    "protegida": false,
+    "auditoria": true,
+    "largo": 500
+   },
+   {
+    "nombre": "sanic_efecto",
+    "displayname": "Efecto",
+    "descripcion": "Qué pasa cuando la regla falla. Envía a revisión solo vale en el nivel Solicitud.",
+    "tipo": "choice",
+    "requerida": true,
+    "protegida": false,
+    "auditoria": true,
+    "choice": "sanic_mppp_ch_efectoregla"
+   },
+   {
+    "nombre": "sanic_mensajecliente",
+    "displayname": "Mensaje para el cliente",
+    "descripcion": "Texto que recibe el cliente cuando la regla falla.",
+    "tipo": "memo",
+    "requerida": false,
+    "protegida": false,
+    "auditoria": true,
+    "largo": 2000
+   }
+  ]
+ },
+ "decisiones": [
+  [
+   "Nombres visibles de las columnas",
+   "`Nombre`, `Código`, `Nivel`, `Orden`, `Depende de`, `Efecto`, `Mensaje para el cliente`",
+   "Texto de negocio (`02` DD-19)"
+  ],
+  [
+   "Rango de las columnas enteras",
+   "`sanic_orden`: 0 a 100000",
+   "El diccionario dice `E` sin rango; se fija uno amplio y sin negativos. Se puede ampliar después"
+  ],
+  [
+   "Auditoría nativa, notas y actividades",
+   "activada · no · no",
+   "`02` DD-18: es un catálogo"
+  ]
+ ],
+ "fuera_de_alcance": [
+  "La clave alternativa `sanic_mppp_key_regla_codigo`: inventario 5.7.",
+  "La validación de `sanic_dependede` (los códigos existen, mismo nivel, orden menor, sin ciclos): plugin, inventario 7.10.",
+  "Las reglas iniciales: datos semilla, inventario 9.2 y 9.3.",
+  "Vistas, formulario y seguridad de la tabla: inventario 12 y 6."
+ ]
+}

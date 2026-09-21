@@ -606,7 +606,7 @@
               <Type>nvarchar</Type>
               <Name>sanic_nombre</Name>
               <LogicalName>sanic_nombre</LogicalName>
-              <RequiredLevel>none</RequiredLevel>
+              <RequiredLevel>required</RequiredLevel>
               <DisplayMask>PrimaryName|ValidForAdvancedFind|ValidForForm|ValidForGrid|RequiredForForm</DisplayMask>
               <ImeMode>auto</ImeMode>
               <ValidForUpdateApi>1</ValidForUpdateApi>
