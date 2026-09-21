@@ -65,13 +65,13 @@ Las de la receta (`patrones.md` §2.4), con estos valores esperados:
 | 2 | El `lcid` es el idioma base y está provisionado | `1033` en los dos |
 | 3 | La tabla existe | `sanic_mppp_tbl_autorizacionplan` (construida) |
 | 4 | Cada columna de la clave existe, es de un tipo que admite clave y no tiene seguridad de columna | `sanic_autorizadoid` · `sanic_planid` |
-| 5 | La clave no pasa de 900 bytes (un texto ocupa 2 por carácter) | la herramienta lo calcula con los largos reales del entorno |
+| 5 | La clave no pasa de 900 bytes (un texto ocupa 2 por carácter) | la herramienta lo calcula con los largos reales del entorno; la plataforma no lo comprueba al crear |
 
 Si alguna falla: estado `bloqueado`, no se crea nada.
 
 ## 4. Cómo se construye
 
-Receta: `power-platform-construir`, `references/modelo-datos/patrones.md` §2.4 "Clave alternativa". Herramienta del proyecto: `herramientas/construir/clave.py`. El índice de la clave se arma en segundo plano: la herramienta espera hasta verlo `Active`.
+Receta: `power-platform-construir`, `references/modelo-datos/patrones.md` §2.4 "Clave alternativa". Herramienta del proyecto: `herramientas/construir/clave.py`. El índice de la clave se arma en segundo plano y tarda unos dos minutos aun con la tabla vacía: la herramienta espera hasta verlo `Active`.
 
 ```
 python3 herramientas/construir/clave.py playbooks/clave/sanic_mppp_key_autorizacionplan_autorizado_plan.md
@@ -90,7 +90,7 @@ python3 herramientas/construir/tabla.py playbooks/tabla/sanic_mppp_tbl_autorizac
 | 1 | `GET EntityDefinitions(LogicalName='sanic_mppp_tbl_autorizacionplan')/Keys(LogicalName='sanic_mppp_key_autorizacionplan_autorizado_plan')` | 200 · `IsManaged = false` · nombre visible «KEY - MPPP - Autorización - Autorizado y plan» en 1033, sin etiquetas en otro idioma |
 | 2 | Columnas de la clave (`KeyAttributes`, sin importar el orden) | `sanic_autorizadoid` · `sanic_planid` |
 | 3 | Índice (`EntityKeyIndexStatus`) | `Active` |
-| 4 | Pertenencia a la solución | la clave figura una vez en la solución de la sección 1 (`solutioncomponents`, tipo 14) |
+| 4 | Pertenencia a la solución | la de la tabla: `sanic_mppp_tbl_autorizacionplan` está una vez en la solución de la sección 1, con todos sus subcomponentes (una clave no es un componente propio) |
 | 5 | Segunda ejecución sin `--solo-verificar` | estado `ya_existia`, código de salida 0 |
 | 6 | La tabla sigue coincidiendo con su propio playbook | `ya_existia`: una clave no la hace diferir |
 | 7 | Comprobación independiente contra el XML exportado (`muestra_clave.py`) | `OK`, y la muestra queda en `playbooks/clave/muestras/` |

@@ -478,8 +478,8 @@ def _comparar_familia(c, f, i, consulta, lcid, difs):
 
 # ---------------------------------------------------------------------------
 def ajustar_primaria(dv, datos, identidad):
-    """Reenvía la definición completa de la columna primaria con el largo y el
-    nivel de requerida del playbook, y publica la tabla. Devuelve `None` si
+    """Reenvía la definición completa de la columna primaria con el largo, el
+    nivel de requerida y la auditoría del playbook, y publica la tabla. Devuelve `None` si
     salió bien, o el texto del problema. PUT reemplaza la definición entera:
     por eso se parte de la que devuelve el entorno y se cambian solo esas dos
     propiedades. El GET con cast no trae '@odata.type' y el PUT lo exige."""
@@ -498,6 +498,9 @@ def ajustar_primaria(dv, datos, identidad):
         # Volver autonumérica una primaria de texto que ya existe es el mismo PUT (ensayado el 2026-09-20).
         definicion["AutoNumberFormat"] = p["autonumerico"]
     definicion["RequiredLevel"] = {**nivel, "Value": "ApplicationRequired" if p["requerida"] else "None"}
+    # La primaria hereda la auditoría de la tabla, y la plataforma también la ignora al crear: la deja auditada.
+    aud = exigir_forma(actual.get("IsAuditEnabled"), dict, consulta, "IsAuditEnabled")
+    definicion["IsAuditEnabled"] = {**aud, "Value": datos["auditoria"]}
     est, cuerpo, _ = escribir_metadatos(dv, "PUT", ruta, definicion, solucion=identidad["solucion"], cabeceras={"MSCRM.MergeLabels": "true"})
     if est != 204:
         return f"falló ajustar la columna primaria {p['nombre']}: HTTP {est} {cuerpo}"
@@ -510,12 +513,12 @@ def ajustar_primaria(dv, datos, identidad):
 
 def _solo_difiere_la_primaria(datos, diffs):
     """Lo único que `--corregir-primaria` acepta reparar, y solo en la primaria:
-    largo, requerida, nombre visible, descripción y,
+    largo, requerida, auditoría, nombre visible, descripción y,
     si el playbook la quiere autonumérica, darle su formato. Quitarle el
     formato a una columna que ya es autonumérica NO: eso no lo pide ningún
     playbook y cambiaría cómo se numeran los registros."""
     n = datos["primaria"]["nombre"]
-    admitidas = [f"{n}.MaxLength:", f"{n}.RequiredLevel:", f"{n}.DisplayName:", f"{n}.Description:"]
+    admitidas = [f"{n}.MaxLength:", f"{n}.RequiredLevel:", f"{n}.DisplayName:", f"{n}.Description:", f"{n}.IsAuditEnabled:"]
     if datos["primaria"]["autonumerico"]:
         admitidas.append(f"{n}.AutoNumberFormat:")
     return bool(diffs) and all(d.startswith(tuple(admitidas)) for d in diffs)

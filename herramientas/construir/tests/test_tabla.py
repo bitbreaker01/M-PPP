@@ -173,10 +173,11 @@ def armar(cliente, datos, existe=True, genericas=None, por_tipo=None, tabla=None
     cliente.responder("POST", "EntityDefinitions", al_crear)
     cliente.responder("POST", f"EntityDefinitions(LogicalName='{datos['nombre']}')/Attributes", (204, None, {}))
     ruta_prim = f"EntityDefinitions(LogicalName='{datos['nombre']}')/Attributes(LogicalName='{datos['primaria']['nombre']}')"
-    # La plataforma crea la primaria con SUS valores (850, opcional) y devuelve el cast sin '@odata.type'.
+    # La plataforma crea la primaria con SUS valores (850, opcional, auditada) y devuelve el cast sin '@odata.type'.
     cliente.responder("GET", ruta_prim + "/Microsoft.Dynamics.CRM.StringAttributeMetadata",
                       (200, {"LogicalName": datos["primaria"]["nombre"], "SchemaName": datos["primaria"]["nombre"], "MaxLength": 850,
-                             "RequiredLevel": rl("None"), "FormatName": {"Value": "Text"}, "DisplayName": label(datos["primaria"]["displayname"])}, {}))
+                             "RequiredLevel": rl("None"), "FormatName": {"Value": "Text"}, "IsAuditEnabled": aud(True),
+                             "DisplayName": label(datos["primaria"]["displayname"])}, {}))
     cliente.responder("PUT", ruta_prim, (204, None, {}))
     cliente.responder("POST", "PublishXml", (204, None, {}))
     return cliente
@@ -399,6 +400,9 @@ class Caminos(Base):
         self.assertEqual(c["@odata.type"], "Microsoft.Dynamics.CRM.StringAttributeMetadata")
         self.assertEqual(c["MaxLength"], 200)
         self.assertEqual(c["RequiredLevel"]["Value"], "ApplicationRequired")
+        # Visto el 2026-09-20: la plataforma también ignora IsAuditEnabled=false de la primaria y la deja auditada.
+        self.assertEqual(c["IsAuditEnabled"], aud(COMPLETO["auditoria"]))
+        self.assertFalse(COMPLETO["auditoria"])
         self.assertEqual(c["DisplayName"]["LocalizedLabels"][0]["Label"], "Nombre")
         self.assertEqual(c["FormatName"], {"Value": "Text"})  # el resto de la definición se conserva
         self.assertEqual(puts[0]["cabeceras"], {"MSCRM.MergeLabels": "true"})
@@ -443,6 +447,20 @@ class Caminos(Base):
         estado, _, detalle = self.con_cliente(cliente, COMPLETO, corregir_primaria=True)
         self.assertEqual(estado, "difiere", detalle)
         self.assertFalse(cliente.hubo_escritura())
+
+    def test_corregir_primaria_tambien_le_quita_la_auditoria_que_puso_la_plataforma(self):
+        """Visto el 2026-09-20: la plataforma deja auditada la primaria de una tabla sin auditoría."""
+        gen = [dict(fila_generica(COMPLETO["primaria"], True), IsAuditEnabled=aud(True))] + [fila_generica(c) for c in COMPLETO["columnas"]] + SISTEMA
+        cliente = armar(ClienteSimulado(), COMPLETO, genericas=gen)
+        estado, _, detalle = self.con_cliente(cliente, COMPLETO)
+        self.assertEqual(estado, "difiere", detalle)
+        self.assertIn("sanic_nombre.IsAuditEnabled", detalle)
+        self.assertFalse(cliente.hubo_escritura())
+        cliente = armar(ClienteSimulado(), COMPLETO, genericas=gen)
+        self.con_cliente(cliente, COMPLETO, corregir_primaria=True)
+        puts = [l for l in cliente.llamadas if l["metodo"] == "PUT"]
+        self.assertEqual(len(puts), 1)
+        self.assertEqual(puts[0]["cuerpo"]["IsAuditEnabled"], aud(False))
 
     def test_publicar_vuelve_a_publicar_una_tabla_que_coincide_y_nada_mas(self):
         cliente = armar(ClienteSimulado(), COMPLETO)

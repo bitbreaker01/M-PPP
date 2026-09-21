@@ -1,7 +1,7 @@
 {
  "proyecto": "MPPP · fase 1",
  "criterio_hecho": "ciclo cerrado: construido, verificado en Dev y muestra exportada; si el ciclo enseñó algo nuevo, además el reporte aprobado por el aprobador",
- "en_curso": "P-04 Relaciones — herramienta escrita; en ensayo contra la plataforma con tablas descartables",
+ "en_curso": "P-05 Claves alternativas — herramienta, verificador de XML y los 10 playbooks listos y ensayados con tablas descartables; falta la orden de construir",
  "grupos": {
   "P-01": "Solución",
   "P-02": "Choices globales",
@@ -214,77 +214,77 @@
    "grupo": "P-04",
    "nombre": "cliente → plan",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "4.2",
    "grupo": "P-04",
    "nombre": "cliente → autorizado",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "4.3",
    "grupo": "P-04",
    "nombre": "autorizado → autorizacionplan",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "4.4",
    "grupo": "P-04",
    "nombre": "plan → autorizacionplan",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "4.5",
    "grupo": "P-04",
    "nombre": "solicitud → fila",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "4.6",
    "grupo": "P-04",
    "nombre": "solicitud → resultadoregla",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "4.7",
    "grupo": "P-04",
    "nombre": "solicitud → bitacora",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "4.8",
    "grupo": "P-04",
    "nombre": "plan → fila",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "4.9",
    "grupo": "P-04",
    "nombre": "regla → resultadoregla",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "4.10",
    "grupo": "P-04",
    "nombre": "systemuser → fila",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "4.11",
    "grupo": "P-04",
    "nombre": "systemuser → fila",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "5.1",

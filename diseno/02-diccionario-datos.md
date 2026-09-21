@@ -228,6 +228,7 @@ Sin lookups a la unidad histórica. **Clave** = `sanic_corridaid` T(60). Se deta
 |---|---|---|
 | solicitud → fila / resultadoregla / bitacora | 1:N **parental** | En cascada (lo usa solo el job nativo de purga, D-35) |
 | cliente → plan, cliente → autorizado, autorizado → autorizacionplan, plan → autorizacionplan, plan → fila, regla → resultadoregla | 1:N referencial | **Restringido**: un catálogo en uso no se borra, se desactiva |
+| systemuser → fila, dos veces: `sanic_digitadapor` y `sanic_aprobadapor` (inventario 4.10 y 4.11; el nombre de cada relación lleva el lookup como sufijo, D-6) | 1:N referencial | **Restringido**: un usuario que digitó o aprobó no se borra, se deshabilita |
 
 ## 6. Pendiente de confirmar con el negocio
 

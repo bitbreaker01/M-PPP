@@ -1,0 +1,52 @@
+<EntityKeys>
+            <EntityKey>
+              <Name>sanic_mppp_key_zzclave_codigo</Name>
+              <LogicalName>sanic_mppp_key_zzclave_codigo</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_codigo</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - ZZ Clave - codigo" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+            <EntityKey>
+              <Name>sanic_mppp_key_zzclave_padre_numero</Name>
+              <LogicalName>sanic_mppp_key_zzclave_padre_numero</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_numero</AttributeName>
+                <AttributeName>sanic_zzpadreid</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - ZZ Clave - padre_numero" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+            <EntityKey>
+              <Name>sanic_mppp_key_zzclave_zzcn</Name>
+              <LogicalName>sanic_mppp_key_zzclave_zzcn</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_codigo</AttributeName>
+                <AttributeName>sanic_numero</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - ZZ - zzcn" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+            <EntityKey>
+              <Name>sanic_mppp_key_zzclave_zzl</Name>
+              <LogicalName>sanic_mppp_key_zzclave_zzl</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_largo</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - ZZ - zzl" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+          </EntityKeys>

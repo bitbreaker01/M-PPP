@@ -48,7 +48,8 @@ TIPO = "clave"
 LARGO_MAXIMO_IDENTIFICADOR = 95
 MAXIMO_COLUMNAS = 16  # Learn, "Define alternate keys"
 MAXIMO_BYTES = 900
-COMPONENTE_CLAVE = 14  # solutioncomponents.componenttype de EntityKey
+COMPONENTE_TABLA = 1  # la clave viaja dentro de su tabla: no tiene fila propia en solutioncomponents (ensayo del 2026-09-21)
+INCLUYE_SUBCOMPONENTES = 0  # rootcomponentbehavior de una tabla agregada con todo lo suyo
 ESPERA_INDICE_SEGUNDOS = 10
 INTENTOS_INDICE = 30
 ESTADOS_EN_CURSO = ("Pending", "InProgress")
@@ -123,11 +124,13 @@ def construir_payload(datos, identidad):
 def comprobar_tabla_y_columnas(dv, datos):
     """Precondiciones: la tabla existe; cada columna existe, es de un tipo que
     admite clave, no lleva seguridad de columna, y entre todas no pasan de 900
-    bytes."""
+    bytes. Devuelve el MetadataId de la tabla, que usa la verificación."""
     tabla = datos["tabla"]
     ct = f"la consulta de la tabla '{tabla}' (GET EntityDefinitions)"
-    if leer_entorno(dv, f"EntityDefinitions(LogicalName='{tabla}')?$select=LogicalName", ct, admite_404=True) is None:
+    t = leer_entorno(dv, f"EntityDefinitions(LogicalName='{tabla}')?$select=LogicalName", ct, admite_404=True)
+    if t is None:
         raise Bloqueado(f"la tabla '{tabla}' no existe en el entorno: se construye antes que sus claves")
+    id_tabla = exigir_forma(t.get("MetadataId"), str, ct, "MetadataId", no_vacio=True)
 
     ca = f"la consulta de las columnas de '{tabla}' (GET Attributes)"
     cuerpo = leer_entorno(dv, f"EntityDefinitions(LogicalName='{tabla}')/Attributes?$select=LogicalName,AttributeTypeName,IsSecured", ca)
@@ -158,10 +161,12 @@ def comprobar_tabla_y_columnas(dv, datos):
             raise ErrorEntorno(f"{cl} no trajo el largo de {sin_largo}")
     total = sum(2 * largos[c] if tipos[c] == "StringType" else BYTES_POR_TIPO[tipos[c]] for c in datos["columnas"])
     if total > MAXIMO_BYTES:
-        raise Bloqueado(f"la clave ocuparía unos {total} bytes y el máximo es {MAXIMO_BYTES} (un texto ocupa 2 bytes por carácter): hay que achicar una columna o sacarla de la clave")
+        raise Bloqueado(f"la clave ocuparía unos {total} bytes y el máximo es {MAXIMO_BYTES} (un texto ocupa 2 bytes por carácter): hay que achicar una columna o sacarla de la clave. "
+                        "Es el límite documentado; la plataforma NO lo comprueba al crear la clave (ensayo del 2026-09-21), por eso lo comprueba esta herramienta")
+    return id_tabla
 
 
-def _verificar(dv, datos, identidad, solution_id):
+def _verificar(dv, datos, identidad, solution_id, id_tabla):
     """La única función de verificación, para los tres caminos."""
     difs = []
     ck = f"la consulta de la clave (GET EntityDefinitions/Keys '{datos['nombre']}')"
@@ -179,9 +184,14 @@ def _verificar(dv, datos, identidad, solution_id):
     comparar_etiqueta(k.get("DisplayName"), identidad["lcid"], "DisplayName", datos["displayname"], difs, ck, "DisplayName")
 
     cs = "la consulta de pertenencia a la solución (GET solutioncomponents)"
-    sc = leer_entorno(dv, f"solutioncomponents?$select=solutioncomponentid&$filter=_solutionid_value eq {solution_id} and objectid eq {metadata_id} and componenttype eq {COMPONENTE_CLAVE}", cs)
-    if len(exigir_forma(sc.get("value"), [dict], cs, "value")) != 1:
-        difs.append(f"pertenencia a la solución: la clave no figura en '{identidad['solucion']}' (solutioncomponents, tipo {COMPONENTE_CLAVE})")
+    sc = leer_entorno(dv, f"solutioncomponents?$select=rootcomponentbehavior&$filter=_solutionid_value eq {solution_id} and objectid eq {id_tabla} and componenttype eq {COMPONENTE_TABLA}", cs)
+    filas = exigir_forma(sc.get("value"), [dict], cs, "value")
+    if len(filas) != 1:
+        difs.append(f"pertenencia a la solución: la tabla '{datos['tabla']}' tiene {len(filas)} filas en solutioncomponents, se esperaba 1 (la clave viaja dentro de ella)")
+    else:
+        alcance = exigir_forma(filas[0].get("rootcomponentbehavior"), int, cs, "value[0].rootcomponentbehavior")
+        if alcance != INCLUYE_SUBCOMPONENTES:
+            difs.append(f"la tabla '{datos['tabla']}' está en la solución pero no incluye todos sus subcomponentes (rootcomponentbehavior={alcance}): la clave no viajaría con ella")
     return {"existe": True, "diffs": difs, "metadata_id": metadata_id, "indice": indice}
 
 
@@ -199,8 +209,8 @@ def _problema_de_indice(datos, indice):
 def _contra_entorno(dv, datos, identidad, solo_verificar, componente, dormir):
     solucion = identidad["solucion"]
     solution_id = comprobar_solucion_e_idioma(dv, identidad)
-    comprobar_tabla_y_columnas(dv, datos)
-    actual = _verificar(dv, datos, identidad, solution_id)
+    id_tabla = comprobar_tabla_y_columnas(dv, datos)
+    actual = _verificar(dv, datos, identidad, solution_id, id_tabla)
 
     if solo_verificar and not actual["existe"]:
         return "error", componente, "la clave no existe en el entorno; --solo-verificar no crea nada, correr la herramienta sin ese flag primero"
@@ -216,13 +226,13 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente, dormir):
     if est != 204:
         return "error", componente, f"la creación falló: HTTP {est} {cuerpo}"
 
-    final = _verificar(dv, datos, identidad, solution_id)
+    final = _verificar(dv, datos, identidad, solution_id, id_tabla)
     esperas = 0
     while final["existe"] and final["indice"] in ESTADOS_EN_CURSO and esperas < INTENTOS_INDICE:
         print(f"El índice de la clave está {final['indice']}; espero {ESPERA_INDICE_SEGUNDOS} s ({esperas + 1}/{INTENTOS_INDICE}).", flush=True)
         dormir(ESPERA_INDICE_SEGUNDOS)
         esperas += 1
-        final = _verificar(dv, datos, identidad, solution_id)
+        final = _verificar(dv, datos, identidad, solution_id, id_tabla)
     if not final["existe"]:
         return "error", componente, "se creó (204) pero no aparece al releer del entorno"
     if final["diffs"]:

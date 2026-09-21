@@ -15,6 +15,7 @@ from cliente_simulado import ClienteSimulado, FabricaCentinela  # noqa: E402
 from fixtures import IDENTIDAD_VALIDA, armar_cliente_precondiciones_ok, es_ruta_solutioncomponents, es_ruta_solutions, label, playbook_md  # noqa: E402
 
 BORRAR = object()
+ID_TABLA = "99999999-9999-9999-9999-999999999999"
 IDENT = dict(IDENTIDAD_VALIDA, tipo_playbook="clave", inventario="5.4")
 TABLA, CLAVE, META = "sanic_mppp_tbl_autorizado", "sanic_mppp_key_autorizado_cliente_nombre", "77777777-7777-7777-7777-777777777777"
 BASE = {"tipo": "clave", "nombre": CLAVE, "displayname": "KEY - MPPP - Autorizado - Cliente y correo", "tabla": TABLA,
@@ -52,7 +53,7 @@ def armar(cliente, d, existe=True, clave=None, estados=None, componentes=None, c
     EntityKeyIndexStatus que devuelve el entorno en lecturas sucesivas."""
     armar_cliente_precondiciones_ok(cliente, IDENT)
     st = {"existe": existe, "estados": list(estados or ["Active"])}
-    cliente.responder("GET", lambda r: r.startswith(f"EntityDefinitions(LogicalName='{d['tabla']}')?"), (200, {"LogicalName": d["tabla"], "MetadataId": "t-1"}, {}))
+    cliente.responder("GET", lambda r: r.startswith(f"EntityDefinitions(LogicalName='{d['tabla']}')?"), (200, {"LogicalName": d["tabla"], "MetadataId": ID_TABLA}, {}))
     cliente.responder("GET", lambda r: "/Attributes/Microsoft.Dynamics.CRM.StringAttributeMetadata" in r, (200, {"value": LARGOS}, {}))
     cliente.responder("GET", lambda r: "/Attributes?" in r, (200, {"value": columnas if columnas is not None else COLUMNAS}, {}))
 
@@ -65,7 +66,7 @@ def armar(cliente, d, existe=True, clave=None, estados=None, componentes=None, c
         return (200, cuerpo_clave(d, e), {})
 
     cliente.responder("GET", lambda r: "/Keys(LogicalName=" in r, leer)
-    cliente.responder("GET", es_ruta_solutioncomponents, (200, {"value": componentes if componentes is not None else [{"solutioncomponentid": "x"}]}, {}))
+    cliente.responder("GET", es_ruta_solutioncomponents, (200, {"value": componentes if componentes is not None else [{"rootcomponentbehavior": 0}]}, {}))
 
     def al_crear(*_):
         st["existe"] = True
@@ -216,6 +217,18 @@ class Caminos(Base):
         self.assertIn("HTTP 400", detalle)
 
 
+class Pertenencia(Base):
+    def test_se_comprueba_la_de_la_tabla_porque_una_clave_no_es_un_componente_propio(self):
+        """Visto el 2026-09-21 en el ensayo: una clave recién creada no tiene fila en
+        solutioncomponents (ni tipo 14 ni ningún otro); viaja dentro de su tabla."""
+        cliente = armar(ClienteSimulado(), BASE)
+        self.con_cliente(cliente, BASE)
+        rutas = [l["ruta"] for l in cliente.llamadas if es_ruta_solutioncomponents(l["ruta"])]
+        self.assertEqual(len(rutas), 1)
+        self.assertIn(f"objectid eq {ID_TABLA}", rutas[0])
+        self.assertIn("componenttype eq 1", rutas[0])
+
+
 class Diferencias(Base):
     def test_el_orden_de_las_columnas_no_es_una_diferencia(self):
         """La plataforma devuelve KeyAttributes en su propio orden (alfabético)."""
@@ -228,7 +241,8 @@ class Diferencias(Base):
         casos = [("KeyAttributes", dict(clave=con_cambio(c, ["KeyAttributes"], ["sanic_nombre"]))),
                  ("IsManaged", dict(clave=con_cambio(c, ["IsManaged"], True))),
                  ("DisplayName", dict(clave=con_cambio(c, ["DisplayName"], label("Otro")))),
-                 ("pertenencia a la solución", dict(componentes=[]))]
+                 ("pertenencia a la solución", dict(componentes=[])),
+                 ("no incluye todos sus subcomponentes", dict(componentes=[{"rootcomponentbehavior": 1}]))]
         for esperado, kw in casos:
             with self.subTest(esperado + str(kw)[:40]):
                 cliente = armar(ClienteSimulado(), BASE, **kw)
@@ -260,6 +274,7 @@ class FormaYHttpInesperados(Base):
                  ("KeyAttributes[0]", dict(clave=con_cambio(c, ["KeyAttributes"], [None, "sanic_nombre"]))),
                  ("EntityKeyIndexStatus", dict(clave=con_cambio(c, ["EntityKeyIndexStatus"], 2))), ("IsManaged", dict(clave=con_cambio(c, ["IsManaged"], "false"))),
                  ("DisplayName", dict(clave=con_cambio(c, ["DisplayName"], None))),
+                 ("value[0].rootcomponentbehavior", dict(componentes=[{"rootcomponentbehavior": "0"}])),
                  ("value[1].IsSecured", dict(columnas=con_cambio(COLUMNAS, [1, "IsSecured"], None))),
                  ("value[0].AttributeTypeName.Value", dict(columnas=con_cambio(COLUMNAS, [0, "AttributeTypeName", "Value"], 5)))]
         for campo, kw in casos:
