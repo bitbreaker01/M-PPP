@@ -23,7 +23,7 @@ _RAIZ = os.path.dirname(os.path.dirname(_AQUI))
 sys.path.insert(0, _AQUI)
 sys.path.insert(0, os.path.dirname(_AQUI))
 
-from _comun import dividir_secciones, leer_texto, obtener_componente, obtener_identidad  # noqa: E402
+from _comun import dividir_secciones, escribir_metadatos, leer_texto, obtener_componente, obtener_identidad  # noqa: E402
 
 TIPO = "choice-global"
 COMPONENTE_CHOICE = "9"  # tipo de componente de un choice global en solution.xml
@@ -96,7 +96,7 @@ def main():
         return 1
     solucion = soluciones.pop()
 
-    est, cuerpo, _ = Dataverse().call("POST", "ExportSolution", {"SolutionName": solucion, "Managed": False}, timeout=600)
+    est, cuerpo, _ = escribir_metadatos(Dataverse(), "POST", "ExportSolution", {"SolutionName": solucion, "Managed": False}, timeout=600)
     if est != 200 or not isinstance(cuerpo, dict) or not isinstance(cuerpo.get("ExportSolutionFile"), str):
         print(f"ExportSolution devolvió HTTP {est} o una forma inesperada")
         return 1

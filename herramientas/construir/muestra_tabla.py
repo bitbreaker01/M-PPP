@@ -24,7 +24,7 @@ _RAIZ = os.path.dirname(os.path.dirname(_AQUI))
 sys.path.insert(0, _AQUI)
 sys.path.insert(0, os.path.dirname(_AQUI))
 
-from _comun import dividir_secciones, leer_texto, obtener_componente, obtener_identidad  # noqa: E402
+from _comun import dividir_secciones, escribir_metadatos, leer_texto, obtener_componente, obtener_identidad  # noqa: E402
 
 TIPO = "tabla"
 COMPONENTE_TABLA = "1"
@@ -131,7 +131,7 @@ def main():
         print(f"los playbooks nombran {len(soluciones)} soluciones: {sorted(soluciones)}; se compara de a una")
         return 1
     solucion = soluciones.pop()
-    est, cuerpo, _ = Dataverse().call("POST", "ExportSolution", {"SolutionName": solucion, "Managed": False}, timeout=900)
+    est, cuerpo, _ = escribir_metadatos(Dataverse(), "POST", "ExportSolution", {"SolutionName": solucion, "Managed": False}, timeout=900)
     if est != 200 or not isinstance(cuerpo, dict) or not isinstance(cuerpo.get("ExportSolutionFile"), str):
         print(f"ExportSolution devolvió HTTP {est} o una forma inesperada")
         return 1
