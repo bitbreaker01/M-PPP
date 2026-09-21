@@ -188,6 +188,16 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.False(string.IsNullOrWhiteSpace(ex.Message));
         }
 
+        [Theory]
+        [InlineData(@"{""nombre"":""numeroCuenta"",""columna"":""J""}", "numeroCuenta")] // sin encabezado
+        [InlineData(@"{""nombre"":""numeroCuenta"",""columna"":""J"",""encabezado"":""Cuenta"",""largoMaximo"":0}", "numeroCuenta")]
+        [InlineData(@"{""columna"":""J"",""encabezado"":""Cuenta"",""largoMinimo"":-1}", "J")] // sin nombre: lo ubica por su columna
+        public void El_motivo_de_una_estructura_mal_cargada_dice_en_que_campo_esta_el_problema(string campo, string donde)
+        {
+            var ex = Assert.Throws<FormatException>(() => ConfiguracionPlantilla.DesdeJson(Estructura(campo)));
+            Assert.Contains(donde, ex.Message);
+        }
+
         [Fact]
         public void Un_minimo_igual_al_maximo_es_un_largo_exacto_y_vale()
         {

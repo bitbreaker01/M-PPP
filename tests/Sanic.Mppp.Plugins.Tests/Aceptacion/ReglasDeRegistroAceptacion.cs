@@ -595,8 +595,9 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         {
             var planes = Planes();
             var autorizaciones = new Dictionary<Guid, bool> { [Plan42] = true };
+            var estructura = Estructura();
             var catalogos = new CatalogosDeValidacion(
-                Estructura(), ListasPlantilla.DesdeJson(ParametrosDePlantillaAceptacion.ListasValidas),
+                estructura, ListasPlantilla.DesdeJson(ParametrosDePlantillaAceptacion.ListasValidas),
                 ObligatoriedadPlantilla.DesdeJson(ParametrosDePlantillaAceptacion.ObligatoriedadInicial), planes, autorizaciones);
 
             planes.Clear();
@@ -609,6 +610,20 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.True(catalogos.AutorizacionSobre(Plan42));
             Assert.Null(catalogos.AutorizacionSobre(PlanA1));
             Assert.Equal("No. Cuenta", catalogos.Campo("numeroCuenta").EncabezadoEsperado);
+
+            // Revisión de código, 2026-09-21: "inmutable" de verdad, no de palabra. La estructura tiene setters públicos:
+            // ni cambiar la que se pasó, ni cambiar lo que devuelve Campo(), afloja la validación de las filas que faltan.
+            var cuenta = estructura.Campos.Single(c => c.Nombre == "numeroCuenta");
+            (cuenta.LargoMaximo, cuenta.Formato, cuenta.Columna, cuenta.EncabezadoEsperado) = (500, null, "C", "Otra cosa");
+            estructura.Campos.Clear();
+            var devuelto = catalogos.Campo("numeroCuenta");
+            (devuelto.LargoMaximo, devuelto.Formato, devuelto.Columna) = (500, null, "C");
+
+            var despues = catalogos.Campo("numeroCuenta");
+            Assert.Equal((16, FormatoDeCampo.Digitos, "K", "No. Cuenta"), (despues.LargoMaximo.Value, despues.Formato.Value, despues.Columna, despues.EncabezadoEsperado));
+            Assert.False(Suelta(ReglasDeRegistro.LargosYFormato, Fila(catalogos, ("numeroCuenta", new string('7', 17)))).Cumple);
+            Assert.False(Suelta(ReglasDeRegistro.LargosYFormato, Fila(catalogos, ("numeroCuenta", "12A"))).Cumple);
+            Assert.Equal("Inclusion", Fila(catalogos).Recibido("gestion"));
             Assert.Throws<ArgumentException>(() => catalogos.Campo("saldo"));
         }
 
