@@ -183,12 +183,12 @@ def armar(cliente, datos, existe=True, genericas=None, por_tipo=None, tabla=None
 
 
 class Base(unittest.TestCase):
-    def correr(self, fabrica, datos, solo_verificar=False, verificadas=TODO_VERIFICADO, permitir=False, corregir_primaria=False):
+    def correr(self, fabrica, datos, solo_verificar=False, verificadas=TODO_VERIFICADO, permitir=False, corregir_primaria=False, publicar=False):
         with tempfile.TemporaryDirectory() as d:
             ruta = os.path.join(d, "playbook.md")
             open(ruta, "w", encoding="utf-8").write(playbook_md(IDENT, datos))
             return tb.construir(ruta, solo_verificar, fabrica, verificadas=verificadas, permitir_no_verificadas=permitir,
-                                corregir_primaria=corregir_primaria)
+                                corregir_primaria=corregir_primaria, publicar=publicar)
 
     def con_cliente(self, cliente, datos, **kw):
         return self.correr(lambda: cliente, datos, **kw)
@@ -441,6 +441,20 @@ class Caminos(Base):
         cliente = armar(ClienteSimulado(), COMPLETO, por_tipo=otra, genericas=gen)
         estado, _, detalle = self.con_cliente(cliente, COMPLETO, corregir_primaria=True)
         self.assertEqual(estado, "difiere", detalle)
+        self.assertFalse(cliente.hubo_escritura())
+
+    def test_publicar_vuelve_a_publicar_una_tabla_que_coincide_y_nada_mas(self):
+        cliente = armar(ClienteSimulado(), COMPLETO)
+        estado, _, detalle = self.con_cliente(cliente, COMPLETO, publicar=True)
+        self.assertEqual(estado, "ya_existia", detalle)
+        self.assertIn("publicó", detalle)
+        escrituras = [(l["metodo"], l["ruta"]) for l in cliente.llamadas if l["metodo"] != "GET"]
+        self.assertEqual(escrituras, [("POST", "PublishXml")])
+        # si difiere, no publica ni toca nada
+        pt = con_cambio(filas_por_tipo(COMPLETO), ["Integer", 0, "MaxValue"], 5)
+        cliente = armar(ClienteSimulado(), COMPLETO, por_tipo=pt)
+        estado, _, _ = self.con_cliente(cliente, COMPLETO, publicar=True)
+        self.assertEqual(estado, "difiere")
         self.assertFalse(cliente.hubo_escritura())
 
     def test_ya_existia_no_escribe(self):

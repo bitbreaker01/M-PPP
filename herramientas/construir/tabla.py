@@ -506,7 +506,7 @@ def _solo_difiere_la_primaria(datos, diffs):
     return bool(diffs) and all(d.startswith((f"{n}.MaxLength:", f"{n}.RequiredLevel:")) for d in diffs)
 
 
-def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_primaria=False):
+def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_primaria=False, publicar=False):
     solucion = identidad["solucion"]
     solution_id = comprobar_solucion_e_idioma(dv, identidad)
     choices = comprobar_choices(dv, datos)
@@ -524,6 +524,13 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_p
                 "la tabla existía y su única diferencia era la columna primaria, que la plataforma había creado con sus valores "
                 f"por defecto; se corrigió (largo y requerida) y ahora coincide en todo; pertenece a '{solucion}'"
             )
+    if actual["existe"] and publicar and not solo_verificar and not actual["diffs"]:
+        # Publicar es inofensivo y se puede repetir: sirve cuando una corrida anterior ajustó la primaria y el publicar falló.
+        xml = f"<importexportxml><entities><entity>{datos['nombre']}</entity></entities></importexportxml>"
+        est, cuerpo, _ = escribir_metadatos(dv, "POST", "PublishXml", {"ParameterXml": xml})
+        if est != 204:
+            return "error", componente, f"la tabla coincide con el playbook pero falló publicarla: HTTP {est} {cuerpo}"
+        return "ya_existia", componente, f"coincide en todo lo que exige la receta y pertenece a '{solucion}'; se publicó de nuevo y no se modificó nada más"
     if actual["existe"]:
         if actual["diffs"]:
             return "difiere", componente, "; ".join(actual["diffs"])
@@ -544,7 +551,7 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_p
     if not datos["primaria"]["autonumerico"]:
         problema = ajustar_primaria(dv, datos, identidad)
         if problema:
-            return "error", componente, f"la tabla se creó pero quedó incompleta: {problema}. Volver a correr con --corregir-primaria"
+            return "error", componente, f"la tabla se creó pero quedó incompleta: {problema}. Volver a correr con --corregir-primaria; si la verificación ya coincide y solo faltó publicar, con --publicar"
     final = _verificar(dv, datos, identidad, solution_id)
     if not final["existe"]:
         return "error", componente, "se creó (204) pero no aparece al releer del entorno"
@@ -554,7 +561,7 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_p
 
 
 def construir(ruta_playbook, solo_verificar, fabrica_cliente, verificadas=VERIFICADAS_EN_PLATAFORMA, permitir_no_verificadas=False,
-              corregir_primaria=False):
+              corregir_primaria=False, publicar=False):
     """Nunca lanza: siempre devuelve `(estado, componente, detalle)`."""
     componente = os.path.basename(ruta_playbook)
     paso = "leer el playbook"
@@ -587,7 +594,7 @@ def construir(ruta_playbook, solo_verificar, fabrica_cliente, verificadas=VERIFI
 
     rastro = Rastro(dv)
     try:
-        return _contra_entorno(rastro, datos, identidad, solo_verificar, componente, corregir_primaria)
+        return _contra_entorno(rastro, datos, identidad, solo_verificar, componente, corregir_primaria, publicar)
     except Bloqueado as e:
         return "bloqueado", componente, str(e)
     except ErrorEntorno as e:
@@ -600,12 +607,12 @@ def main():
     argv = sys.argv[1:]
     rutas = [a for a in argv if not a.startswith("--")]
     if len(rutas) != 1:
-        return salida("error", "desconocido", "uso incorrecto: tabla.py <playbook.md> [--solo-verificar] [--permitir-no-verificadas] [--corregir-primaria]")
+        return salida("error", "desconocido", "uso incorrecto: tabla.py <playbook.md> [--solo-verificar] [--permitir-no-verificadas] [--corregir-primaria] [--publicar]")
     from dataverse_api import Dataverse
 
     estado, componente, detalle = construir(rutas[0], "--solo-verificar" in argv, Dataverse,
                                             permitir_no_verificadas="--permitir-no-verificadas" in argv,
-                                            corregir_primaria="--corregir-primaria" in argv)
+                                            corregir_primaria="--corregir-primaria" in argv, publicar="--publicar" in argv)
     return salida(estado, componente, detalle)
 
 

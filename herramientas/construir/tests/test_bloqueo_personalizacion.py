@@ -16,6 +16,10 @@ BLOQUEO = (429, {"error": "Failed to create entity … Microsoft.Crm.ObjectModel
                           "[EntityCustomization] because there is a previous [EntityCustomization] running at this moment."}, {})
 
 
+BLOQUEO_PUBLICAR = (429, {"error": "Cannot start the requested operation [Publish] because there is another [Import] running at this moment. "
+                                   "Use Solution History for more details."}, {})
+
+
 class ClienteEnSecuencia:
     def __init__(self, respuestas):
         self.respuestas, self.llamadas = list(respuestas), []
@@ -44,6 +48,13 @@ class EscribirMetadatos(unittest.TestCase):
         self.assertEqual(len(cli.llamadas), 3)
         self.assertEqual(self.esperas, [c.ESPERA_BLOQUEO_SEGUNDOS] * 2)
         self.assertTrue(all(l[2] == {"a": 1} and l[3] == {"solucion": "sol"} for l in cli.llamadas))
+
+    def test_tambien_espera_cuando_la_plataforma_esta_instalando_algo(self):
+        """Visto el 2026-09-20: Microsoft instaló sola una actualización
+        (CustomControlsCore) y el PublishXml dio 429 con OTRO mensaje."""
+        cli = ClienteEnSecuencia([BLOQUEO_PUBLICAR, (204, None, {})])
+        self.assertEqual(self.escribir(cli)[0], 204)
+        self.assertEqual(self.esperas, [c.ESPERA_BLOQUEO_SEGUNDOS])
 
     def test_se_rinde_despues_del_maximo_y_devuelve_el_429(self):
         cli = ClienteEnSecuencia([BLOQUEO] * (c.REINTENTOS_BLOQUEO + 1))

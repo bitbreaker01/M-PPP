@@ -322,11 +322,20 @@ ESPERA_BLOQUEO_SEGUNDOS = 30
 REINTENTOS_BLOQUEO = 10
 
 
+def _es_bloqueo_pasajero(respuesta):
+    """Los dos textos con los que la plataforma dice "hay otra operación de
+    metadatos o de soluciones en curso". La segunda forma aparece también
+    cuando Microsoft instala sola una actualización de plataforma."""
+    texto = str(respuesta)
+    return "CustomizationLockException" in texto or "running at this moment" in texto
+
+
 def escribir_metadatos(dv, metodo, ruta, cuerpo, dormir=None, **kw):
     """Toda escritura de metadatos de las herramientas pasa por acá. Dataverse
     admite UNA sola personalización de metadatos a la vez en el entorno: si
     otra está corriendo (otra herramienta, un ensayo, un borrado, alguien en
-    el portal), responde `429` con `CustomizationLockException`. Es pasajero:
+    el portal, o una actualización que Microsoft instala sola), responde `429`
+    con `CustomizationLockException` o con "… running at this moment". Es pasajero:
     se espera y se reintenta, hasta `REINTENTOS_BLOQUEO` veces. Cualquier otra
     respuesta, incluido otro 429, se devuelve tal cual, sin reintentar."""
     if dormir is None:
@@ -335,7 +344,7 @@ def escribir_metadatos(dv, metodo, ruta, cuerpo, dormir=None, **kw):
         dormir = time.sleep
     for intento in range(REINTENTOS_BLOQUEO + 1):
         est, resp, cab = dv.call(metodo, ruta, cuerpo, **kw)
-        if est != 429 or "CustomizationLockException" not in str(resp) or intento == REINTENTOS_BLOQUEO:
+        if est != 429 or not _es_bloqueo_pasajero(resp) or intento == REINTENTOS_BLOQUEO:
             return est, resp, cab
         print(f"El entorno tiene otra personalización en curso; espero {ESPERA_BLOQUEO_SEGUNDOS} s y reintento ({intento + 1}/{REINTENTOS_BLOQUEO}).", flush=True)
         dormir(ESPERA_BLOQUEO_SEGUNDOS)
