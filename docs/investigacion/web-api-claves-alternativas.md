@@ -45,3 +45,13 @@ No documentado: código de respuesta, si hay que publicar, y si la cabecera de s
 - https://learn.microsoft.com/power-apps/developer/data-platform/webapi/reference/reactivateentitykey
 - https://learn.microsoft.com/power-apps/developer/data-platform/use-alternate-key-reference-record
 - https://learn.microsoft.com/troubleshoot/power-platform/dataverse/working-with-solutions/entitykey-selected-attributes-already-exists
+
+## Comprobado en el ensayo del 2026-09-21 (tablas descartables en Dev)
+
+- `GET …/Keys(LogicalName='<clave>')` funciona; **404** si no existe.
+- Una clave **no es un componente propio** de la solución: cero filas en `solutioncomponents` (ni tipo 14 ni otro). Viaja dentro de su tabla. La pertenencia se comprueba por la tabla (tipo 1, `rootcomponentbehavior = 0`).
+- El límite de **900 bytes no se comprueba al crear**: claves de 902 y 904 bytes quedaron `Active` con la tabla vacía. La herramienta lo bloquea igual.
+- El índice tarda **~2 minutos** en pasar de `Pending` a `Active`, aun con la tabla vacía.
+- `KeyAttributes` vuelve en **orden alfabético**, se mande como se mande.
+- XML: `<EntityKeys>` dentro de la `<entity>`; la plataforma pone `IsCustomizable = 0`. El XML no trae el estado del índice.
+- Borrar la tabla se lleva sus claves.
