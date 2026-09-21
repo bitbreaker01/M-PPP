@@ -1,7 +1,7 @@
 {
  "proyecto": "MPPP · fase 1",
  "criterio_hecho": "ciclo cerrado: construido, verificado en Dev y muestra exportada; si el ciclo enseñó algo nuevo, además el reporte aprobado por el aprobador",
- "en_curso": "3.2 Plan y 3.3 Autorizado — construidas y aprobadas por el verificador; enseñaron algo nuevo, falta la aprobación del aprobador · 3.4 Autorización — en construcción",
+ "en_curso": "3.2 Plan y 3.3 Autorizado — construidas y aprobadas por el verificador; enseñaron algo nuevo, falta la aprobación del aprobador · 3.5 Parámetro — en construcción",
  "grupos": {
   "P-01": "Solución",
   "P-02": "Choices globales",
@@ -165,7 +165,7 @@
    "grupo": "P-03",
    "nombre": "sanic_mppp_tbl_autorizacionplan",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "3.5",
