@@ -11,7 +11,6 @@ guiones bajos.
 """
 import json
 import os
-import re
 import sys
 
 _AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -19,12 +18,12 @@ _RAIZ = os.path.dirname(os.path.dirname(_AQUI))
 sys.path.insert(0, os.path.join(os.path.dirname(_AQUI), "construir"))
 
 from playbook_tabla import IDENTIDAD_BASE  # noqa: E402
+from _comun import nombre_de_archivo  # noqa: E402
 from rol import ACCIONES, ALCANCES  # noqa: E402
 
 
 def archivo_de(nombre):
-    sin_tildes = nombre.lower().translate(str.maketrans("áéíóúñ", "aeioun"))
-    return re.sub(r"[^a-z0-9]+", "_", sin_tildes).strip("_")
+    return nombre_de_archivo(nombre)
 
 
 def generar(esp):

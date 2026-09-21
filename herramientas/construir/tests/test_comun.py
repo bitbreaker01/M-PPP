@@ -197,5 +197,17 @@ class ExigirForma(unittest.TestCase):
         self.assertLess(len(msg), 600)
 
 
+class NombreDeArchivo(unittest.TestCase):
+    """Un componente sin nombre lógico (rol, perfil) se guarda con su nombre visible hecho archivo."""
+
+    def test_translitera_tildes_y_enie_en_vez_de_perderlas(self):
+        import _comun
+        casos = {"SR - MPPP - Administrador técnico": "sr_mppp_administrador_tecnico", "CSP - MPPP - Datos sensibles": "csp_mppp_datos_sensibles",
+                 "SR - MPPP - Señor Ñandú (época Ü)": "sr_mppp_senor_nandu_epoca_u", "  --Raro--  ": "raro"}
+        for nombre, esperado in casos.items():
+            with self.subTest(nombre):
+                self.assertEqual(_comun.nombre_de_archivo(nombre), esperado)
+
+
 if __name__ == "__main__":
     unittest.main()

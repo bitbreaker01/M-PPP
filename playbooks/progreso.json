@@ -1,7 +1,7 @@
 {
  "proyecto": "MPPP · fase 1",
  "criterio_hecho": "ciclo cerrado: construido, verificado en Dev y muestra exportada; si el ciclo enseñó algo nuevo, además el reporte aprobado por el aprobador",
- "en_curso": "P-06/07 Seguridad — herramienta de roles en escritura y ensayo con un rol descartable; el perfil de columnas espera la decisión D-8 y el rol de ingesta la D-9",
+ "en_curso": "P-06/07 Seguridad — 4 roles humanos construidos y verificados; perfil de columnas 6.1 con herramienta ensayada y playbook listo (falta la orden); rol de ingesta 6.6 por especificar",
  "grupos": {
   "P-01": "Solución",
   "P-02": "Choices globales",
@@ -369,28 +369,28 @@
    "grupo": "P-06/07",
    "nombre": "Security role: SR - MPPP - Ejecutivo",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "6.3",
    "grupo": "P-06/07",
    "nombre": "Security role: SR - MPPP - Supervisor",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "6.4",
    "grupo": "P-06/07",
    "nombre": "Security role: SR - MPPP - Administrador de planes",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "6.5",
    "grupo": "P-06/07",
    "nombre": "Security role: SR - MPPP - Administrador técnico",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "6.6",

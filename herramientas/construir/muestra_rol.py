@@ -27,7 +27,7 @@ _RAIZ = os.path.dirname(os.path.dirname(_AQUI))
 sys.path.insert(0, _AQUI)
 sys.path.insert(0, os.path.dirname(_AQUI))
 
-from _comun import dividir_secciones, escribir_metadatos, leer_texto, obtener_componente, obtener_identidad  # noqa: E402
+from _comun import dividir_secciones, escribir_metadatos, leer_texto, nombre_de_archivo, obtener_componente, obtener_identidad  # noqa: E402
 from rol import ACCIONES, ALCANCES  # noqa: E402
 
 TIPO = "rol"
@@ -90,7 +90,7 @@ def main():
             rol = _buscar(raiz, datos)
             if rol is not None:
                 os.makedirs(os.path.join(_RAIZ, "playbooks", "rol", "muestras"), exist_ok=True)
-                archivo = re.sub(r"[^a-z0-9]+", "_", datos["nombre"].lower()).strip("_") + ".solucion.xml"
+                archivo = nombre_de_archivo(datos["nombre"]) + ".solucion.xml"
                 open(os.path.join(_RAIZ, "playbooks", "rol", "muestras", archivo), "w", encoding="utf-8").write(ET.tostring(rol, encoding="unicode") + "\n")
     print(json.dumps({"playbooks": len(playbooks), "coinciden": len(playbooks) - malos, "difieren": malos}))
     return 0 if not malos else 1

@@ -1,0 +1,22 @@
+<FieldSecurityProfiles>
+    <FieldSecurityProfile name="CSP - MPPP - ZZ Ensayo" description="Perfil descartable de ensayo." fieldsecurityprofileid="{c7289e9d-cbb5-f111-aaad-000d3a350099}">
+      <FieldPermissions>
+        <FieldPermission>
+          <EntityName>sanic_mppp_tbl_fila</EntityName>
+          <AttributeName>sanic_numerocuenta</AttributeName>
+          <CanRead>4</CanRead>
+          <CanUpdate>0</CanUpdate>
+          <CanCreate>0</CanCreate>
+          <CanReadUnmasked>0</CanReadUnmasked>
+        </FieldPermission>
+        <FieldPermission>
+          <EntityName>sanic_mppp_tbl_fila</EntityName>
+          <AttributeName>sanic_numeroidentificacion</AttributeName>
+          <CanRead>4</CanRead>
+          <CanUpdate>0</CanUpdate>
+          <CanCreate>0</CanCreate>
+          <CanReadUnmasked>0</CanReadUnmasked>
+        </FieldPermission>
+      </FieldPermissions>
+    </FieldSecurityProfile>
+  </FieldSecurityProfiles>

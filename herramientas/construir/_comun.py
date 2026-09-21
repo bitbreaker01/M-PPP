@@ -389,6 +389,17 @@ def escribir_metadatos(dv, metodo, ruta, cuerpo, dormir=None, **kw):
         dormir(ESPERA_BLOQUEO_SEGUNDOS)
 
 
+def nombre_de_archivo(texto):
+    """Nombre de archivo para un componente que no tiene nombre lógico (un rol,
+    un perfil): su nombre visible en minúscula, sin tildes y con guiones bajos.
+    Se translitera en vez de descartar: «técnico» es `tecnico`, no `t_cnico`."""
+    import re
+    import unicodedata
+
+    sin_marcas = "".join(c for c in unicodedata.normalize("NFD", texto.lower()) if unicodedata.category(c) != "Mn")
+    return re.sub(r"[^a-z0-9]+", "_", sin_marcas).strip("_")
+
+
 def salida(estado, componente, detalle):
     """Imprime la última línea del contrato (JSON de una sola línea) y
     devuelve el código de salida: 0 solo para 'creado' y 'ya_existia'."""
