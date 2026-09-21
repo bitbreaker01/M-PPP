@@ -20,7 +20,8 @@ de texto común a autonumérica (nunca otra cosa, y nunca al revés).
 `--agregar-columnas` (D-15, 2026-09-21) agrega a una tabla que ya existe las
 columnas que el playbook declara y el entorno no tiene, con el mismo cuerpo
 que la creación, y solo si esa es su ÚNICA diferencia; nunca cambia ni borra
-una columna existente. PENDIENTE de ensayo contra la plataforma.
+una columna existente. Ensayado contra la plataforma el 2026-09-21 con
+entero, sí/no y texto protegido (playbooks/tabla/ensayos/zz_agregar_*.md).
 Las columnas lookup no van acá: nacen con su relación.
 Fuera de esos flags de reparación, nunca modifica ni borra: si la tabla
 existe y no coincide, informa `difiere`.
