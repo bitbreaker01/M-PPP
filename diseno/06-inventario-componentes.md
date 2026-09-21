@@ -128,7 +128,7 @@ Un solo paquete, `sanic_mppp_pkg_plugins` (`Sanic.Mppp.Plugins`). Se construye p
 |---|---|---|---|
 | 7.1 | `Dominio/` | Estados, transiciones permitidas, actor | 1 |
 | 7.2 | `Plantilla/` | Lector de la plantilla, reglas LP-01 a LP-08 | 1 |
-| 7.3 | `Validacion/` | Motor de reglas con orden y dependencias; 6 reglas de solicitud y 8 de registro | 1 |
+| 7.3 | `Validacion/` | Motor de reglas con orden y dependencias; 5 reglas de solicitud y 8 de registro (eran 6 de solicitud hasta que E-16 movió `REMITENTE_RECONOCIDO` al nivel Correo, que vive en 7.6b); el motor es uno solo y genérico, y lo reutiliza el nivel Correo | 1 |
 | 7.4 | `Respuesta/` | Arma el acuse y la respuesta final, con enmascarado | 1 |
 | 7.5 | Doble de prueba `OrganizationServiceEnMemoria` | En el proyecto de tests | 1 |
 | 7.6 | `Datos/` | Repositorios sobre `IOrganizationService` | 1 |
