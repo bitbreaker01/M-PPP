@@ -37,8 +37,14 @@ def generar(esp):
     usa = sorted({c["tipo"] for c in comp["columnas"]} | {prim["tipo"]})
     extras = [x for x, si in (("primaria autonumérica", bool(p["autonumerico"])), ("columnas protegidas", any(c["protegida"] for c in comp["columnas"])),
                               ("auditoría de tabla y de columna", comp["auditoria"])) if si]
-    aud_cols = sorted({c["auditoria"] for c in comp["columnas"]})
-    aud_txt = "todas auditadas" if aud_cols == [True] else "ninguna auditada" if aud_cols in ([False], []) else "auditadas: " + ", ".join(f"`{c['nombre']}`" for c in comp["columnas"] if c["auditoria"])
+    # La primaria hereda la auditoría de la tabla: cuenta como una columna más.
+    con_aud = [(p["nombre"], comp["auditoria"])] + [(c["nombre"], c["auditoria"]) for c in comp["columnas"]]
+    if all(v for _, v in con_aud):
+        aud_txt = "todas auditadas"
+    elif not any(v for _, v in con_aud):
+        aud_txt = "ninguna auditada"
+    else:
+        aud_txt = "auditadas: " + ", ".join(f"`{n}`" for n, v in con_aud if v) + "; las demás, no"
     decisiones = "\n".join(f"| {a} | {b} | {c} |" for a, b, c in esp["decisiones"])
     fuera = "\n".join(f"- {x}" for x in esp["fuera_de_alcance"])
     columnas = " · ".join(_col_texto(c) for c in [prim] + comp["columnas"])

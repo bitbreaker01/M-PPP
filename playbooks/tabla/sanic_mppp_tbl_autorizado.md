@@ -87,7 +87,7 @@ python3 herramientas/construir/muestra_tabla.py playbooks/tabla/sanic_mppp_tbl_a
 |---|---|---|
 | 1 | `GET EntityDefinitions(LogicalName='sanic_mppp_tbl_autorizado')` | 200 · `OwnershipType = UserOwned` · `IsManaged = false` · `IsCustomEntity = true` · `HasNotes = false` · `HasActivities = false` · `IsAuditEnabled = true` · `PrimaryNameAttribute = sanic_nombre` |
 | 2 | Nombre, plural y descripción en 1033 | los de la sección 2; ninguna etiqueta en otro idioma |
-| 3 | Columnas (1): tipo, requerida, protegida, auditoría, nombre visible, descripción y lo propio de su tipo | `sanic_nombre` texto 320 requerida; ninguna auditada |
+| 3 | Columnas (1): tipo, requerida, protegida, auditoría, nombre visible, descripción y lo propio de su tipo | `sanic_nombre` texto 320 requerida; todas auditadas |
 | 4 | Ninguna columna propia de más | salvo lookups, que nacen con su relación |
 | 5 | Pertenece a la solución de la sección 1 | una fila en `solutioncomponents` (tipo de componente 1) |
 | 6 | Segunda ejecución sin `--solo-verificar` | estado `ya_existia`, código de salida 0 |
