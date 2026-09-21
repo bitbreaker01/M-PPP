@@ -260,6 +260,57 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Null(new ResultadoDeRegla("A", 1, ResultadoDeLaRegla.Cumplida, null, EfectoDeLaRegla.Rechaza).Razon);
         }
 
+        // ------------------------------------------------------------------ D-13 (aprobador, 2026-09-21): la mala configuración falla cerrado
+        [Fact]
+        public void Una_regla_activa_sin_evaluador_falla_cerrado_y_no_se_evalua_ninguna()
+        {
+            var llamados = new List<string>();
+            var motor = new MotorDeReglas<ISet<string>>(new[] { new EvaluadorFijo("A", () => { llamados.Add("A"); return Veredicto.Cumplida(); }) });
+            var ex = Assert.Throws<ConfiguracionDeReglasInvalidaException>(() => motor.Evaluar(new[] { Regla("A", 1), Regla("SIN_EVALUADOR", 2) }, new HashSet<string>()));
+            Assert.Equal("SIN_EVALUADOR", ex.CodigoDeRegla);
+            Assert.Empty(llamados);
+        }
+
+        [Theory]
+        [InlineData("INACTIVA")] // no está entre las activas
+        [InlineData("a")] // los códigos se comparan EXACTOS: "a" no es "A"
+        [InlineData("A ")]
+        public void Una_dependencia_que_no_esta_entre_las_activas_falla_cerrado_nombrando_a_las_dos(string dependencia)
+        {
+            var ex = Assert.Throws<ConfiguracionDeReglasInvalidaException>(() => MotorPara("A", "B").Evaluar(new[] { Regla("A", 1), Regla("B", 2, dependencia) }, new HashSet<string>()));
+            Assert.Equal("B", ex.CodigoDeRegla);
+            Assert.Contains($"'{dependencia}'", ex.Message);
+            Assert.DoesNotContain("orden", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Theory]
+        [InlineData("AAA", "BBB")] // el desempate por código la evaluaría antes: igual es catálogo mal armado
+        [InlineData("BBB", "AAA")]
+        public void Una_dependencia_con_el_MISMO_orden_no_tiene_orden_menor_y_falla_cerrado(string dependencia, string dependiente)
+        {
+            // diseno/02 §2.6: las dependencias "tienen orden menor". Que el desempate alfabético la deje pasar sería suerte, no diseño.
+            var reglas = new[] { Regla(dependencia, 10), Regla(dependiente, 10, dependencia) };
+            var ex = Assert.Throws<ConfiguracionDeReglasInvalidaException>(() => MotorPara("AAA", "BBB").Evaluar(reglas, new HashSet<string>()));
+            Assert.Equal(dependiente, ex.CodigoDeRegla);
+            Assert.Contains("orden", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void El_catalogo_se_recorre_una_sola_vez_aunque_venga_de_una_consulta_perezosa()
+        {
+            var pasadas = 0;
+            IEnumerable<DefinicionDeRegla> Perezoso()
+            {
+                pasadas++;
+                yield return Regla("B", 2, "A");
+                yield return Regla("A", 1);
+            }
+
+            var rs = MotorPara("A", "B").Evaluar(Perezoso(), new HashSet<string>());
+            Assert.Equal(new[] { "A", "B" }, rs.Select(r => r.Codigo));
+            Assert.Equal(1, pasadas);
+        }
+
         // ------------------------------------------------------------------ del historial a los estados (pasos 5 y 7)
         private static ResultadoDeRegla R(string codigo, ResultadoDeLaRegla resultado, EfectoDeLaRegla efecto = EfectoDeLaRegla.Rechaza, int orden = 1)
         {
@@ -330,6 +381,75 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Equal(EstadoDeLaSolicitud.Rechazada, EstadosPorReglas.DeLaSolicitud(sobreBien, new[] { EstadoDeLaFila.RechazadaEnValidacion, EstadoDeLaFila.SinAutorizacion }));
             Assert.Equal(EstadoDeLaSolicitud.Rechazada, EstadosPorReglas.DeLaSolicitud(sobreBien, new EstadoDeLaFila[0]));
             Assert.Equal(EstadoDeLaSolicitud.EnProceso, EstadosPorReglas.DeLaSolicitud(sobreBien, new[] { EstadoDeLaFila.RechazadaEnValidacion, EstadoDeLaFila.Validada }));
+        }
+
+        // ------------------------------------------------------------------ D-14 y D-20 (aprobador, 2026-09-21)
+        [Fact]
+        public void Si_falla_la_autorizacion_y_ademas_otra_regla_la_fila_queda_sin_autorizacion_y_el_mensaje_lleva_los_dos_motivos()
+        {
+            var rs = new[]
+            {
+                R("PLAN_EXISTE", ResultadoDeLaRegla.Cumplida, orden: 40), R(EstadosPorReglas.CodigoAutorizacion, ResultadoDeLaRegla.NoCumplida, orden: 60),
+                R("LISTAS_VALIDAS", ResultadoDeLaRegla.NoCumplida, orden: 10),
+            };
+            Assert.Equal(EstadoDeLaFila.SinAutorizacion, EstadosPorReglas.DeLaFila(rs));
+            Assert.Equal(new[] { "motivo de LISTAS_VALIDAS", $"motivo de {EstadosPorReglas.CodigoAutorizacion}" }, EstadosPorReglas.MotivosDeLaFila(rs));
+        }
+
+        [Theory]
+        [MemberData(nameof(EfectosQueLaAutorizacionNoAdmite))]
+        public void La_regla_de_autorizacion_no_admite_otro_efecto_que_rechaza_salga_como_salga(EfectoDeLaRegla efecto, ResultadoDeLaRegla resultado)
+        {
+            // Una autorización que solo "advierte" deja pasar gestiones de quien no está autorizado: es catálogo mal armado, no un caso a interpretar.
+            var rs = new[] { R("PLAN_EXISTE", ResultadoDeLaRegla.Cumplida), R(EstadosPorReglas.CodigoAutorizacion, resultado, efecto) };
+            var ex = Assert.Throws<ConfiguracionDeReglasInvalidaException>(() => EstadosPorReglas.DeLaFila(rs));
+            Assert.Equal(EstadosPorReglas.CodigoAutorizacion, ex.CodigoDeRegla);
+        }
+
+        public static IEnumerable<object[]> EfectosQueLaAutorizacionNoAdmite()
+        {
+            foreach (var efecto in new[] { EfectoDeLaRegla.Advierte, EfectoDeLaRegla.EnviaARevision })
+            {
+                foreach (var resultado in new[] { ResultadoDeLaRegla.Cumplida, ResultadoDeLaRegla.NoCumplida, ResultadoDeLaRegla.Omitida })
+                {
+                    yield return new object[] { efecto, resultado };
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(ResultadoDeLaRegla.Cumplida)]
+        [InlineData(ResultadoDeLaRegla.NoCumplida)]
+        [InlineData(ResultadoDeLaRegla.Omitida)]
+        public void Una_regla_de_registro_con_efecto_envia_a_revision_es_catalogo_mal_armado(ResultadoDeLaRegla resultado)
+        {
+            // D-20: "Envía a revisión" es de las reglas del sobre. En una fila no significa nada, y "no hacer nada" en silencio debilita la validación.
+            var rs = new[] { R("LISTAS_VALIDAS", ResultadoDeLaRegla.Cumplida), R("MONEDA_DEL_PLAN", resultado, EfectoDeLaRegla.EnviaARevision) };
+            var ex = Assert.Throws<ConfiguracionDeReglasInvalidaException>(() => EstadosPorReglas.DeLaFila(rs));
+            Assert.Equal("MONEDA_DEL_PLAN", ex.CodigoDeRegla);
+            Assert.Throws<ConfiguracionDeReglasInvalidaException>(() => EstadosPorReglas.MotivosDeLaFila(rs));
+        }
+
+        [Fact]
+        public void Una_regla_del_sobre_que_envia_a_revision_deja_la_solicitud_no_reconocida_y_no_cuenta_como_rechazo()
+        {
+            // diseno/02 "Efecto de regla": Envía a revisión = no se responde, queda No reconocida y la revisa un ejecutivo.
+            var aRevision = new[] { R("TRAE_ADJUNTO", ResultadoDeLaRegla.Cumplida), R("REVISAR", ResultadoDeLaRegla.NoCumplida, EfectoDeLaRegla.EnviaARevision) };
+            Assert.False(EstadosPorReglas.ElSobreRechaza(aRevision));
+            Assert.Equal(EstadoDeLaSolicitud.NoReconocida, EstadosPorReglas.DeLaSolicitud(aRevision, new EstadoDeLaFila[0]));
+            Assert.Equal(EstadoDeLaSolicitud.NoReconocida, EstadosPorReglas.DeLaSolicitud(aRevision, new[] { EstadoDeLaFila.Validada }));
+
+            // Cumplida u Omitida no envía a nadie a revisión.
+            var noAplica = new[] { R("TRAE_ADJUNTO", ResultadoDeLaRegla.Cumplida), R("REVISAR", ResultadoDeLaRegla.Omitida, EfectoDeLaRegla.EnviaARevision), R("OTRA", ResultadoDeLaRegla.Cumplida, EfectoDeLaRegla.EnviaARevision) };
+            Assert.Equal(EstadoDeLaSolicitud.EnProceso, EstadosPorReglas.DeLaSolicitud(noAplica, new[] { EstadoDeLaFila.Validada }));
+        }
+
+        [Fact]
+        public void Si_el_sobre_rechaza_y_ademas_envia_a_revision_gana_la_revision_no_se_le_responde_al_cliente_sin_que_lo_mire_una_persona()
+        {
+            // El diseño calla sobre este cruce: se fija la lectura conservadora y queda como decisión abierta D-39 en PENDIENTES.
+            var rs = new[] { R("TRAE_ADJUNTO", ResultadoDeLaRegla.NoCumplida), R("REVISAR", ResultadoDeLaRegla.NoCumplida, EfectoDeLaRegla.EnviaARevision) };
+            Assert.Equal(EstadoDeLaSolicitud.NoReconocida, EstadosPorReglas.DeLaSolicitud(rs, new EstadoDeLaFila[0]));
         }
 
         [Fact]
