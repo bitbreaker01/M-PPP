@@ -205,6 +205,18 @@ namespace Sanic.Mppp.Plugins.Plantilla
         }
     }
 
+    /// <summary>
+    /// Formatos admitidos en `plantilla.estructura` (D-18b, aprobador 2026-09-21). En el JSON: `texto`, `digitos`, `alfanumerico`
+    /// (exactos, en minúscula). `digitos`: solo 0-9 ASCII. `alfanumerico`: solo A-Z, a-z y 0-9 ASCII, sin espacios. Otro valor es
+    /// parámetro mal cargado (<see cref="FormatException"/>): una expresión mal escrita no puede tumbar ni aflojar la validación.
+    /// </summary>
+    public enum FormatoDeCampo
+    {
+        Texto,
+        Digitos,
+        Alfanumerico,
+    }
+
     public sealed class CampoPlantilla
     {
         /// <summary>Nombre del campo para el resto del código (`numeroPlan`). Opcional al armar la configuración a mano.</summary>
@@ -215,5 +227,14 @@ namespace Sanic.Mppp.Plugins.Plantilla
 
         /// <summary>Texto que tiene que traer la fila de encabezado en esa columna (se compara sin espacios al inicio ni al final).</summary>
         public string EncabezadoEsperado { get; set; }
+
+        /// <summary>`largoMinimo` (D-18b). Nulo = sin mínimo. Lo usa la regla LARGOS_Y_FORMATO; el lector no lo mira.</summary>
+        public int? LargoMinimo { get; set; }
+
+        /// <summary>`largoMaximo` (D-18b). Nulo = sin máximo.</summary>
+        public int? LargoMaximo { get; set; }
+
+        /// <summary>`formato` (D-18b): lista CERRADA, sin expresiones regulares. Nulo = cualquier texto.</summary>
+        public FormatoDeCampo? Formato { get; set; }
     }
 }

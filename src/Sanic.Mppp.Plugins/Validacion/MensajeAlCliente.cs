@@ -20,6 +20,20 @@ namespace Sanic.Mppp.Plugins.Validacion
     /// </summary>
     public static class MensajeAlCliente
     {
+        /// <summary>Largo máximo de un valor del cliente citado en un mensaje.</summary>
+        public const int LargoMaximoDeCita = 40;
+
+        /// <summary>
+        /// Prepara un valor que escribió el cliente para citarlo en un mensaje (DD-01: "el valor recibido se cita"). El Excel es
+        /// hostil: todo carácter de control o de espacio (saltos de línea, tabuladores) pasa a ser un espacio, los espacios
+        /// seguidos quedan de a uno, se recorta a los lados, y si pasa de <see cref="LargoMaximoDeCita"/> caracteres se corta ahí
+        /// y se le agrega "…". Nulo → vacío. NUNCA se cita un dato sensible (cuenta, identificación): eso lo cuida quien llama.
+        /// </summary>
+        public static string Citar(string valorDelCliente)
+        {
+            throw new NotImplementedException();
+        }
+
         public static string Componer(string plantilla, Veredicto veredicto, string codigoDeRegla)
         {
             if (veredicto == null)
