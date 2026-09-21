@@ -11,6 +11,7 @@ construir viene explícito en alguno de los dos bloques json.
 Sin dependencias fuera de la librería estándar.
 """
 import json
+import os
 import re
 
 # Claves exactas del bloque json de '## 1. Identidad' (formato común de la
@@ -389,13 +390,18 @@ def escribir_metadatos(dv, metodo, ruta, cuerpo, dormir=None, **kw):
         dormir(ESPERA_BLOQUEO_SEGUNDOS)
 
 
+# Excepciones a BP-PP-197 aprobadas una por una (D-10). La lista está fijada en una prueba: no crece sola.
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "excepciones_nombres.json"), encoding="utf-8") as _f:
+    EXCEPCIONES_NOMBRES = json.load(_f)
+
+
 def exigir_sin_tildes(texto, campo):
     """BP-PP-197: ningún nombre visible lleva tildes, ñ ni otro carácter fuera
     de ASCII. El nombre visible viaja por filtros de URL, XML de la solución,
     scripts y nombres de archivo; y en un componente sin nombre lógico ES el
     identificador. Las descripciones son prosa y no pasan por acá."""
     malos = sorted({c for c in texto if ord(c) > 126 or ord(c) < 32})
-    if malos:
+    if malos and texto not in EXCEPCIONES_NOMBRES["nombres_visibles"]:
         raise ErrorPlaybook(f"{campo} = {texto!r} lleva caracteres fuera de ASCII ({' '.join(malos)}): los nombres visibles van sin tildes ni ñ (BP-PP-197); "
                             "se escribe la palabra sin la tilde, no se la cambia por otra")
 

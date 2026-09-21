@@ -4,7 +4,7 @@
  "componente": {
   "tipo": "clave",
   "nombre": "sanic_mppp_key_parametro_nombre_version",
-  "displayname": "KEY - MPPP - Parametro - Nombre y version",
+  "displayname": "KEY - MPPP - Parámetro - Nombre y versión",
   "tabla": "sanic_mppp_tbl_parametro",
   "columnas": [
    "sanic_nombre",
@@ -14,7 +14,8 @@
  "columnas_opcionales": [],
  "viene_del_diseno": [
   "Columnas de la clave: `02` §2.5 e inventario §5, renglón 5.6.",
-  "Un parámetro no repite versión."
+  "Un parámetro no repite versión.",
+  "El nombre visible lleva tilde por la excepción D-10 (`PENDIENTES.md`, aprobador, 2026-09-21): la clave ya estaba construida cuando se decidió BP-PP-197 y el Web API no deja cambiar el nombre visible de una clave. No es un modelo para claves nuevas."
  ],
  "fuera_de_alcance": [
   "El plugin o Custom API que usa esta clave para detectar duplicados: inventario 7 y 8.",

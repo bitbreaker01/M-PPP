@@ -130,6 +130,7 @@ def filas_por_tipo(datos):
             por.setdefault("Picklist", []).append({"LogicalName": n, "GlobalOptionSet": {"Name": c["choice"], "IsGlobal": True}})
         elif t == "sino":
             por.setdefault("Boolean", []).append({"LogicalName": n, "DefaultValue": c["defecto"], "OptionSet": {
+                "DisplayName": label(c["displayname"]),  # la plataforma lo copia del nombre de la columna al crearla
                 "TrueOption": {"Value": 1, "Label": label(c["etiqueta_si"])},
                 "FalseOption": {"Value": 0, "Label": label(c["etiqueta_no"])}}})
         elif t in ("fecha", "fechahora"):

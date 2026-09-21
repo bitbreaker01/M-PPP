@@ -4,7 +4,7 @@
  "componente": {
   "tipo": "clave",
   "nombre": "sanic_mppp_key_autorizacionplan_autorizado_plan",
-  "displayname": "KEY - MPPP - Autorizacion - Autorizado y plan",
+  "displayname": "KEY - MPPP - Autorización - Autorizado y plan",
   "tabla": "sanic_mppp_tbl_autorizacionplan",
   "columnas": [
    "sanic_autorizadoid",
@@ -14,7 +14,8 @@
  "columnas_opcionales": [],
  "viene_del_diseno": [
   "Columnas de la clave: `02` §2.4 e inventario §5, renglón 5.5.",
-  "Una sola autorización por correo y plan."
+  "Una sola autorización por correo y plan.",
+  "El nombre visible lleva tilde por la excepción D-10 (`PENDIENTES.md`, aprobador, 2026-09-21): la clave ya estaba construida cuando se decidió BP-PP-197 y el Web API no deja cambiar el nombre visible de una clave. No es un modelo para claves nuevas."
  ],
  "fuera_de_alcance": [
   "La relación que crea el lookup de esta clave: inventario 4.3, ya construida.",

@@ -4,7 +4,7 @@
  "componente": {
   "tipo": "clave",
   "nombre": "sanic_mppp_key_plan_codigo",
-  "displayname": "KEY - MPPP - Plan - Codigo",
+  "displayname": "KEY - MPPP - Plan - Código",
   "tabla": "sanic_mppp_tbl_plan",
   "columnas": [
    "sanic_codigo"
@@ -13,7 +13,8 @@
  "columnas_opcionales": [],
  "viene_del_diseno": [
   "Columnas de la clave: `02` §2.2 e inventario §5, renglón 5.3.",
-  "El código de plan es único en todo el banco."
+  "El código de plan es único en todo el banco.",
+  "El nombre visible lleva tilde por la excepción D-10 (`PENDIENTES.md`, aprobador, 2026-09-21): la clave ya estaba construida cuando se decidió BP-PP-197 y el Web API no deja cambiar el nombre visible de una clave. No es un modelo para claves nuevas."
  ],
  "fuera_de_alcance": [
   "El plugin o Custom API que usa esta clave para detectar duplicados: inventario 7 y 8.",

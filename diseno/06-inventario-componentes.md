@@ -116,7 +116,7 @@ Después de las relaciones, porque varias incluyen un lookup. La activación del
 | 6.3 | Security role | `SR - MPPP - Supervisor` | ídem | 1 |
 | 6.4 | Security role | `SR - MPPP - Administrador de planes` | ídem | 1 |
 | 6.5 | Security role | `SR - MPPP - Administrador tecnico` | ídem | 1 |
-| 6.6 | Security role | `SR - MPPP - Servicio de ingesta` | ídem + Custom API 8.1 | 1 |
+| 6.6 | Security role | `SR - MPPP - Servicio de ingesta` | ídem. Las Custom API 8.0 y 8.1 se ejecutan con un privilegio que este rol ya tiene (D-9): el rol no depende de ellas, ellas dependen del rol | 1 |
 | 6.7 | Security role | `SR - MPPP - RPA` | Custom API de fase 2 | 2 |
 | 6.8 | Security role | `SR - MPPP - Historico` | | 3 |
 

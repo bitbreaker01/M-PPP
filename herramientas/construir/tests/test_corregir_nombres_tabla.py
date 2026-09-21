@@ -104,5 +104,35 @@ class CorregirNombres(tt.Base):
         self.assertIn(ENTERO["nombre"], detalle)
 
 
+class ElNombreEscondidoDeUnSiNo(tt.Base):
+    """Visto el 2026-09-21: toda columna sí/no tiene un conjunto de opciones local con su propio
+    nombre visible, copiado del de la columna al crearla, y que NO la sigue si se la renombra.
+    El Web API no deja cambiarlo: se informa, y `--corregir-nombres` no lo toca."""
+
+    def viejo(self):
+        pt = copy.deepcopy(tt.filas_por_tipo(D))
+        next(f for f in pt["Boolean"] if f["LogicalName"] == SINO["nombre"])["OptionSet"]["DisplayName"] = label("Activádo")
+        return dict(por_tipo=pt)
+
+    def test_si_no_coincide_con_el_de_la_columna_es_difiere(self):
+        cliente = tt.armar(con_rutas_de_correccion(ClienteSimulado()), D, **self.viejo())
+        estado, _, detalle = self.con_cliente(cliente, D)
+        self.assertEqual(estado, "difiere", detalle)
+        self.assertIn(f"{SINO['nombre']}.OptionSet.DisplayName: entorno='Activádo' playbook={SINO['displayname']!r}", detalle)
+        self.assertIn("no se puede cambiar por Web API", detalle)
+
+    def test_corregir_nombres_no_lo_toca(self):
+        cliente = tt.armar(con_rutas_de_correccion(ClienteSimulado()), D, **self.viejo())
+        estado, _, _ = self.con_cliente(cliente, D, corregir_nombres=True)
+        self.assertEqual(estado, "difiere")
+        self.assertFalse(cliente.hubo_escritura())
+
+    def test_la_excepcion_aprobada_no_es_una_diferencia(self):
+        import tabla as tb
+        self.assertTrue(tb.optionset_exceptuado("sanic_mppp_tbl_solicitud", "sanic_requiererevision", "Requiere revisión"))
+        self.assertFalse(tb.optionset_exceptuado("sanic_mppp_tbl_solicitud", "sanic_requiererevision", "Requiere revisiones"))
+        self.assertFalse(tb.optionset_exceptuado("sanic_mppp_tbl_fila", "sanic_requiererevision", "Requiere revisión"))
+
+
 if __name__ == "__main__":
     unittest.main()

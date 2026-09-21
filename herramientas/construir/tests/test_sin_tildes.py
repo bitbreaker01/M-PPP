@@ -107,5 +107,31 @@ class CadaHerramienta(unittest.TestCase):
         self.assertFalse(toco_la_red)
 
 
+class ExcepcionesAprobadas(unittest.TestCase):
+    """D-10 (aprobador, 2026-09-21): siete nombres ya construidos que el Web API no
+    deja cambiar quedan como excepción. La lista está FIJADA acá a propósito: una
+    excepción nueva no se agrega editando un JSON, hay que cambiar esta prueba,
+    y eso obliga a pasar por el aprobador."""
+    CLAVES = ["KEY - MPPP - Autorización - Autorizado y plan", "KEY - MPPP - Fila - Solicitud y número de fila", "KEY - MPPP - Parámetro - Nombre y versión",
+              "KEY - MPPP - Plan - Código", "KEY - MPPP - Regla - Código", "KEY - MPPP - Resultado de regla - Solicitud y código de regla"]
+    SI_NO = {"sanic_mppp_tbl_solicitud.sanic_requiererevision": "Requiere revisión"}
+
+    def test_la_lista_es_exactamente_la_de_d10(self):
+        self.assertEqual(sorted(_comun.EXCEPCIONES_NOMBRES["nombres_visibles"]), self.CLAVES)
+        self.assertEqual(_comun.EXCEPCIONES_NOMBRES["optionset_si_no"], self.SI_NO)
+
+    def test_un_nombre_exceptuado_pasa_y_uno_parecido_no(self):
+        for nombre in self.CLAVES:
+            _comun.exigir_sin_tildes(nombre, "'displayname'")
+        for parecido in ("KEY - MPPP - Plan - Códigos", "key - mppp - plan - código", "KEY - MPPP - Cliente - Código"):
+            with self.assertRaises(_comun.ErrorPlaybook):
+                _comun.exigir_sin_tildes(parecido, "'displayname'")
+
+    def test_la_herramienta_de_claves_acepta_el_nombre_exceptuado(self):
+        datos = dict(test_clave.BASE, nombre="sanic_mppp_key_autorizado_codigo", displayname="KEY - MPPP - Plan - Código")
+        estado, _, detalle, _ = correr(clave, test_clave.IDENT, datos)
+        self.assertNotIn("BP-PP-197", detalle)
+
+
 if __name__ == "__main__":
     unittest.main()

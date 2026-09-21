@@ -40,6 +40,7 @@ from _comun import (  # noqa: E402
     dividir_secciones,
     escribir_metadatos,
     etiqueta_web_api,
+    EXCEPCIONES_NOMBRES,
     etiqueta_y_otros_idiomas,
     exigir_etiqueta,
     exigir_forma,
@@ -443,7 +444,7 @@ def _verificar(dv, datos, identidad, solution_id):
             if n not in por_nombre:
                 raise ErrorEntorno(f"{cf} devolvió 200 con forma inesperada: '{n}' no vino entre las columnas de esa familia")
             i, f = por_nombre[n]
-            _comparar_familia(c, f, i, cf, lcid, difs)
+            _comparar_familia(c, f, i, cf, lcid, difs, datos["nombre"])
 
     cs = "la consulta de pertenencia a la solución (GET solutioncomponents)"
     filas_sc = _lista(dv, f"solutioncomponents?$filter=_solutionid_value eq {solution_id} and objectid eq {metadata_id} and componenttype eq {COMPONENTE_TABLA}", cs)
@@ -452,7 +453,7 @@ def _verificar(dv, datos, identidad, solution_id):
     return {"existe": True, "diffs": difs, "metadata_id": metadata_id}
 
 
-def _comparar_familia(c, f, i, consulta, lcid, difs):
+def _comparar_familia(c, f, i, consulta, lcid, difs, tabla_nombre):
     n, tipo = c["nombre"], c["tipo"]
 
     def igual(campo, tipo_py, esperado, permite_nulo=False):
@@ -484,6 +485,13 @@ def _comparar_familia(c, f, i, consulta, lcid, difs):
     elif tipo == "sino":
         igual("DefaultValue", bool, c["defecto"])
         o = exigir_forma(f.get("OptionSet"), dict, consulta, f"value[{i}].OptionSet")
+        # El conjunto de opciones local de un sí/no tiene su propio nombre visible: nace copiado del de la columna
+        # y no la sigue si se la renombra; el Web API no deja cambiarlo (ensayado el 2026-09-21 por cuatro vías).
+        exigir_etiqueta(o.get("DisplayName"), consulta, f"value[{i}].OptionSet.DisplayName")
+        nombre_local = etiqueta_y_otros_idiomas(o.get("DisplayName"), lcid)[0] or ""
+        if nombre_local != c["displayname"] and not optionset_exceptuado(tabla_nombre, n, nombre_local):
+            difs.append(f"{n}.OptionSet.DisplayName: entorno={nombre_local!r} playbook={c['displayname']!r} "
+                        "(nombre del conjunto de opciones local del sí/no: no se puede cambiar por Web API; se resuelve con el aprobador)")
         for clave, que, esperado in (("TrueOption", "etiqueta_si", c["etiqueta_si"]), ("FalseOption", "etiqueta_no", c["etiqueta_no"])):
             op = exigir_forma(o.get(clave), dict, consulta, f"value[{i}].OptionSet.{clave}")
             _texto_de(op.get("Label"), lcid, f"{n}.{que}", esperado, difs, consulta, f"value[{i}].OptionSet.{clave}.Label")
@@ -535,6 +543,11 @@ def _solo_difiere_la_primaria(datos, diffs):
     if datos["primaria"]["autonumerico"]:
         admitidas.append(f"{n}.AutoNumberFormat:")
     return bool(diffs) and all(d.startswith(tuple(admitidas)) for d in diffs)
+
+
+def optionset_exceptuado(tabla, columna, nombre_real):
+    """Excepción aprobada (D-10) para el nombre del conjunto de opciones local de un sí/no."""
+    return EXCEPCIONES_NOMBRES["optionset_si_no"].get(f"{tabla}.{columna}") == nombre_real
 
 
 CAST_DE_TIPO = {"texto": "String", "autonumerico": "String", "memo": "Memo", "entero": "Integer", "choice": "Picklist", "sino": "Boolean",

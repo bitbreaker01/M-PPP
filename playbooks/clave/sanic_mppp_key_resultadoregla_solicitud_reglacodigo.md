@@ -29,7 +29,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
 {
   "tipo": "clave",
   "nombre": "sanic_mppp_key_resultadoregla_solicitud_reglacodigo",
-  "displayname": "KEY - MPPP - Resultado de regla - Solicitud y codigo de regla",
+  "displayname": "KEY - MPPP - Resultado de regla - Solicitud y código de regla",
   "tabla": "sanic_mppp_tbl_resultadoregla",
   "columnas": [
     "sanic_solicitudid",
@@ -48,13 +48,14 @@ Decisiones que este playbook toma y el diseño no traía:
 
 | Decisión | Valor | Por qué |
 |---|---|---|
-| Nombre visible de la clave | «KEY - MPPP - Resultado de regla - Solicitud y codigo de regla» | El inventario trae el nombre lógico; el visible sigue el patrón `KEY - MPPP - Tabla - Campos` (`01` §2) |
+| Nombre visible de la clave | «KEY - MPPP - Resultado de regla - Solicitud y código de regla» | El inventario trae el nombre lógico; el visible sigue el patrón `KEY - MPPP - Tabla - Campos` (`01` §2) |
 
 Viene del diseño, no lo decide este playbook:
 
 - Columnas de la clave: `02` §3.3 e inventario §5, renglón 5.10.
 - Una regla se evalúa una sola vez por solicitud.
 - `sanic_solicitudid` es opcional en `02` §3.3 (pendiente D-7): si D-7 lo vuelve requerido, la clave no cambia.
+- El nombre visible lleva tilde por la excepción D-10 (`PENDIENTES.md`, aprobador, 2026-09-21): la clave ya estaba construida cuando se decidió BP-PP-197 y el Web API no deja cambiar el nombre visible de una clave. No es un modelo para claves nuevas.
 
 ## 3. Precondiciones
 
@@ -88,7 +89,7 @@ python3 herramientas/construir/tabla.py playbooks/tabla/sanic_mppp_tbl_resultado
 
 | # | Comprobación | Esperado |
 |---|---|---|
-| 1 | `GET EntityDefinitions(LogicalName='sanic_mppp_tbl_resultadoregla')/Keys(LogicalName='sanic_mppp_key_resultadoregla_solicitud_reglacodigo')` | 200 · `IsManaged = false` · nombre visible «KEY - MPPP - Resultado de regla - Solicitud y codigo de regla» en 1033, sin etiquetas en otro idioma |
+| 1 | `GET EntityDefinitions(LogicalName='sanic_mppp_tbl_resultadoregla')/Keys(LogicalName='sanic_mppp_key_resultadoregla_solicitud_reglacodigo')` | 200 · `IsManaged = false` · nombre visible «KEY - MPPP - Resultado de regla - Solicitud y código de regla» en 1033, sin etiquetas en otro idioma |
 | 2 | Columnas de la clave (`KeyAttributes`, sin importar el orden) | `sanic_solicitudid` · `sanic_reglacodigo` |
 | 3 | Índice (`EntityKeyIndexStatus`) | `Active` |
 | 4 | Pertenencia a la solución | la de la tabla: `sanic_mppp_tbl_resultadoregla` está una vez en la solución de la sección 1, con todos sus subcomponentes (una clave no es un componente propio) |

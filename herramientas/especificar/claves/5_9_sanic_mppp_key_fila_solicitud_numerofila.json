@@ -4,7 +4,7 @@
  "componente": {
   "tipo": "clave",
   "nombre": "sanic_mppp_key_fila_solicitud_numerofila",
-  "displayname": "KEY - MPPP - Fila - Solicitud y numero de fila",
+  "displayname": "KEY - MPPP - Fila - Solicitud y número de fila",
   "tabla": "sanic_mppp_tbl_fila",
   "columnas": [
    "sanic_solicitudid",
@@ -14,7 +14,8 @@
  "columnas_opcionales": [],
  "viene_del_diseno": [
   "Columnas de la clave: `02` §3.2 e inventario §5, renglón 5.9.",
-  "Un número de fila no se repite dentro de una solicitud."
+  "Un número de fila no se repite dentro de una solicitud.",
+  "El nombre visible lleva tilde por la excepción D-10 (`PENDIENTES.md`, aprobador, 2026-09-21): la clave ya estaba construida cuando se decidió BP-PP-197 y el Web API no deja cambiar el nombre visible de una clave. No es un modelo para claves nuevas."
  ],
  "fuera_de_alcance": [
   "La relación que crea el lookup de esta clave: inventario 4.5, ya construida.",

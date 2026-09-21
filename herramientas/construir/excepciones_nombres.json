@@ -1,0 +1,14 @@
+{
+ "decision": "D-10 de diseno/PENDIENTES.md, aprobador, 2026-09-21: nombres ya construidos que el Web API no deja cambiar (clave alternativa: 405 UpdateEntityKey; conjunto de opciones local de un sí/no: cuatro vías ensayadas). La lista está fijada en tests/test_sin_tildes.py: no se amplía sin pasar por el aprobador.",
+ "nombres_visibles": [
+  "KEY - MPPP - Plan - Código",
+  "KEY - MPPP - Autorización - Autorizado y plan",
+  "KEY - MPPP - Parámetro - Nombre y versión",
+  "KEY - MPPP - Regla - Código",
+  "KEY - MPPP - Fila - Solicitud y número de fila",
+  "KEY - MPPP - Resultado de regla - Solicitud y código de regla"
+ ],
+ "optionset_si_no": {
+  "sanic_mppp_tbl_solicitud.sanic_requiererevision": "Requiere revisión"
+ }
+}

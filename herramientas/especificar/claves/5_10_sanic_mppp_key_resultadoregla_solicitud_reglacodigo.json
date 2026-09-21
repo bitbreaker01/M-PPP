@@ -4,7 +4,7 @@
  "componente": {
   "tipo": "clave",
   "nombre": "sanic_mppp_key_resultadoregla_solicitud_reglacodigo",
-  "displayname": "KEY - MPPP - Resultado de regla - Solicitud y codigo de regla",
+  "displayname": "KEY - MPPP - Resultado de regla - Solicitud y código de regla",
   "tabla": "sanic_mppp_tbl_resultadoregla",
   "columnas": [
    "sanic_solicitudid",
@@ -17,7 +17,8 @@
  "viene_del_diseno": [
   "Columnas de la clave: `02` §3.3 e inventario §5, renglón 5.10.",
   "Una regla se evalúa una sola vez por solicitud.",
-  "`sanic_solicitudid` es opcional en `02` §3.3 (pendiente D-7): si D-7 lo vuelve requerido, la clave no cambia."
+  "`sanic_solicitudid` es opcional en `02` §3.3 (pendiente D-7): si D-7 lo vuelve requerido, la clave no cambia.",
+  "El nombre visible lleva tilde por la excepción D-10 (`PENDIENTES.md`, aprobador, 2026-09-21): la clave ya estaba construida cuando se decidió BP-PP-197 y el Web API no deja cambiar el nombre visible de una clave. No es un modelo para claves nuevas."
  ],
  "fuera_de_alcance": [
   "La relación que crea el lookup de esta clave: inventario 4.6, ya construida.",
