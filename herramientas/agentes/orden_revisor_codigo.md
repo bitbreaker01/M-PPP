@@ -12,7 +12,7 @@ Fuentes de verdad, en este orden: el diseño (`diseno/03-contratos-custom-api.md
 4. **Firmas**: `git diff` de los archivos de firmas → los miembros públicos que dio el arquitecto siguen iguales (nombre, parámetros, tipos).
 5. **Capas** (`03` §8): en `Dominio/`, `Validacion/`, `Plantilla/` y `Respuesta/` no puede haber `using Microsoft.Xrm.Sdk` ni referencia al SDK. Buscalo con `rg`.
 6. **Reglas de código**: nada de `DateTime.Now`/`UtcNow` dentro del dominio; comparaciones de texto ordinales e `InvariantCulture`; ningún literal numérico de un choice (tiene que usar los enums de `Choices.g.cs`); ninguna clase con estado mutable estático; `Choices.g.cs` y los `.csproj` sin cambios.
-7. **Casos que las pruebas no cubren**: recorré TU lista del paso 1 y buscá una regla del diseño que el código no cumpla aunque todas las pruebas pasen, o un camino del código que ninguna prueba ejercita. Por cada uno: la regla citada, la entrada concreta, qué devuelve el código y qué debería devolver. Si para comprobarlo te sirve escribir una prueba, escribila SOLO en tu respuesta (no en el repo).
+7. **Casos que las pruebas no cubren** (mirá especialmente: cada combinación posible de un enum `[Flags]`; cada parámetro o bandera cruzado con el caso que NO debería habilitar; nulos y vacíos en cada entrada): recorré TU lista del paso 1 y buscá una regla del diseño que el código no cumpla aunque todas las pruebas pasen, o un camino del código que ninguna prueba ejercita. Por cada uno: la regla citada, la entrada concreta, qué devuelve el código y qué debería devolver. Si para comprobarlo te sirve escribir una prueba, escribila SOLO en tu respuesta (no en el repo).
 8. Legibilidad: ¿alguien que conoce el diseño entiende el código sin el constructor al lado?
 
 ## Reglas duras

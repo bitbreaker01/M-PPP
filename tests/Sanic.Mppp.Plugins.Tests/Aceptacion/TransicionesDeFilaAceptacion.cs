@@ -134,6 +134,14 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         }
 
         [Fact]
+        public void El_rpa_nunca_aprueba_lo_que_digito_otro_aunque_el_parametro_lo_permita()
+        {
+            // 03 §4: "puede aprobar lo que ÉL MISMO digitó"; 03 §3: precondición "digitada por el propio bot".
+            // El parámetro habilita la auto-aprobación del bot, nunca que apruebe lo que digitó una persona.
+            Rechazada(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.Aprobada, RolDeActor.Rpa, quien: Bot, digitadaPor: Ana, rpaPuedeAprobar: true));
+        }
+
+        [Fact]
         public void El_parametro_del_rpa_no_le_abre_la_puerta_a_un_supervisor_que_digito()
         {
             Rechazada(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.Aprobada, RolDeActor.Supervisor, quien: Ana, digitadaPor: Ana, rpaPuedeAprobar: true));
@@ -158,6 +166,20 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Rechazada(Evaluar(EstadoDeLaFila.Validada, EstadoDeLaFila.Digitada, ambos), "rol");
             Rechazada(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.Aprobada, ambos, quien: Beto, digitadaPor: Ana), "rol");
             Rechazada(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.Validada, ambos, quien: Beto, mensaje: "x", digitadaPor: Ana), "rol");
+        }
+
+        [Theory]
+        [InlineData(RolDeActor.Ejecutivo | RolDeActor.Rpa)]
+        [InlineData(RolDeActor.Supervisor | RolDeActor.Rpa)]
+        [InlineData(RolDeActor.Ejecutivo | RolDeActor.Supervisor | RolDeActor.Rpa)]
+        public void Cualquier_combinacion_de_roles_falla_cerrado(RolDeActor combinacion)
+        {
+            // D-11 (propuesta del arquitecto, a confirmar por el aprobador): D-25 solo nombra Ejecutivo + Supervisor, pero el RPA es una
+            // identidad de aplicación aparte (04 §3). Una identidad que además trae un rol humano es una mala configuración: no transiciona nada.
+            Rechazada(Evaluar(EstadoDeLaFila.Validada, EstadoDeLaFila.Digitada, combinacion), "rol");
+            Rechazada(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.RechazadaEnAS400, combinacion, mensaje: "x"), "rol");
+            Rechazada(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.Aprobada, combinacion, quien: Beto, digitadaPor: Ana, rpaPuedeAprobar: true), "rol");
+            Rechazada(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.Validada, combinacion, quien: Beto, mensaje: "x", digitadaPor: Ana), "rol");
         }
 
         [Fact]
