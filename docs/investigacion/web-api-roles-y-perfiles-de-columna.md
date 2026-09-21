@@ -56,3 +56,12 @@ POST fieldpermissions           { "entityname": "sanic_mppp_tbl_fila", "attribut
 - **Miembros: usuarios (`systemuserprofiles_association`) o equipos (`teamprofiles_association`). No existe relación perfil ↔ rol.** Los permisos son del perfil, no de cada miembro. De ahí sale la decisión D-8 de `PENDIENTES.md`.
 - **A ensayar**: si la asociación de usuarios viaja en la solución (por analogía con usuario ↔ rol, no).
 - Fuentes: https://learn.microsoft.com/power-apps/developer/data-platform/column-level-security#provide-access-to-secured-columns · https://learn.microsoft.com/power-apps/developer/data-platform/reference/entities/fieldpermission#writable-columns-attributes · https://learn.microsoft.com/power-apps/developer/data-platform/reference/entities/fieldsecurityprofile#many-to-many-relationships
+
+## Leído de Dev el 2026-09-21 (solo lectura)
+
+- El entorno tiene **una sola BU** (la raíz).
+- `roles?$filter=name eq 'App Opener' and _businessunitid_value eq <raíz>` devuelve un rol, **managed**, sin `roletemplateid`.
+- `RetrieveRolePrivilegesRole(RoleId=…)` devuelve `RolePrivileges[]` con `PrivilegeId`, `PrivilegeName`, `Depth` (texto: `Basic`/`Global`…), `BusinessUnitId`, `RecordFilterId`, `RecordFilterUniqueName`.
+- App Opener trae **81 privilegios**: 52 `Global` y 29 `Basic`. Incluye `prvReadAppModule`, lectura de metadatos (`prvReadEntity`, `prvReadAttribute`, `prvReadEntityKey`, `prvReadRelationship`, `prvReadOptionSet`, `prvReadSystemForm`, `prvReadQuery`, `prvReadWebResource`…), ajustes de usuario (`…UserEntityUISettings`, `…UserApplicationMetadata`, `prvReadUserSettings`) y procesos (`prvReadWorkflow`, `prvWorkflowExecution`, `prvFlow`).
+- Consecuencia para la herramienta: "copiar App Opener" = leer sus privilegios **en el momento de construir** y sumarlos a los de la matriz `04`. No se guarda una lista fija: cambia con las actualizaciones de plataforma. La verificación compara los privilegios **de las tablas propias** exactamente, y los de base como "al menos los de App Opener".
+
