@@ -318,6 +318,45 @@ def comprobar_solucion_e_idioma(dv, identidad):
     return solution_id
 
 
+def leer_entorno(dv, ruta, consulta, admite_404=False):
+    """GET contra el entorno con las reglas de estado de la receta: 404 es
+    "no existe" solo donde se admite; cualquier otro HTTP distinto de 200 es
+    `ErrorEntorno`; y el cuerpo tiene que ser un objeto. Devuelve el cuerpo,
+    o `None` si fue un 404 admitido."""
+    est, cuerpo, _ = dv.call("GET", ruta)
+    if est == 404 and admite_404:
+        return None
+    if est != 200:
+        raise ErrorEntorno(f"{consulta} devolvió HTTP {est} (se esperaba 200{' o 404' if admite_404 else ''}): {cuerpo}")
+    return exigir_forma(cuerpo, dict, consulta, "cuerpo")
+
+
+def valor_administrado(objeto, tipo, consulta, campo):
+    """Valor de una propiedad administrada del Web API (`{Value, CanBeChanged, …}`)."""
+    exigir_forma(objeto, dict, consulta, campo)
+    return exigir_forma(objeto.get("Value"), tipo, consulta, f"{campo}.Value")
+
+
+def comparar_etiqueta(etiqueta, lcid, que, esperado, difs, consulta, campo, permite_nulo=False):
+    """Valida la forma de un `Label` y agrega a `difs` lo que no coincida con
+    el texto esperado en `lcid`, o si trae etiquetas en otro idioma."""
+    exigir_etiqueta(etiqueta, consulta, campo, permite_nulo=permite_nulo)
+    texto, otros = etiqueta_y_otros_idiomas(etiqueta, lcid)
+    if (texto or "") != esperado:
+        difs.append(f"{que}: entorno={texto!r} playbook={esperado!r}")
+    if otros:
+        difs.append(f"{que} tiene etiquetas en otro idioma: {otros}")
+
+
+def nivel_requerido(requerida):
+    return {"Value": "ApplicationRequired" if requerida else "None", "CanBeChanged": True,
+            "ManagedPropertyLogicalName": "canmodifyrequirementlevelsettings"}
+
+
+def auditoria_administrada(activa):
+    return {"Value": activa, "CanBeChanged": True, "ManagedPropertyLogicalName": "canmodifyauditsettings"}
+
+
 ESPERA_BLOQUEO_SEGUNDOS = 30
 REINTENTOS_BLOQUEO = 10
 

@@ -491,6 +491,9 @@ def ajustar_primaria(dv, datos, identidad):
     definicion = {k: v for k, v in actual.items() if k != "@odata.context"}
     definicion["@odata.type"] = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
     definicion["MaxLength"] = p["largo"]
+    # El nombre visible y la descripción viajan en el mismo PUT (con MSCRM.MergeLabels).
+    definicion["DisplayName"] = etiqueta_web_api(p["displayname"], identidad["lcid"])
+    definicion["Description"] = etiqueta_web_api(p["descripcion"], identidad["lcid"])
     if p["autonumerico"]:
         # Volver autonumérica una primaria de texto que ya existe es el mismo PUT (ensayado el 2026-09-20).
         definicion["AutoNumberFormat"] = p["autonumerico"]
@@ -506,12 +509,13 @@ def ajustar_primaria(dv, datos, identidad):
 
 
 def _solo_difiere_la_primaria(datos, diffs):
-    """Lo único que `--corregir-primaria` acepta reparar: largo, requerida y,
+    """Lo único que `--corregir-primaria` acepta reparar, y solo en la primaria:
+    largo, requerida, nombre visible, descripción y,
     si el playbook la quiere autonumérica, darle su formato. Quitarle el
     formato a una columna que ya es autonumérica NO: eso no lo pide ningún
     playbook y cambiaría cómo se numeran los registros."""
     n = datos["primaria"]["nombre"]
-    admitidas = [f"{n}.MaxLength:", f"{n}.RequiredLevel:"]
+    admitidas = [f"{n}.MaxLength:", f"{n}.RequiredLevel:", f"{n}.DisplayName:", f"{n}.Description:"]
     if datos["primaria"]["autonumerico"]:
         admitidas.append(f"{n}.AutoNumberFormat:")
     return bool(diffs) and all(d.startswith(tuple(admitidas)) for d in diffs)

@@ -399,7 +399,8 @@ class Caminos(Base):
         self.assertEqual(c["@odata.type"], "Microsoft.Dynamics.CRM.StringAttributeMetadata")
         self.assertEqual(c["MaxLength"], 200)
         self.assertEqual(c["RequiredLevel"]["Value"], "ApplicationRequired")
-        self.assertEqual(c["DisplayName"], label("Nombre"))  # el resto de la definición se conserva
+        self.assertEqual(c["DisplayName"]["LocalizedLabels"][0]["Label"], "Nombre")
+        self.assertEqual(c["FormatName"], {"Value": "Text"})  # el resto de la definición se conserva
         self.assertEqual(puts[0]["cabeceras"], {"MSCRM.MergeLabels": "true"})
         self.assertEqual(puts[0]["solucion"], IDENT["solucion"])
         orden = [(l["metodo"], l["ruta"]) for l in cliente.llamadas if l["metodo"] in ("POST", "PUT")]
@@ -482,6 +483,26 @@ class Caminos(Base):
         cliente = armar(ClienteSimulado(), COMPLETO, por_tipo=entorno_auto)
         estado, _, detalle = self.con_cliente(cliente, COMPLETO, corregir_primaria=True)
         self.assertEqual(estado, "difiere", detalle)
+        self.assertFalse(cliente.hubo_escritura())
+
+    def test_corregir_primaria_tambien_cambia_su_nombre_visible_y_su_descripcion(self):
+        """Al volverla autonumérica cambia su papel (de nombre a número): el
+        nombre visible y la descripción van en el mismo PUT. Lo detectó el
+        constructor el 2026-09-20: sin esto la reparación no alcanzaba."""
+        nuevo = con_cambio(con_cambio(con_cambio(COMPLETO, ["primaria", "autonumerico"], "REG-{SEQNUM:4}"), ["primaria", "displayname"], "Número"),
+                           ["primaria", "descripcion"], "Número que la plataforma asigna sola.")
+        gen = [fila_generica(COMPLETO["primaria"], True)] + [fila_generica(c) for c in COMPLETO["columnas"]] + SISTEMA
+        cliente = armar(ClienteSimulado(), nuevo, por_tipo=filas_por_tipo(COMPLETO), genericas=gen)
+        self.con_cliente(cliente, nuevo, corregir_primaria=True)
+        puts = [l for l in cliente.llamadas if l["metodo"] == "PUT"]
+        self.assertEqual(len(puts), 1)
+        self.assertEqual(puts[0]["cuerpo"]["DisplayName"], tb.etiqueta_web_api("Número", 1033))
+        self.assertEqual(puts[0]["cuerpo"]["Description"], tb.etiqueta_web_api("Número que la plataforma asigna sola.", 1033))
+        # pero el nombre visible de OTRA columna no lo repara
+        otra = con_cambio(gen, [1, "DisplayName"], label("Otro"))
+        cliente = armar(ClienteSimulado(), nuevo, por_tipo=filas_por_tipo(COMPLETO), genericas=otra)
+        estado, _, _ = self.con_cliente(cliente, nuevo, corregir_primaria=True)
+        self.assertEqual(estado, "difiere")
         self.assertFalse(cliente.hubo_escritura())
 
     def test_ya_existia_no_escribe(self):
