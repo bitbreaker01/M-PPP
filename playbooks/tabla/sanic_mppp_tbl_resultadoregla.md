@@ -41,7 +41,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     "displayname": "Nombre",
     "descripcion": "Nombre que arma la solución al registrar el resultado. Nadie lo digita.",
     "largo": 200,
-    "requerida": true,
+    "requerida": false,
     "autonumerico": ""
   },
   "columnas": [
@@ -114,7 +114,7 @@ Decisiones que este playbook toma y el diccionario no traía:
 | Decisión | Valor | Por qué |
 |---|---|---|
 | Nombres visibles de las columnas | los de la sección 2 | Texto de negocio (`02` DD-19) |
-| La primaria es requerida, como dice el diccionario, aunque sea calculada | `requerida: true` | La calcula la solución y nadie la digita (`01` §4): en el formulario va en solo lectura u oculta (BP-PP-192), y una columna requerida en solo lectura u oculta no bloquea el guardado (Learn, *Troubleshoot form issues*). Eso se resuelve en el playbook del formulario, no bajando el nivel de requerida |
+| La primaria es opcional, como dice el diccionario | `requerida: false` | `02` §3.3 no la marca `S`, a diferencia de las demás tablas. La arma la solución y nadie la digita (`01` §4); el playbook no cambia lo que el diccionario decide. Si fuera una omisión del diccionario, se corrige ahí con el aprobador y se ajusta después: el nivel de requerida se puede cambiar sin costo |
 | Rango de las columnas enteras | `sanic_orden`: 0 a 100000 | El diccionario dice `E` sin rango; se fija uno amplio y sin negativos. Se puede ampliar después |
 | Auditoría nativa, notas y actividades | desactivada · no · no | `02` DD-18: es parte de la unidad histórica, que ya lleva su trazabilidad en columnas propias y en la Bitácora |
 
@@ -150,7 +150,7 @@ python3 herramientas/construir/muestra_tabla.py playbooks/tabla/sanic_mppp_tbl_r
 |---|---|---|
 | 1 | `GET EntityDefinitions(LogicalName='sanic_mppp_tbl_resultadoregla')` | 200 · `OwnershipType = UserOwned` · `IsManaged = false` · `IsCustomEntity = true` · `HasNotes = false` · `HasActivities = false` · `IsAuditEnabled = false` · `PrimaryNameAttribute = sanic_nombre` |
 | 2 | Nombre, plural y descripción en 1033 | los de la sección 2; ninguna etiqueta en otro idioma |
-| 3 | Columnas (7): tipo, requerida, protegida, auditoría, nombre visible, descripción y lo propio de su tipo | `sanic_nombre` texto 200 requerida · `sanic_reglacodigo` texto 50 requerida · `sanic_resultado` choice `sanic_mppp_ch_resultadoregla` requerida · `sanic_razon` multilínea 2000 opcional · `sanic_efectoaplicado` choice `sanic_mppp_ch_efectoregla` opcional · `sanic_fechaevaluacion` fecha y hora (usuario local) requerida · `sanic_orden` entero 0–100000 opcional; ninguna auditada |
+| 3 | Columnas (7): tipo, requerida, protegida, auditoría, nombre visible, descripción y lo propio de su tipo | `sanic_nombre` texto 200 opcional · `sanic_reglacodigo` texto 50 requerida · `sanic_resultado` choice `sanic_mppp_ch_resultadoregla` requerida · `sanic_razon` multilínea 2000 opcional · `sanic_efectoaplicado` choice `sanic_mppp_ch_efectoregla` opcional · `sanic_fechaevaluacion` fecha y hora (usuario local) requerida · `sanic_orden` entero 0–100000 opcional; ninguna auditada |
 | 4 | Ninguna columna propia de más | salvo lookups, que nacen con su relación |
 | 5 | Pertenece a la solución de la sección 1 | una fila en `solutioncomponents` (tipo de componente 1) |
 | 6 | Segunda ejecución sin `--solo-verificar` | estado `ya_existia`, código de salida 0 |

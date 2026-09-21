@@ -16,7 +16,7 @@
    "displayname": "Nombre",
    "descripcion": "Nombre calculado por la solución. Nadie lo digita.",
    "largo": 200,
-   "requerida": true,
+   "requerida": false,
    "autonumerico": ""
   },
   "columnas": [
@@ -89,9 +89,9 @@
    "Texto de negocio (`02` DD-19)"
   ],
   [
-   "La primaria es requerida, como dice el diccionario, aunque sea calculada",
-   "`requerida: true`",
-   "La calcula la solución y nadie la digita (`01` §4): en el formulario va en solo lectura u oculta (BP-PP-192), y una columna requerida en solo lectura u oculta no bloquea el guardado (Learn, *Troubleshoot form issues*). Eso se resuelve en el playbook del formulario, no bajando el nivel de requerida"
+   "La primaria es opcional, como dice el diccionario",
+   "`requerida: false`",
+   "`02` §3.4 no la marca `S`, a diferencia de las demás tablas. La arma la solución y nadie la digita (`01` §4); el playbook no cambia lo que el diccionario decide. Si fuera una omisión del diccionario, se corrige ahí con el aprobador y se ajusta después: el nivel de requerida se puede cambiar sin costo"
   ],
   [
    "Rango de las columnas enteras",
