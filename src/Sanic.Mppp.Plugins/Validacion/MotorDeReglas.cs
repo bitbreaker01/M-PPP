@@ -160,12 +160,12 @@ namespace Sanic.Mppp.Plugins.Validacion
 
             var lista = reglasActivas.ToList();
 
-            // "El motor evalúa todas las reglas activas, de menor a mayor Orden; empatadas, por Código ordinal" (desempate determinista:
-            // no depende de cómo vinieron de la consulta).
-            var ordenadas = lista.OrderBy(r => r.Orden).ThenBy(r => r?.Codigo, StringComparer.Ordinal).ToList();
-
-            // Valida el catálogo ENTERO antes de llamar a ningún evaluador: así un catálogo roto no deja media evaluación hecha.
-            var porCodigo = ValidarCatalogo(lista, ordenadas);
+            // Valida el catálogo ENTERO (definiciones nulas, códigos nulos/en blanco/repetidos, dependencias, ciclos) ANTES de
+            // llamar a ningún evaluador, y recién ADENTRO lo ordena (revisión de código, 2026-09-21): si se ordena primero, una
+            // definición nula revienta con NullReferenceException al leer r.Orden en vez de fallar cerrado con
+            // ConfiguracionDeReglasInvalidaException — con un solo elemento el runtime no llega a invocar el selector, por eso
+            // ese caso pasaba antes y el de dos o más no.
+            var ordenadas = ValidarCatalogo(lista);
 
             var resultados = new List<ResultadoDeRegla>(ordenadas.Count);
             var resultadoPorCodigo = new Dictionary<string, ResultadoDeLaRegla>(StringComparer.Ordinal);
@@ -220,12 +220,13 @@ namespace Sanic.Mppp.Plugins.Validacion
         }
 
         /// <summary>
-        /// Valida el catálogo entero antes de evaluar nada (revisión de código, 2026-09-21): definiciones nulas, código nulo o en blanco,
-        /// códigos repetidos, dependencias nulas o en blanco, una regla que depende de sí misma, un ciclo (que siempre se manifiesta como una
+        /// Valida el catálogo entero antes de ordenarlo y de evaluar nada (revisión de código, 2026-09-21): PRIMERO definiciones nulas y
+        /// código nulo o en blanco (así el OrderBy de abajo nunca lee r.Orden de una definición nula), después códigos repetidos; recién ahí
+        /// ordena y valida dependencias nulas o en blanco, una regla que depende de sí misma, un ciclo (que siempre se manifiesta como una
         /// dependencia con Orden mayor o igual: ver nota abajo), una dependencia que no está entre las activas, y una regla activa sin
-        /// evaluador. Devuelve el catálogo indexado por código para que el resto de Evaluar no vuelva a recorrerlo.
+        /// evaluador. Devuelve el catálogo ya ordenado (Orden asc, empatadas por Código ordinal) para que Evaluar lo use directamente.
         /// </summary>
-        private Dictionary<string, DefinicionDeRegla> ValidarCatalogo(IList<DefinicionDeRegla> lista, IList<DefinicionDeRegla> ordenadas)
+        private List<DefinicionDeRegla> ValidarCatalogo(IList<DefinicionDeRegla> lista)
         {
             foreach (var regla in lista)
             {
@@ -251,8 +252,13 @@ namespace Sanic.Mppp.Plugins.Validacion
                 porCodigo[regla.Codigo] = regla;
             }
 
-            // Posición de cada regla en el orden real de evaluación (Orden asc, empatadas por Código ordinal): sirve para saber si una
-            // dependencia ya se evaluó cuando le toca el turno a quien depende de ella.
+            // "El motor evalúa todas las reglas activas, de menor a mayor Orden; empatadas, por Código ordinal" (desempate determinista:
+            // no depende de cómo vinieron de la consulta). Ya se sabe que no hay definiciones nulas ni códigos nulos/en blanco: el
+            // selector r.Orden no puede reventar acá.
+            var ordenadas = lista.OrderBy(r => r.Orden).ThenBy(r => r.Codigo, StringComparer.Ordinal).ToList();
+
+            // Posición de cada regla en el orden real de evaluación: sirve para saber si una dependencia ya se evaluó cuando le
+            // toca el turno a quien depende de ella.
             var posicion = new Dictionary<string, int>(StringComparer.Ordinal);
             for (var i = 0; i < ordenadas.Count; i++)
             {
@@ -306,7 +312,7 @@ namespace Sanic.Mppp.Plugins.Validacion
                 }
             }
 
-            return porCodigo;
+            return ordenadas;
         }
     }
 
