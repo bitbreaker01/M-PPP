@@ -87,4 +87,4 @@ if __name__ == "__main__":
     estado, datos, _ = Dataverse().call(sys.argv[1].upper(), sys.argv[2], cuerpo,
                                         solucion=sys.argv[4] if len(sys.argv) > 4 else None)
     print(estado)
-    print(json.dumps(datos, ensure_ascii=False, indent=1)[:6000])
+    print(json.dumps(datos, ensure_ascii=False, indent=1))

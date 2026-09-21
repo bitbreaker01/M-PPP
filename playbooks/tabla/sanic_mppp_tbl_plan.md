@@ -41,7 +41,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     "displayname": "Nombre",
     "descripcion": "Nombre calculado por la solución: código del plan y nombre del cliente. Nadie lo digita.",
     "largo": 100,
-    "requerida": false,
+    "requerida": true,
     "autonumerico": ""
   },
   "columnas": [
@@ -84,7 +84,7 @@ Decisiones que este playbook toma y el diccionario no traía:
 | Decisión | Valor | Por qué |
 |---|---|---|
 | Nombres visibles de las columnas | `Nombre`, `Código`, `Tipo de formato`, `Moneda` | Texto de negocio (`02` DD-19) |
-| La primaria **no** es requerida a nivel de aplicación | `requerida: false` | El diccionario la marca como requerida por negocio, pero es **calculada** (`<código> - <cliente>`) por un plugin PreOperation y nadie la digita (`01` §4). Si fuera requerida a nivel de aplicación, el formulario exigiría escribirla antes de que el plugin corra. Que nunca quede vacía lo garantiza el plugin (inventario 7.11) |
+| La primaria es requerida, como dice el diccionario, aunque sea calculada | `requerida: true` | `02` §2.2 la marca `S`. La calcula un plugin PreOperation y nadie la digita (`01` §4): en el formulario va **en solo lectura u oculta** (BP-PP-192), y una columna requerida en solo lectura u oculta **no bloquea el guardado** (Learn, *Troubleshoot form issues*: "Business required column doesn't block saving"). Eso se resuelve en el playbook del formulario, no bajando el nivel de requerida |
 | Auditoría nativa, notas y actividades | activada · no · no | `02` DD-18: es un catálogo |
 
 ## 3. Precondiciones
@@ -119,7 +119,7 @@ python3 herramientas/construir/muestra_tabla.py playbooks/tabla/sanic_mppp_tbl_p
 |---|---|---|
 | 1 | `GET EntityDefinitions(LogicalName='sanic_mppp_tbl_plan')` | 200 · `OwnershipType = UserOwned` · `IsManaged = false` · `IsCustomEntity = true` · `HasNotes = false` · `HasActivities = false` · `IsAuditEnabled = true` · `PrimaryNameAttribute = sanic_nombre` |
 | 2 | Nombre, plural y descripción en 1033 | los de la sección 2; ninguna etiqueta en otro idioma |
-| 3 | Columnas | `sanic_nombre` texto 100 opcional · `sanic_codigo` texto 4 requerida · `sanic_tipoformato` choice `sanic_mppp_ch_tipoformatoplan` requerida · `sanic_moneda` choice `sanic_mppp_ch_moneda` requerida; las cuatro auditadas, ninguna protegida |
+| 3 | Columnas | `sanic_nombre` texto 100 requerida · `sanic_codigo` texto 4 requerida · `sanic_tipoformato` choice `sanic_mppp_ch_tipoformatoplan` requerida · `sanic_moneda` choice `sanic_mppp_ch_moneda` requerida; las cuatro auditadas, ninguna protegida |
 | 4 | Ninguna columna propia de más | salvo lookups, que nacen con su relación |
 | 5 | Pertenece a la solución de la sección 1 | una fila en `solutioncomponents` (tipo de componente 1) |
 | 6 | Segunda ejecución sin `--solo-verificar` | estado `ya_existia`, código de salida 0 |
