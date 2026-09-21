@@ -213,6 +213,17 @@
     "maximo": 1000
    },
    {
+    "nombre": "sanic_cantidadexcel",
+    "displayname": "Cantidad de Excel",
+    "descripcion": "Cuántos de los archivos adjuntos son de Excel. La llena el flujo de ingreso; con ella las reglas del sobre distinguen \"no es Excel\" de \"más de un Excel\" (D-15).",
+    "tipo": "entero",
+    "requerida": false,
+    "protegida": false,
+    "auditoria": false,
+    "minimo": 0,
+    "maximo": 1000
+   },
+   {
     "nombre": "sanic_filastotales",
     "displayname": "Filas totales",
     "descripcion": "Filas con datos leídas de la plantilla.",

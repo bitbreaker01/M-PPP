@@ -238,6 +238,17 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
       "maximo": 1000
     },
     {
+      "nombre": "sanic_cantidadexcel",
+      "displayname": "Cantidad de Excel",
+      "descripcion": "Cuántos de los archivos adjuntos son de Excel. La llena el flujo de ingreso; con ella las reglas del sobre distinguen \"no es Excel\" de \"más de un Excel\" (D-15).",
+      "tipo": "entero",
+      "requerida": false,
+      "protegida": false,
+      "auditoria": false,
+      "minimo": 0,
+      "maximo": 1000
+    },
+    {
       "nombre": "sanic_filastotales",
       "displayname": "Filas totales",
       "descripcion": "Filas con datos leídas de la plantilla.",
@@ -361,7 +372,7 @@ python3 herramientas/construir/muestra_tabla.py playbooks/tabla/sanic_mppp_tbl_s
 |---|---|---|
 | 1 | `GET EntityDefinitions(LogicalName='sanic_mppp_tbl_solicitud')` | 200 · `OwnershipType = UserOwned` · `IsManaged = false` · `IsCustomEntity = true` · `HasNotes = false` · `HasActivities = false` · `IsAuditEnabled = false` · `PrimaryNameAttribute = sanic_nombre` |
 | 2 | Nombre, plural y descripción en 1033 | los de la sección 2; ninguna etiqueta en otro idioma |
-| 3 | Columnas (28): tipo, requerida, protegida, auditoría, nombre visible, descripción y lo propio de su tipo | `sanic_nombre` autonumérico `MPPP-{SEQNUM:8}` (largo 100) requerida · `sanic_messageid` texto 450 requerida · `sanic_outlookmessageid` texto 500 opcional · `sanic_remitente` texto 320 requerida · `sanic_motivoclasificacion` texto 300 opcional · `sanic_asunto` texto 400 opcional · `sanic_fecharecibido` fecha y hora (usuario local) requerida · `sanic_fechaingresada` fecha y hora (usuario local) requerida · `sanic_estadoprocesamiento` choice `sanic_mppp_ch_estadosolicitud` requerida · `sanic_fechavalidada` fecha y hora (usuario local) opcional · `sanic_fechaacuseiniciado` fecha y hora (usuario local) opcional · `sanic_fechaacuseenviado` fecha y hora (usuario local) opcional · `sanic_acusecontenido` multilínea 1048576 opcional · `sanic_fechaprocesada` fecha y hora (usuario local) opcional · `sanic_fecharespuestafinaliniciada` fecha y hora (usuario local) opcional · `sanic_fecharespuestafinalenviada` fecha y hora (usuario local) opcional · `sanic_respuestafinalcontenido` multilínea 1048576 opcional · `sanic_fechacerrada` fecha y hora (usuario local) opcional · `sanic_correocrudo` archivo hasta 25600 KB opcional · `sanic_exceloriginal` archivo hasta 10240 KB opcional · `sanic_cantidadadjuntos` entero 0–1000 opcional · `sanic_filastotales` entero 0–100000 opcional · `sanic_filasvalidas` entero 0–100000 opcional · `sanic_filasrechazadas` entero 0–100000 opcional · `sanic_versionparametros` texto 200 opcional · `sanic_reintentosvalidacion` entero 0–1000 opcional · `sanic_requiererevision` sí/no (por defecto False) opcional · `sanic_motivorevision` multilínea 2000 opcional; ninguna auditada |
+| 3 | Columnas (29): tipo, requerida, protegida, auditoría, nombre visible, descripción y lo propio de su tipo | `sanic_nombre` autonumérico `MPPP-{SEQNUM:8}` (largo 100) requerida · `sanic_messageid` texto 450 requerida · `sanic_outlookmessageid` texto 500 opcional · `sanic_remitente` texto 320 requerida · `sanic_motivoclasificacion` texto 300 opcional · `sanic_asunto` texto 400 opcional · `sanic_fecharecibido` fecha y hora (usuario local) requerida · `sanic_fechaingresada` fecha y hora (usuario local) requerida · `sanic_estadoprocesamiento` choice `sanic_mppp_ch_estadosolicitud` requerida · `sanic_fechavalidada` fecha y hora (usuario local) opcional · `sanic_fechaacuseiniciado` fecha y hora (usuario local) opcional · `sanic_fechaacuseenviado` fecha y hora (usuario local) opcional · `sanic_acusecontenido` multilínea 1048576 opcional · `sanic_fechaprocesada` fecha y hora (usuario local) opcional · `sanic_fecharespuestafinaliniciada` fecha y hora (usuario local) opcional · `sanic_fecharespuestafinalenviada` fecha y hora (usuario local) opcional · `sanic_respuestafinalcontenido` multilínea 1048576 opcional · `sanic_fechacerrada` fecha y hora (usuario local) opcional · `sanic_correocrudo` archivo hasta 25600 KB opcional · `sanic_exceloriginal` archivo hasta 10240 KB opcional · `sanic_cantidadadjuntos` entero 0–1000 opcional · `sanic_cantidadexcel` entero 0–1000 opcional · `sanic_filastotales` entero 0–100000 opcional · `sanic_filasvalidas` entero 0–100000 opcional · `sanic_filasrechazadas` entero 0–100000 opcional · `sanic_versionparametros` texto 200 opcional · `sanic_reintentosvalidacion` entero 0–1000 opcional · `sanic_requiererevision` sí/no (por defecto False) opcional · `sanic_motivorevision` multilínea 2000 opcional; ninguna auditada |
 | 4 | Ninguna columna propia de más | salvo lookups, que nacen con su relación |
 | 5 | Pertenece a la solución de la sección 1 | una fila en `solutioncomponents` (tipo de componente 1) |
 | 6 | Segunda ejecución sin `--solo-verificar` | estado `ya_existia`, código de salida 0 |
