@@ -521,7 +521,7 @@
               <MaxLength>50</MaxLength>
               <Length>100</Length>
               <displaynames>
-                <displayname description="Código" languagecode="1033" />
+                <displayname description="Codigo" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Código de la regla; identifica a su evaluador en el código. Es clave alternativa." languagecode="1033" />
@@ -753,7 +753,7 @@
               <MaxLength>200</MaxLength>
               <Length>400</Length>
               <displaynames>
-                <displayname description="Número" languagecode="1033" />
+                <displayname description="Numero" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Número que la plataforma asigna sola al crear el registro. Nadie lo digita." languagecode="1033" />
@@ -998,6 +998,20 @@
               </Descriptions>
             </attribute>
           </attributes>
+          <EntityKeys>
+            <EntityKey>
+              <Name>sanic_mppp_key_regla_codigo</Name>
+              <LogicalName>sanic_mppp_key_regla_codigo</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_codigo</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - Regla - Código" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+          </EntityKeys>
           <EntitySetName>sanic_mppp_tbl_reglas</EntitySetName>
           <IsDuplicateCheckSupported>0</IsDuplicateCheckSupported>
           <IsBusinessProcessEnabled>0</IsBusinessProcessEnabled>
@@ -1120,7 +1134,7 @@
                             <row>
                               <cell id="{dee64773-8042-4119-bd65-c0e41ee5a45f}" showlabel="true" locklevel="0">
                                 <labels>
-                                  <label description="Número" languagecode="1033" />
+                                  <label description="Numero" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" disabled="false" />
                               </cell>
@@ -1197,7 +1211,7 @@
                             <row>
                               <cell id="{ca14a185-0a79-46a6-b568-04e985c14a0d}">
                                 <labels>
-                                  <label description="Número" languagecode="1033" />
+                                  <label description="Numero" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" />
                               </cell>
@@ -1251,7 +1265,7 @@
                             <row>
                               <cell id="{6a27e2fa-e253-4f15-ba11-ae97b5bab462}">
                                 <labels>
-                                  <label description="Número" languagecode="1033" />
+                                  <label description="Numero" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" />
                               </cell>

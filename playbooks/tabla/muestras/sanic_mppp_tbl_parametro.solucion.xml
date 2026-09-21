@@ -1,12 +1,12 @@
 <Entity>
-      <Name LocalizedName="Parámetro" OriginalName="Parámetro">sanic_mppp_tbl_parametro</Name>
+      <Name LocalizedName="Parametro" OriginalName="Parámetro">sanic_mppp_tbl_parametro</Name>
       <EntityInfo>
         <entity Name="sanic_mppp_tbl_parametro">
           <LocalizedNames>
-            <LocalizedName description="Parámetro" languagecode="1033" />
+            <LocalizedName description="Parametro" languagecode="1033" />
           </LocalizedNames>
           <LocalizedCollectionNames>
-            <LocalizedCollectionName description="Parámetros" languagecode="1033" />
+            <LocalizedCollectionName description="Parametros" languagecode="1033" />
           </LocalizedCollectionNames>
           <Descriptions>
             <Description description="Parámetro de configuración de la solución, versionado. Rige la versión activa más alta de cada código; la vigente nunca se edita." languagecode="1033" />
@@ -520,7 +520,7 @@
               <Format>textarea</Format>
               <MaxLength>2000</MaxLength>
               <displaynames>
-                <displayname description="Descripción" languagecode="1033" />
+                <displayname description="Descripcion" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Para qué sirve el parámetro y qué formato tiene su valor." languagecode="1033" />
@@ -597,7 +597,7 @@
               <MaxLength>100</MaxLength>
               <Length>200</Length>
               <displaynames>
-                <displayname description="Código" languagecode="1033" />
+                <displayname description="Codigo" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Código del parámetro, en minúscula y separado por puntos. Con la versión forma la clave alternativa." languagecode="1033" />
@@ -714,7 +714,7 @@
               <MinValue>1</MinValue>
               <MaxValue>2147483647</MaxValue>
               <displaynames>
-                <displayname description="Versión" languagecode="1033" />
+                <displayname description="Version" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Versión del parámetro. Rige la versión activa más alta." languagecode="1033" />
@@ -919,6 +919,21 @@
               </Descriptions>
             </attribute>
           </attributes>
+          <EntityKeys>
+            <EntityKey>
+              <Name>sanic_mppp_key_parametro_nombre_version</Name>
+              <LogicalName>sanic_mppp_key_parametro_nombre_version</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_nombre</AttributeName>
+                <AttributeName>sanic_version</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - Parámetro - Nombre y versión" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+          </EntityKeys>
           <EntitySetName>sanic_mppp_tbl_parametros</EntitySetName>
           <IsDuplicateCheckSupported>0</IsDuplicateCheckSupported>
           <IsBusinessProcessEnabled>0</IsBusinessProcessEnabled>
@@ -1041,7 +1056,7 @@
                             <row>
                               <cell id="{960978fe-13b8-49e3-ab34-002a6632ec8e}" showlabel="true" locklevel="0">
                                 <labels>
-                                  <label description="Código" languagecode="1033" />
+                                  <label description="Codigo" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" disabled="false" />
                               </cell>
@@ -1118,7 +1133,7 @@
                             <row>
                               <cell id="{33fa9b41-985f-4c6c-8faa-147c03d662a3}">
                                 <labels>
-                                  <label description="Código" languagecode="1033" />
+                                  <label description="Codigo" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" />
                               </cell>
@@ -1172,7 +1187,7 @@
                             <row>
                               <cell id="{6af94370-4cc2-43d6-8f4c-9721f2dec67d}">
                                 <labels>
-                                  <label description="Código" languagecode="1033" />
+                                  <label description="Codigo" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" />
                               </cell>

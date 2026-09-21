@@ -1,10 +1,10 @@
-<optionset Name="sanic_mppp_ch_eventobitacora" localizedName="CH - MPPP - Evento de bitácora" description="Qué ocurrió en un renglón de la bitácora de una solicitud. La usa la tabla Bitacora.">
+<optionset Name="sanic_mppp_ch_eventobitacora" localizedName="CH - MPPP - Evento de bitacora" description="Qué ocurrió en un renglón de la bitácora de una solicitud. La usa la tabla Bitacora.">
       <OptionSetType>picklist</OptionSetType>
       <IsGlobal>1</IsGlobal>
       <IntroducedVersion>1.0.0.0</IntroducedVersion>
       <IsCustomizable>1</IsCustomizable>
       <displaynames>
-        <displayname description="CH - MPPP - Evento de bitácora" languagecode="1033" />
+        <displayname description="CH - MPPP - Evento de bitacora" languagecode="1033" />
       </displaynames>
       <Descriptions>
         <Description description="Qué ocurrió en un renglón de la bitácora de una solicitud. La usa la tabla Bitacora." languagecode="1033" />
@@ -20,7 +20,7 @@
         </option>
         <option value="159460002" ExternalValue="" IsHidden="0">
           <labels>
-            <label description="Validación terminada" languagecode="1033" />
+            <label description="Validacion terminada" languagecode="1033" />
           </labels>
           <Descriptions>
             <Description description="" languagecode="1033" />
@@ -140,7 +140,7 @@
         </option>
         <option value="159460016" ExternalValue="" IsHidden="0">
           <labels>
-            <label description="Requiere revisión" languagecode="1033" />
+            <label description="Requiere revision" languagecode="1033" />
           </labels>
           <Descriptions>
             <Description description="" languagecode="1033" />

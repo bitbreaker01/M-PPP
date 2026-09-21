@@ -1,10 +1,10 @@
-<optionset Name="sanic_mppp_ch_tipoidentificacion" localizedName="CH - MPPP - Tipo de identificación" description="Tipo de documento de identidad del titular de la referencia. La usa la tabla Fila.">
+<optionset Name="sanic_mppp_ch_tipoidentificacion" localizedName="CH - MPPP - Tipo de identificacion" description="Tipo de documento de identidad del titular de la referencia. La usa la tabla Fila.">
       <OptionSetType>picklist</OptionSetType>
       <IsGlobal>1</IsGlobal>
       <IntroducedVersion>1.0.0.0</IntroducedVersion>
       <IsCustomizable>1</IsCustomizable>
       <displaynames>
-        <displayname description="CH - MPPP - Tipo de identificación" languagecode="1033" />
+        <displayname description="CH - MPPP - Tipo de identificacion" languagecode="1033" />
       </displaynames>
       <Descriptions>
         <Description description="Tipo de documento de identidad del titular de la referencia. La usa la tabla Fila." languagecode="1033" />

@@ -636,7 +636,7 @@
               <MaxLength>200</MaxLength>
               <Length>400</Length>
               <displaynames>
-                <displayname description="Número" languagecode="1033" />
+                <displayname description="Numero" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Número que la plataforma asigna sola al crear el registro. Nadie lo digita." languagecode="1033" />
@@ -715,7 +715,7 @@
               <Format>textarea</Format>
               <MaxLength>2000</MaxLength>
               <displaynames>
-                <displayname description="Razón" languagecode="1033" />
+                <displayname description="Razon" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Por qué no se cumplió, o qué regla la bloqueó si quedó omitida." languagecode="1033" />
@@ -755,10 +755,48 @@
               <MaxLength>50</MaxLength>
               <Length>100</Length>
               <displaynames>
-                <displayname description="Código de la regla" languagecode="1033" />
+                <displayname description="Codigo de la regla" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Código de la regla evaluada. Con la solicitud forma la clave alternativa." languagecode="1033" />
+              </Descriptions>
+            </attribute>
+            <attribute PhysicalName="sanic_reglaid">
+              <Type>lookup</Type>
+              <Name>sanic_reglaid</Name>
+              <LogicalName>sanic_reglaid</LogicalName>
+              <RequiredLevel>none</RequiredLevel>
+              <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+              <ValidForUpdateApi>1</ValidForUpdateApi>
+              <ValidForReadApi>1</ValidForReadApi>
+              <ValidForCreateApi>1</ValidForCreateApi>
+              <IsCustomField>1</IsCustomField>
+              <IsAuditEnabled>0</IsAuditEnabled>
+              <IsSecured>0</IsSecured>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>1</IsCustomizable>
+              <IsRenameable>1</IsRenameable>
+              <CanModifySearchSettings>1</CanModifySearchSettings>
+              <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+              <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+              <SourceType>0</SourceType>
+              <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+              <IsSortableEnabled>0</IsSortableEnabled>
+              <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+              <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+              <IsDataSourceSecret>0</IsDataSourceSecret>
+              <AutoNumberFormat />
+              <IsSearchable>0</IsSearchable>
+              <IsFilterable>0</IsFilterable>
+              <IsRetrievable>0</IsRetrievable>
+              <IsLocalizable>0</IsLocalizable>
+              <LookupStyle>single</LookupStyle>
+              <LookupTypes />
+              <displaynames>
+                <displayname description="Regla" languagecode="1033" />
+              </displaynames>
+              <Descriptions>
+                <Description description="Regla del catálogo que se evaluó." languagecode="1033" />
               </Descriptions>
             </attribute>
             <attribute PhysicalName="sanic_resultado">
@@ -797,6 +835,44 @@
               </displaynames>
               <Descriptions>
                 <Description description="Cumplida, No cumplida u Omitida." languagecode="1033" />
+              </Descriptions>
+            </attribute>
+            <attribute PhysicalName="sanic_solicitudid">
+              <Type>lookup</Type>
+              <Name>sanic_solicitudid</Name>
+              <LogicalName>sanic_solicitudid</LogicalName>
+              <RequiredLevel>none</RequiredLevel>
+              <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+              <ValidForUpdateApi>1</ValidForUpdateApi>
+              <ValidForReadApi>1</ValidForReadApi>
+              <ValidForCreateApi>1</ValidForCreateApi>
+              <IsCustomField>1</IsCustomField>
+              <IsAuditEnabled>0</IsAuditEnabled>
+              <IsSecured>0</IsSecured>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>1</IsCustomizable>
+              <IsRenameable>1</IsRenameable>
+              <CanModifySearchSettings>1</CanModifySearchSettings>
+              <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+              <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+              <SourceType>0</SourceType>
+              <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+              <IsSortableEnabled>0</IsSortableEnabled>
+              <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+              <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+              <IsDataSourceSecret>0</IsDataSourceSecret>
+              <AutoNumberFormat />
+              <IsSearchable>0</IsSearchable>
+              <IsFilterable>0</IsFilterable>
+              <IsRetrievable>0</IsRetrievable>
+              <IsLocalizable>0</IsLocalizable>
+              <LookupStyle>single</LookupStyle>
+              <LookupTypes />
+              <displaynames>
+                <displayname description="Solicitud" languagecode="1033" />
+              </displaynames>
+              <Descriptions>
+                <Description description="Solicitud sobre la que se evaluó la regla." languagecode="1033" />
               </Descriptions>
             </attribute>
             <attribute PhysicalName="statecode">
@@ -998,6 +1074,21 @@
               </Descriptions>
             </attribute>
           </attributes>
+          <EntityKeys>
+            <EntityKey>
+              <Name>sanic_mppp_key_resultadoregla_solicitud_reglacodigo</Name>
+              <LogicalName>sanic_mppp_key_resultadoregla_solicitud_reglacodigo</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_reglacodigo</AttributeName>
+                <AttributeName>sanic_solicitudid</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - Resultado de regla - Solicitud y código de regla" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+          </EntityKeys>
           <EntitySetName>sanic_mppp_tbl_resultadoreglas</EntitySetName>
           <IsDuplicateCheckSupported>0</IsDuplicateCheckSupported>
           <IsBusinessProcessEnabled>0</IsBusinessProcessEnabled>
@@ -1120,7 +1211,7 @@
                             <row>
                               <cell id="{78ca3c4c-1cdf-46fc-b99d-a0161dfa86ac}" showlabel="true" locklevel="0">
                                 <labels>
-                                  <label description="Número" languagecode="1033" />
+                                  <label description="Numero" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" disabled="false" />
                               </cell>
@@ -1197,7 +1288,7 @@
                             <row>
                               <cell id="{76b84cbd-2f6b-40bd-9aa4-3df188cdcc2c}">
                                 <labels>
-                                  <label description="Número" languagecode="1033" />
+                                  <label description="Numero" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" />
                               </cell>
@@ -1251,7 +1342,7 @@
                             <row>
                               <cell id="{7377a646-13ab-460c-8049-9e298b03906f}">
                                 <labels>
-                                  <label description="Número" languagecode="1033" />
+                                  <label description="Numero" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" />
                               </cell>

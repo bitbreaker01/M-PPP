@@ -1,9 +1,9 @@
 <Entity>
-      <Name LocalizedName="Autorización" OriginalName="Autorización">sanic_mppp_tbl_autorizacionplan</Name>
+      <Name LocalizedName="Autorizacion" OriginalName="Autorización">sanic_mppp_tbl_autorizacionplan</Name>
       <EntityInfo>
         <entity Name="sanic_mppp_tbl_autorizacionplan">
           <LocalizedNames>
-            <LocalizedName description="Autorización" languagecode="1033" />
+            <LocalizedName description="Autorizacion" languagecode="1033" />
           </LocalizedNames>
           <LocalizedCollectionNames>
             <LocalizedCollectionName description="Autorizaciones" languagecode="1033" />
@@ -487,6 +487,44 @@
                 <Description description="Unique identifier for the user that owns the record." languagecode="1033" />
               </Descriptions>
             </attribute>
+            <attribute PhysicalName="sanic_autorizadoid">
+              <Type>lookup</Type>
+              <Name>sanic_autorizadoid</Name>
+              <LogicalName>sanic_autorizadoid</LogicalName>
+              <RequiredLevel>required</RequiredLevel>
+              <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+              <ValidForUpdateApi>1</ValidForUpdateApi>
+              <ValidForReadApi>1</ValidForReadApi>
+              <ValidForCreateApi>1</ValidForCreateApi>
+              <IsCustomField>1</IsCustomField>
+              <IsAuditEnabled>1</IsAuditEnabled>
+              <IsSecured>0</IsSecured>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>1</IsCustomizable>
+              <IsRenameable>1</IsRenameable>
+              <CanModifySearchSettings>1</CanModifySearchSettings>
+              <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+              <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+              <SourceType>0</SourceType>
+              <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+              <IsSortableEnabled>0</IsSortableEnabled>
+              <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+              <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+              <IsDataSourceSecret>0</IsDataSourceSecret>
+              <AutoNumberFormat />
+              <IsSearchable>0</IsSearchable>
+              <IsFilterable>0</IsFilterable>
+              <IsRetrievable>0</IsRetrievable>
+              <IsLocalizable>0</IsLocalizable>
+              <LookupStyle>single</LookupStyle>
+              <LookupTypes />
+              <displaynames>
+                <displayname description="Correo autorizado" languagecode="1033" />
+              </displaynames>
+              <Descriptions>
+                <Description description="Correo autorizado al que se le da permiso sobre el plan." languagecode="1033" />
+              </Descriptions>
+            </attribute>
             <attribute PhysicalName="sanic_documentofirmado">
               <Type>file</Type>
               <Name>sanic_documentofirmado</Name>
@@ -640,6 +678,44 @@
               </displaynames>
               <Descriptions>
                 <Description description="Nombre calculado por la solución: correo → código del plan. Nadie lo digita." languagecode="1033" />
+              </Descriptions>
+            </attribute>
+            <attribute PhysicalName="sanic_planid">
+              <Type>lookup</Type>
+              <Name>sanic_planid</Name>
+              <LogicalName>sanic_planid</LogicalName>
+              <RequiredLevel>required</RequiredLevel>
+              <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+              <ValidForUpdateApi>1</ValidForUpdateApi>
+              <ValidForReadApi>1</ValidForReadApi>
+              <ValidForCreateApi>1</ValidForCreateApi>
+              <IsCustomField>1</IsCustomField>
+              <IsAuditEnabled>1</IsAuditEnabled>
+              <IsSecured>0</IsSecured>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>1</IsCustomizable>
+              <IsRenameable>1</IsRenameable>
+              <CanModifySearchSettings>1</CanModifySearchSettings>
+              <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+              <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+              <SourceType>0</SourceType>
+              <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+              <IsSortableEnabled>0</IsSortableEnabled>
+              <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+              <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+              <IsDataSourceSecret>0</IsDataSourceSecret>
+              <AutoNumberFormat />
+              <IsSearchable>0</IsSearchable>
+              <IsFilterable>0</IsFilterable>
+              <IsRetrievable>0</IsRetrievable>
+              <IsLocalizable>0</IsLocalizable>
+              <LookupStyle>single</LookupStyle>
+              <LookupTypes />
+              <displaynames>
+                <displayname description="Plan" languagecode="1033" />
+              </displaynames>
+              <Descriptions>
+                <Description description="Plan sobre el que se autoriza al correo." languagecode="1033" />
               </Descriptions>
             </attribute>
             <attribute PhysicalName="statecode">
@@ -841,6 +917,21 @@
               </Descriptions>
             </attribute>
           </attributes>
+          <EntityKeys>
+            <EntityKey>
+              <Name>sanic_mppp_key_autorizacionplan_autorizado_plan</Name>
+              <LogicalName>sanic_mppp_key_autorizacionplan_autorizado_plan</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_autorizadoid</AttributeName>
+                <AttributeName>sanic_planid</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - Autorización - Autorizado y plan" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+          </EntityKeys>
           <EntitySetName>sanic_mppp_tbl_autorizacionplans</EntitySetName>
           <IsDuplicateCheckSupported>1</IsDuplicateCheckSupported>
           <IsBusinessProcessEnabled>0</IsBusinessProcessEnabled>

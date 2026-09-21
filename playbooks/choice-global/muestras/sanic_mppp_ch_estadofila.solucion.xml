@@ -12,7 +12,7 @@
       <options>
         <option value="159460001" ExternalValue="" IsHidden="0">
           <labels>
-            <label description="Rechazada en validación" languagecode="1033" />
+            <label description="Rechazada en validacion" languagecode="1033" />
           </labels>
           <Descriptions>
             <Description description="Terminal. No cumplió una regla de registro" languagecode="1033" />
@@ -20,7 +20,7 @@
         </option>
         <option value="159460002" ExternalValue="" IsHidden="0">
           <labels>
-            <label description="Sin autorización" languagecode="1033" />
+            <label description="Sin autorizacion" languagecode="1033" />
           </labels>
           <Descriptions>
             <Description description="Terminal. El remitente no tiene una autorización vigente sobre el plan" languagecode="1033" />

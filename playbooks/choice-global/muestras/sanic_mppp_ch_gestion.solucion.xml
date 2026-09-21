@@ -1,10 +1,10 @@
-<optionset Name="sanic_mppp_ch_gestion" localizedName="CH - MPPP - Gestión" description="Qué pide el cliente para una referencia: incluirla, excluirla o modificarla. La usa la tabla Fila.">
+<optionset Name="sanic_mppp_ch_gestion" localizedName="CH - MPPP - Gestion" description="Qué pide el cliente para una referencia: incluirla, excluirla o modificarla. La usa la tabla Fila.">
       <OptionSetType>picklist</OptionSetType>
       <IsGlobal>1</IsGlobal>
       <IntroducedVersion>1.0.0.0</IntroducedVersion>
       <IsCustomizable>1</IsCustomizable>
       <displaynames>
-        <displayname description="CH - MPPP - Gestión" languagecode="1033" />
+        <displayname description="CH - MPPP - Gestion" languagecode="1033" />
       </displaynames>
       <Descriptions>
         <Description description="Qué pide el cliente para una referencia: incluirla, excluirla o modificarla. La usa la tabla Fila." languagecode="1033" />
@@ -12,7 +12,7 @@
       <options>
         <option value="159460001" ExternalValue="" IsHidden="0">
           <labels>
-            <label description="Inclusión" languagecode="1033" />
+            <label description="Inclusion" languagecode="1033" />
           </labels>
           <Descriptions>
             <Description description="Agregar la referencia al plan" languagecode="1033" />
@@ -20,7 +20,7 @@
         </option>
         <option value="159460002" ExternalValue="" IsHidden="0">
           <labels>
-            <label description="Exclusión" languagecode="1033" />
+            <label description="Exclusion" languagecode="1033" />
           </labels>
           <Descriptions>
             <Description description="Quitar la referencia del plan" languagecode="1033" />
@@ -28,7 +28,7 @@
         </option>
         <option value="159460003" ExternalValue="" IsHidden="0">
           <labels>
-            <label description="Modificación" languagecode="1033" />
+            <label description="Modificacion" languagecode="1033" />
           </labels>
           <Descriptions>
             <Description description="Cambiar datos de una referencia que ya está en el plan" languagecode="1033" />

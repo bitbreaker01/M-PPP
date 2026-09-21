@@ -354,6 +354,41 @@ class RenombrarDesde(Base):
         self.assertFalse(cliente.hubo_escritura())
 
 
+class ElFiltroDeDataverseNoDistingueTildesNiMayusculas(Base):
+    """Visto el 2026-09-21: `$filter=name eq 'SR - … tecnico'` devuelve el rol 'SR - … técnico'.
+    El nombre que vuelve se compara EXACTO; si no, un rol sin renombrar pasa por bueno."""
+    VIEJO = "SR - MPPP - Ejécutivo"
+
+    def test_si_el_nombre_que_vuelve_no_es_exacto_es_difiere(self):
+        cliente = armar(ClienteSimulado(), BASE, rol=fila_rol(BASE, name=self.VIEJO))
+        estado, _, detalle = self.con_cliente(cliente, BASE)
+        self.assertEqual(estado, "difiere", detalle)
+        self.assertIn(f"name: entorno={self.VIEJO!r} playbook={BASE['nombre']!r}", detalle)
+        self.assertFalse(cliente.hubo_escritura())
+
+    def test_renombrar_desde_funciona_aunque_el_filtro_encuentre_al_viejo_con_el_nombre_nuevo(self):
+        st = {"nombre": self.VIEJO}
+        cliente = ClienteSimulado()
+        cliente.responder("GET", lambda r: r.startswith("roles?") and "App Opener" not in r, lambda *_: (200, {"value": [fila_rol(BASE, name=st["nombre"])]}, {}))
+
+        def al_renombrar(ruta, cuerpo, solucion):
+            st["nombre"] = cuerpo["name"]
+            return (204, None, {})
+
+        cliente.responder("PATCH", f"roles({ID_ROL})", al_renombrar)
+        armar(cliente, BASE)
+        estado, _, detalle = self.con_cliente(cliente, BASE, renombrar_desde=self.VIEJO)
+        self.assertEqual(estado, "ya_existia", detalle)
+        self.assertIn("se renombró", detalle)
+        self.assertEqual([(l["metodo"], l["cuerpo"]) for l in cliente.llamadas if l["metodo"] != "GET"], [("PATCH", {"name": BASE["nombre"]})])
+
+    def test_no_renombra_si_el_nombre_real_no_es_el_que_se_dijo(self):
+        cliente = armar(ClienteSimulado(), BASE, rol=fila_rol(BASE, name="SR - MPPP - EJECUTIVO"))
+        estado, _, detalle = self.con_cliente(cliente, BASE, renombrar_desde=self.VIEJO)
+        self.assertEqual(estado, "difiere", detalle)
+        self.assertFalse(cliente.hubo_escritura())
+
+
 class FormaYHttpInesperados(Base):
     def test_http_inesperado_es_error_y_nombra_la_consulta(self):
         for matcher, nombre in [(lambda r: r.startswith("businessunits?"), "businessunits"), (lambda r: r.startswith("roles?") and "App Opener" in r, "rol base"),

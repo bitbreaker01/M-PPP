@@ -143,6 +143,10 @@ def _verificar(dv, datos, identidad, solution_id):
         raise ErrorEntorno(f"{cp} devolvió {len(filas)} perfiles con ese nombre; no se puede saber cuál es")
     perfil_id = exigir_forma(filas[0].get("fieldsecurityprofileid"), str, cp, "value[0].fieldsecurityprofileid", no_vacio=True)
     difs = []
+    # El filtro de Dataverse no distingue tildes ni mayúsculas (visto el 2026-09-21): el nombre que vuelve se compara exacto.
+    nombre_real = exigir_forma(filas[0].get("name"), str, cp, "value[0].name", no_vacio=True)
+    if nombre_real != datos["nombre"]:
+        difs.append(f"name: entorno={nombre_real!r} playbook={datos['nombre']!r}")
     if exigir_forma(filas[0].get("ismanaged"), bool, cp, "value[0].ismanaged"):
         difs.append("ismanaged: entorno=True playbook=False")
     descripcion = exigir_forma(filas[0].get("description"), str, cp, "value[0].description", permite_nulo=True) or ""

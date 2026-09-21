@@ -1194,7 +1194,7 @@
               <MinValue>0</MinValue>
               <MaxValue>100000</MaxValue>
               <displaynames>
-                <displayname description="Filas válidas" languagecode="1033" />
+                <displayname description="Filas validas" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Filas que pasaron la validación." languagecode="1033" />
@@ -1274,7 +1274,7 @@
               <MaxLength>300</MaxLength>
               <Length>600</Length>
               <displaynames>
-                <displayname description="Motivo de clasificación" languagecode="1033" />
+                <displayname description="Motivo de clasificacion" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Por qué el correo fue a Por clasificar. Vacía si se procesó." languagecode="1033" />
@@ -1313,7 +1313,7 @@
               <Format>textarea</Format>
               <MaxLength>2000</MaxLength>
               <displaynames>
-                <displayname description="Motivo de revisión" languagecode="1033" />
+                <displayname description="Motivo de revision" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Por qué la solicitud requiere revisión." languagecode="1033" />
@@ -1390,7 +1390,7 @@
               <MaxLength>100</MaxLength>
               <Length>200</Length>
               <displaynames>
-                <displayname description="Número" languagecode="1033" />
+                <displayname description="Numero" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Número de la solicitud. Es lo que se le cita al cliente." languagecode="1033" />
@@ -1470,7 +1470,7 @@
               <MinValue>0</MinValue>
               <MaxValue>1000</MaxValue>
               <displaynames>
-                <displayname description="Reintentos de validación" languagecode="1033" />
+                <displayname description="Reintentos de validacion" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Veces que el flujo de vigilancia reintentó la validación." languagecode="1033" />
@@ -1560,7 +1560,7 @@
                 <options>
                   <option value="1" ExternalValue="" IsHidden="0">
                     <labels>
-                      <label description="Sí" languagecode="1033" />
+                      <label description="Si" languagecode="1033" />
                     </labels>
                   </option>
                   <option value="0" ExternalValue="" IsHidden="0">
@@ -1571,7 +1571,7 @@
                 </options>
               </optionset>
               <displaynames>
-                <displayname description="Requiere revisión" languagecode="1033" />
+                <displayname description="Requiere revision" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Marca la solicitud para que la revise una persona: envío iniciado sin cerrar, máximo de reintentos o error de la validación." languagecode="1033" />
@@ -1650,7 +1650,7 @@
               <MaxLength>200</MaxLength>
               <Length>400</Length>
               <displaynames>
-                <displayname description="Versión de parámetros" languagecode="1033" />
+                <displayname description="Version de parametros" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Versiones de los parámetros de plantilla usadas para validar esta solicitud." languagecode="1033" />
@@ -1855,6 +1855,20 @@
               </Descriptions>
             </attribute>
           </attributes>
+          <EntityKeys>
+            <EntityKey>
+              <Name>sanic_mppp_key_solicitud_messageid</Name>
+              <LogicalName>sanic_mppp_key_solicitud_messageid</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_messageid</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - Solicitud - Message-ID" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+          </EntityKeys>
           <EntitySetName>sanic_mppp_tbl_solicituds</EntitySetName>
           <IsDuplicateCheckSupported>0</IsDuplicateCheckSupported>
           <IsBusinessProcessEnabled>0</IsBusinessProcessEnabled>
@@ -1977,7 +1991,7 @@
                             <row>
                               <cell id="{403a1841-671c-4689-9b52-c78ee544a8fa}" showlabel="true" locklevel="0">
                                 <labels>
-                                  <label description="Número" languagecode="1033" />
+                                  <label description="Numero" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" disabled="false" />
                               </cell>
@@ -2054,7 +2068,7 @@
                             <row>
                               <cell id="{0e107885-6180-4104-b25a-c329fa1c66b3}">
                                 <labels>
-                                  <label description="Número" languagecode="1033" />
+                                  <label description="Numero" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" />
                               </cell>
@@ -2108,7 +2122,7 @@
                             <row>
                               <cell id="{b58ac48b-751f-43c1-9377-388bd8a60f4d}">
                                 <labels>
-                                  <label description="Número" languagecode="1033" />
+                                  <label description="Numero" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" />
                               </cell>
@@ -2385,4 +2399,4 @@
         <LocLabels />
       </RibbonDiffXml>
     </Entity>
-  
+    

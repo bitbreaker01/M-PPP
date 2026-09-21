@@ -37,7 +37,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
@@ -76,7 +76,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>1</IsFilterable>
               <IsRetrievable>1</IsRetrievable>
@@ -116,7 +116,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
@@ -155,12 +155,12 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
               <IsLocalizable>0</IsLocalizable>
-              <Format></Format>
+              <Format />
               <MinValue>-2147483648</MinValue>
               <MaxValue>2147483647</MaxValue>
               <displaynames>
@@ -195,7 +195,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
@@ -234,7 +234,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>1</IsFilterable>
               <IsRetrievable>1</IsRetrievable>
@@ -274,7 +274,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
@@ -313,7 +313,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
@@ -353,7 +353,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>1</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
@@ -395,7 +395,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>1</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
@@ -434,7 +434,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
@@ -473,7 +473,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
@@ -512,7 +512,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
@@ -552,7 +552,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
@@ -592,7 +592,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>1</IsFilterable>
               <IsRetrievable>1</IsRetrievable>
@@ -629,7 +629,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>1</IsSearchable>
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>1</IsRetrievable>
@@ -638,7 +638,7 @@
               <MaxLength>200</MaxLength>
               <Length>1700</Length>
               <displaynames>
-                <displayname description="Razón social" languagecode="1033" />
+                <displayname description="Razon social" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Razón social de la empresa cliente." languagecode="1033" />
@@ -669,7 +669,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>1</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
@@ -729,7 +729,7 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
@@ -788,12 +788,12 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
               <IsLocalizable>0</IsLocalizable>
-              <Format></Format>
+              <Format />
               <MinValue>-1</MinValue>
               <MaxValue>2147483647</MaxValue>
               <displaynames>
@@ -827,12 +827,12 @@
               <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
               <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
               <IsDataSourceSecret>0</IsDataSourceSecret>
-              <AutoNumberFormat></AutoNumberFormat>
+              <AutoNumberFormat />
               <IsSearchable>0</IsSearchable>
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
               <IsLocalizable>0</IsLocalizable>
-              <Format></Format>
+              <Format />
               <MinValue>-1</MinValue>
               <MaxValue>2147483647</MaxValue>
               <displaynames>
@@ -843,6 +843,32 @@
               </Descriptions>
             </attribute>
           </attributes>
+          <EntityKeys>
+            <EntityKey>
+              <Name>sanic_mppp_key_cliente_cifbac</Name>
+              <LogicalName>sanic_mppp_key_cliente_cifbac</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_cifbac</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - Cliente - CIF BAC" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+            <EntityKey>
+              <Name>sanic_mppp_key_cliente_cifcom</Name>
+              <LogicalName>sanic_mppp_key_cliente_cifcom</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_cifcom</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - Cliente - CIF COM" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+          </EntityKeys>
           <EntitySetName>sanic_mppp_tbl_clientes</EntitySetName>
           <IsDuplicateCheckSupported>1</IsDuplicateCheckSupported>
           <IsBusinessProcessEnabled>0</IsBusinessProcessEnabled>
@@ -851,7 +877,7 @@
           <IsCollaboration>0</IsCollaboration>
           <AutoRouteToOwnerQueue>0</AutoRouteToOwnerQueue>
           <IsConnectionsEnabled>0</IsConnectionsEnabled>
-          <EntityColor></EntityColor>
+          <EntityColor />
           <IsDocumentManagementEnabled>0</IsDocumentManagementEnabled>
           <AutoCreateAccessTeams>0</AutoCreateAccessTeams>
           <IsOneNoteIntegrationEnabled>0</IsOneNoteIntegrationEnabled>
@@ -864,7 +890,7 @@
           <IsRetrieveAuditEnabled>0</IsRetrieveAuditEnabled>
           <IsRetrieveMultipleAuditEnabled>0</IsRetrieveMultipleAuditEnabled>
           <IsActivity>0</IsActivity>
-          <ActivityTypeMask></ActivityTypeMask>
+          <ActivityTypeMask />
           <IsActivityParty>0</IsActivityParty>
           <IsReplicated>0</IsReplicated>
           <IsReplicationUserFiltered>0</IsReplicationUserFiltered>
@@ -874,7 +900,7 @@
           <IsReadOnlyInMobileClient>0</IsReadOnlyInMobileClient>
           <IsOfflineInMobileClient>0</IsOfflineInMobileClient>
           <DaysSinceRecordLastModified>0</DaysSinceRecordLastModified>
-          <MobileOfflineFilters></MobileOfflineFilters>
+          <MobileOfflineFilters />
           <IsMapiGridEnabled>1</IsMapiGridEnabled>
           <IsReadingPaneEnabled>1</IsReadingPaneEnabled>
           <IsQuickCreateEnabled>0</IsQuickCreateEnabled>
@@ -966,7 +992,7 @@
                             <row>
                               <cell id="{9460AD21-124C-4ADD-A55D-4DC18C33419F}" showlabel="true" locklevel="0">
                                 <labels>
-                                  <label description="Razón social" languagecode="1033" />
+                                  <label description="Razon social" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" disabled="false" />
                               </cell>
@@ -1043,7 +1069,7 @@
                             <row>
                               <cell id="{121B5F53-C782-4666-BA9B-185538ED9148}">
                                 <labels>
-                                  <label description="Razón social" languagecode="1033" />
+                                  <label description="Razon social" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" />
                               </cell>
@@ -1097,7 +1123,7 @@
                             <row>
                               <cell id="{CF3AC7F3-F8EC-4E70-B1CF-07BD884412FB}">
                                 <labels>
-                                  <label description="Razón social" languagecode="1033" />
+                                  <label description="Razon social" languagecode="1033" />
                                 </labels>
                                 <control id="sanic_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_nombre" />
                               </cell>
@@ -1363,7 +1389,7 @@
       <RibbonDiffXml>
         <CustomActions />
         <Templates>
-          <RibbonTemplates Id="Mscrm.Templates"></RibbonTemplates>
+          <RibbonTemplates Id="Mscrm.Templates" />
         </Templates>
         <CommandDefinitions />
         <RuleDefinitions>
@@ -1374,3 +1400,4 @@
         <LocLabels />
       </RibbonDiffXml>
     </Entity>
+    

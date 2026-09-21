@@ -487,6 +487,44 @@
                 <Description description="Unique identifier for the user that owns the record." languagecode="1033" />
               </Descriptions>
             </attribute>
+            <attribute PhysicalName="sanic_aprobadapor">
+              <Type>lookup</Type>
+              <Name>sanic_aprobadapor</Name>
+              <LogicalName>sanic_aprobadapor</LogicalName>
+              <RequiredLevel>none</RequiredLevel>
+              <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+              <ValidForUpdateApi>1</ValidForUpdateApi>
+              <ValidForReadApi>1</ValidForReadApi>
+              <ValidForCreateApi>1</ValidForCreateApi>
+              <IsCustomField>1</IsCustomField>
+              <IsAuditEnabled>0</IsAuditEnabled>
+              <IsSecured>0</IsSecured>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>1</IsCustomizable>
+              <IsRenameable>1</IsRenameable>
+              <CanModifySearchSettings>1</CanModifySearchSettings>
+              <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+              <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+              <SourceType>0</SourceType>
+              <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+              <IsSortableEnabled>0</IsSortableEnabled>
+              <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+              <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+              <IsDataSourceSecret>0</IsDataSourceSecret>
+              <AutoNumberFormat />
+              <IsSearchable>0</IsSearchable>
+              <IsFilterable>0</IsFilterable>
+              <IsRetrievable>0</IsRetrievable>
+              <IsLocalizable>0</IsLocalizable>
+              <LookupStyle>single</LookupStyle>
+              <LookupTypes />
+              <displaynames>
+                <displayname description="Aprobada por" languagecode="1033" />
+              </displaynames>
+              <Descriptions>
+                <Description description="Quién marcó la fila como aprobada: es el aprobador de AS400. La escribe el plugin, nunca quien llama." languagecode="1033" />
+              </Descriptions>
+            </attribute>
             <attribute PhysicalName="sanic_banco">
               <Type>picklist</Type>
               <Name>sanic_banco</Name>
@@ -555,12 +593,51 @@
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
               <IsLocalizable>0</IsLocalizable>
+              <AppDefaultValue>-1</AppDefaultValue>
               <OptionSetName>sanic_mppp_ch_clasificacion</OptionSetName>
               <displaynames>
-                <displayname description="Clasificación" languagecode="1033" />
+                <displayname description="Clasificacion" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Cómo se paga la referencia. Vacía si el valor recibido no era válido." languagecode="1033" />
+              </Descriptions>
+            </attribute>
+            <attribute PhysicalName="sanic_digitadapor">
+              <Type>lookup</Type>
+              <Name>sanic_digitadapor</Name>
+              <LogicalName>sanic_digitadapor</LogicalName>
+              <RequiredLevel>none</RequiredLevel>
+              <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+              <ValidForUpdateApi>1</ValidForUpdateApi>
+              <ValidForReadApi>1</ValidForReadApi>
+              <ValidForCreateApi>1</ValidForCreateApi>
+              <IsCustomField>1</IsCustomField>
+              <IsAuditEnabled>0</IsAuditEnabled>
+              <IsSecured>0</IsSecured>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>1</IsCustomizable>
+              <IsRenameable>1</IsRenameable>
+              <CanModifySearchSettings>1</CanModifySearchSettings>
+              <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+              <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+              <SourceType>0</SourceType>
+              <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+              <IsSortableEnabled>0</IsSortableEnabled>
+              <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+              <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+              <IsDataSourceSecret>0</IsDataSourceSecret>
+              <AutoNumberFormat />
+              <IsSearchable>0</IsSearchable>
+              <IsFilterable>0</IsFilterable>
+              <IsRetrievable>0</IsRetrievable>
+              <IsLocalizable>0</IsLocalizable>
+              <LookupStyle>single</LookupStyle>
+              <LookupTypes />
+              <displaynames>
+                <displayname description="Digitada por" languagecode="1033" />
+              </displaynames>
+              <Descriptions>
+                <Description description="Quién marcó la fila como digitada. La escribe el plugin, nunca quien llama." languagecode="1033" />
               </Descriptions>
             </attribute>
             <attribute PhysicalName="sanic_estado">
@@ -751,9 +828,10 @@
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
               <IsLocalizable>0</IsLocalizable>
+              <AppDefaultValue>-1</AppDefaultValue>
               <OptionSetName>sanic_mppp_ch_gestion</OptionSetName>
               <displaynames>
-                <displayname description="Gestión" languagecode="1033" />
+                <displayname description="Gestion" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Qué pide el cliente. Vacía si el valor recibido no era válido." languagecode="1033" />
@@ -987,7 +1065,7 @@
               <MaxLength>100</MaxLength>
               <Length>200</Length>
               <displaynames>
-                <displayname description="Número de cuenta" languagecode="1033" />
+                <displayname description="Numero de cuenta" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Número de la cuenta, como llegó. Dato sensible." languagecode="1033" />
@@ -1027,7 +1105,7 @@
               <MinValue>1</MinValue>
               <MaxValue>100000</MaxValue>
               <displaynames>
-                <displayname description="Número de fila" languagecode="1033" />
+                <displayname description="Numero de fila" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Posición de la fila en la plantilla, de 1 en adelante. Con la solicitud forma la clave alternativa." languagecode="1033" />
@@ -1067,7 +1145,7 @@
               <MaxLength>100</MaxLength>
               <Length>200</Length>
               <displaynames>
-                <displayname description="Número de identificación" languagecode="1033" />
+                <displayname description="Numero de identificacion" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Número del documento de identidad del titular, como llegó. Dato sensible." languagecode="1033" />
@@ -1107,10 +1185,48 @@
               <MaxLength>4</MaxLength>
               <Length>8</Length>
               <displaynames>
-                <displayname description="Número de plan" languagecode="1033" />
+                <displayname description="Numero de plan" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Código del plan tal como quedó normalizado (4 caracteres)." languagecode="1033" />
+              </Descriptions>
+            </attribute>
+            <attribute PhysicalName="sanic_planid">
+              <Type>lookup</Type>
+              <Name>sanic_planid</Name>
+              <LogicalName>sanic_planid</LogicalName>
+              <RequiredLevel>none</RequiredLevel>
+              <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+              <ValidForUpdateApi>1</ValidForUpdateApi>
+              <ValidForReadApi>1</ValidForReadApi>
+              <ValidForCreateApi>1</ValidForCreateApi>
+              <IsCustomField>1</IsCustomField>
+              <IsAuditEnabled>0</IsAuditEnabled>
+              <IsSecured>0</IsSecured>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>1</IsCustomizable>
+              <IsRenameable>1</IsRenameable>
+              <CanModifySearchSettings>1</CanModifySearchSettings>
+              <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+              <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+              <SourceType>0</SourceType>
+              <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+              <IsSortableEnabled>0</IsSortableEnabled>
+              <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+              <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+              <IsDataSourceSecret>0</IsDataSourceSecret>
+              <AutoNumberFormat />
+              <IsSearchable>0</IsSearchable>
+              <IsFilterable>0</IsFilterable>
+              <IsRetrievable>0</IsRetrievable>
+              <IsLocalizable>0</IsLocalizable>
+              <LookupStyle>single</LookupStyle>
+              <LookupTypes />
+              <displaynames>
+                <displayname description="Plan" languagecode="1033" />
+              </displaynames>
+              <Descriptions>
+                <Description description="Plan al que se refiere la fila. Vacío si el plan no existe. De acá sale la empresa de la fila para la vista de mis clientes." languagecode="1033" />
               </Descriptions>
             </attribute>
             <attribute PhysicalName="sanic_referencia">
@@ -1193,6 +1309,44 @@
                 <Description description="La referencia tal cual vino en el Excel; si vino vacía, queda vacía." languagecode="1033" />
               </Descriptions>
             </attribute>
+            <attribute PhysicalName="sanic_solicitudid">
+              <Type>lookup</Type>
+              <Name>sanic_solicitudid</Name>
+              <LogicalName>sanic_solicitudid</LogicalName>
+              <RequiredLevel>required</RequiredLevel>
+              <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+              <ValidForUpdateApi>1</ValidForUpdateApi>
+              <ValidForReadApi>1</ValidForReadApi>
+              <ValidForCreateApi>1</ValidForCreateApi>
+              <IsCustomField>1</IsCustomField>
+              <IsAuditEnabled>0</IsAuditEnabled>
+              <IsSecured>0</IsSecured>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>1</IsCustomizable>
+              <IsRenameable>1</IsRenameable>
+              <CanModifySearchSettings>1</CanModifySearchSettings>
+              <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+              <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+              <SourceType>0</SourceType>
+              <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+              <IsSortableEnabled>0</IsSortableEnabled>
+              <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+              <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+              <IsDataSourceSecret>0</IsDataSourceSecret>
+              <AutoNumberFormat />
+              <IsSearchable>0</IsSearchable>
+              <IsFilterable>0</IsFilterable>
+              <IsRetrievable>0</IsRetrievable>
+              <IsLocalizable>0</IsLocalizable>
+              <LookupStyle>single</LookupStyle>
+              <LookupTypes />
+              <displaynames>
+                <displayname description="Solicitud" languagecode="1033" />
+              </displaynames>
+              <Descriptions>
+                <Description description="Solicitud a la que pertenece la fila." languagecode="1033" />
+              </Descriptions>
+            </attribute>
             <attribute PhysicalName="sanic_tipoidentificacion">
               <Type>picklist</Type>
               <Name>sanic_tipoidentificacion</Name>
@@ -1223,9 +1377,10 @@
               <IsFilterable>0</IsFilterable>
               <IsRetrievable>0</IsRetrievable>
               <IsLocalizable>0</IsLocalizable>
+              <AppDefaultValue>-1</AppDefaultValue>
               <OptionSetName>sanic_mppp_ch_tipoidentificacion</OptionSetName>
               <displaynames>
-                <displayname description="Tipo de identificación" languagecode="1033" />
+                <displayname description="Tipo de identificacion" languagecode="1033" />
               </displaynames>
               <Descriptions>
                 <Description description="Tipo de documento del titular. Vacía si el valor recibido no era válido." languagecode="1033" />
@@ -1430,6 +1585,21 @@
               </Descriptions>
             </attribute>
           </attributes>
+          <EntityKeys>
+            <EntityKey>
+              <Name>sanic_mppp_key_fila_solicitud_numerofila</Name>
+              <LogicalName>sanic_mppp_key_fila_solicitud_numerofila</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_numerofila</AttributeName>
+                <AttributeName>sanic_solicitudid</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - Fila - Solicitud y número de fila" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+          </EntityKeys>
           <EntitySetName>sanic_mppp_tbl_filas</EntitySetName>
           <IsDuplicateCheckSupported>0</IsDuplicateCheckSupported>
           <IsBusinessProcessEnabled>0</IsBusinessProcessEnabled>

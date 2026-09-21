@@ -185,6 +185,10 @@ def _verificar(dv, datos, identidad, solution_id, bu, esperados):
         raise ErrorEntorno(f"{cr} devolvió {len(filas)} roles con ese nombre en la unidad de negocio raíz; no se puede saber cuál es")
     role_id = exigir_forma(filas[0].get("roleid"), str, cr, "value[0].roleid", no_vacio=True)
     difs = []
+    # El filtro de Dataverse no distingue tildes ni mayúsculas (visto el 2026-09-21): el nombre que vuelve se compara exacto.
+    nombre_real = exigir_forma(filas[0].get("name"), str, cr, "value[0].name", no_vacio=True)
+    if nombre_real != datos["nombre"]:
+        difs.append(f"name: entorno={nombre_real!r} playbook={datos['nombre']!r}")
     if exigir_forma(filas[0].get("ismanaged"), bool, cr, "value[0].ismanaged"):
         difs.append("ismanaged: entorno=True playbook=False")
     descripcion = exigir_forma(filas[0].get("description"), str, cr, "value[0].description", permite_nulo=True) or ""
@@ -200,7 +204,7 @@ def _verificar(dv, datos, identidad, solution_id, bu, esperados):
     sc = leer_entorno(dv, f"solutioncomponents?$select=solutioncomponentid&$filter=_solutionid_value eq {solution_id} and objectid eq {role_id} and componenttype eq {COMPONENTE_ROL}", cs)
     if len(exigir_forma(sc.get("value"), [dict], cs, "value")) != 1:
         otros.append(f"pertenencia a la solución: el rol no figura en '{identidad['solucion']}' (solutioncomponents, tipo {COMPONENTE_ROL})")
-    return {"existe": True, "role_id": role_id, "faltan": faltan, "diffs": difs + [f"falta {n} ({esperados[n]['alcance']})" for n in faltan] + otros,
+    return {"existe": True, "role_id": role_id, "faltan": faltan, "nombre_real": nombre_real, "diffs": difs + [f"falta {n} ({esperados[n]['alcance']})" for n in faltan] + otros,
             "solo_faltan": bool(faltan) and not difs and not otros}
 
 
@@ -216,8 +220,10 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente, completar,
     bu, esperados = comprobar_precondiciones(dv, datos)
     actual = _verificar(dv, datos, identidad, solution_id, bu, esperados)
 
-    if renombrar_desde and not solo_verificar and not actual["existe"]:
+    encontro_al_viejo = actual["existe"] and actual["nombre_real"] == renombrar_desde != datos["nombre"]
+    if renombrar_desde and not solo_verificar and (not actual["existe"] or encontro_al_viejo):
         # Un rol no tiene nombre lógico: se lo encuentra por el nombre que tenía. Se renombra solo si coincide en TODO lo demás.
+        # (Si los dos nombres solo difieren en tildes o mayúsculas, el filtro ya devolvió al viejo: es el mismo rol.)
         viejo = _verificar(dv, dict(datos, nombre=renombrar_desde), identidad, solution_id, bu, esperados)
         if not viejo["existe"]:
             raise Bloqueado(f"no existe el rol '{datos['nombre']}' ni el rol '{renombrar_desde}' del que había que renombrarlo: no hay nada que renombrar, y --renombrar-desde no crea")

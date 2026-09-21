@@ -1,10 +1,10 @@
-<optionset Name="sanic_mppp_ch_clasificacion" localizedName="CH - MPPP - Clasificación" description="Cómo se paga la referencia: cuenta del banco, transferencia a otro banco o cheque. La usa la tabla Fila.">
+<optionset Name="sanic_mppp_ch_clasificacion" localizedName="CH - MPPP - Clasificacion" description="Cómo se paga la referencia: cuenta del banco, transferencia a otro banco o cheque. La usa la tabla Fila.">
       <OptionSetType>picklist</OptionSetType>
       <IsGlobal>1</IsGlobal>
       <IntroducedVersion>1.0.0.0</IntroducedVersion>
       <IsCustomizable>1</IsCustomizable>
       <displaynames>
-        <displayname description="CH - MPPP - Clasificación" languagecode="1033" />
+        <displayname description="CH - MPPP - Clasificacion" languagecode="1033" />
       </displaynames>
       <Descriptions>
         <Description description="Cómo se paga la referencia: cuenta del banco, transferencia a otro banco o cheque. La usa la tabla Fila." languagecode="1033" />

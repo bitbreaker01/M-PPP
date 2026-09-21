@@ -1,10 +1,10 @@
-<optionset Name="sanic_mppp_ch_tipoparametro" localizedName="CH - MPPP - Tipo de parámetro" description="Cómo se interpreta el valor de un parámetro. La usa la tabla Parametro.">
+<optionset Name="sanic_mppp_ch_tipoparametro" localizedName="CH - MPPP - Tipo de parametro" description="Cómo se interpreta el valor de un parámetro. La usa la tabla Parametro.">
       <OptionSetType>picklist</OptionSetType>
       <IsGlobal>1</IsGlobal>
       <IntroducedVersion>1.0.0.0</IntroducedVersion>
       <IsCustomizable>1</IsCustomizable>
       <displaynames>
-        <displayname description="CH - MPPP - Tipo de parámetro" languagecode="1033" />
+        <displayname description="CH - MPPP - Tipo de parametro" languagecode="1033" />
       </displaynames>
       <Descriptions>
         <Description description="Cómo se interpreta el valor de un parámetro. La usa la tabla Parametro." languagecode="1033" />
@@ -20,7 +20,7 @@
         </option>
         <option value="159460002" ExternalValue="" IsHidden="0">
           <labels>
-            <label description="Número" languagecode="1033" />
+            <label description="Numero" languagecode="1033" />
           </labels>
           <Descriptions>
             <Description description="" languagecode="1033" />

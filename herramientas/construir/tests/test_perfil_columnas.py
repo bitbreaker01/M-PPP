@@ -198,6 +198,15 @@ class Diferencias(Base):
                 self.assertFalse(cliente.hubo_escritura())
 
 
+class ElFiltroDeDataverseNoDistingueTildesNiMayusculas(Base):
+    def test_si_el_nombre_que_vuelve_no_es_exacto_es_difiere(self):
+        cliente = armar(ClienteSimulado(), BASE, perfil=fila_perfil(BASE, name="CSP - MPPP - Dátos sensibles"))
+        estado, _, detalle = self.con_cliente(cliente, BASE)
+        self.assertEqual(estado, "difiere", detalle)
+        self.assertIn("name: entorno='CSP - MPPP - Dátos sensibles'", detalle)
+        self.assertFalse(cliente.hubo_escritura())
+
+
 class Completar(Base):
     def test_agrega_solo_el_permiso_que_falta(self):
         cliente = armar(ClienteSimulado(), BASE, permisos=[fp(BASE["permisos"][0])])
