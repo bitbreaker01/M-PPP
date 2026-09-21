@@ -37,6 +37,7 @@ from _comun import (  # noqa: E402
     Rastro,
     comprobar_solucion_e_idioma,
     dividir_secciones,
+    escribir_metadatos,
     etiqueta_y_otros_idiomas,
     exigir_etiqueta,
     exigir_forma,
@@ -304,7 +305,7 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente):
         return "ya_existia", componente, "ya existía y coincide en todo lo que exige la receta; no se modificó nada"
 
     payload = construir_payload(datos, identidad)
-    est, cuerpo_post, _ = dv.call("POST", "GlobalOptionSetDefinitions", payload, solucion=solucion)
+    est, cuerpo_post, _ = escribir_metadatos(dv, "POST", "GlobalOptionSetDefinitions", payload, solucion=solucion)
     if est != 204:
         return "error", componente, f"la creación falló: HTTP {est} {cuerpo_post}"
 

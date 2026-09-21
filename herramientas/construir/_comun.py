@@ -318,6 +318,29 @@ def comprobar_solucion_e_idioma(dv, identidad):
     return solution_id
 
 
+ESPERA_BLOQUEO_SEGUNDOS = 30
+REINTENTOS_BLOQUEO = 10
+
+
+def escribir_metadatos(dv, metodo, ruta, cuerpo, dormir=None, **kw):
+    """Toda escritura de metadatos de las herramientas pasa por acá. Dataverse
+    admite UNA sola personalización de metadatos a la vez en el entorno: si
+    otra está corriendo (otra herramienta, un ensayo, un borrado, alguien en
+    el portal), responde `429` con `CustomizationLockException`. Es pasajero:
+    se espera y se reintenta, hasta `REINTENTOS_BLOQUEO` veces. Cualquier otra
+    respuesta, incluido otro 429, se devuelve tal cual, sin reintentar."""
+    if dormir is None:
+        import time
+
+        dormir = time.sleep
+    for intento in range(REINTENTOS_BLOQUEO + 1):
+        est, resp, cab = dv.call(metodo, ruta, cuerpo, **kw)
+        if est != 429 or "CustomizationLockException" not in str(resp) or intento == REINTENTOS_BLOQUEO:
+            return est, resp, cab
+        print(f"El entorno tiene otra personalización en curso; espero {ESPERA_BLOQUEO_SEGUNDOS} s y reintento ({intento + 1}/{REINTENTOS_BLOQUEO}).", flush=True)
+        dormir(ESPERA_BLOQUEO_SEGUNDOS)
+
+
 def salida(estado, componente, detalle):
     """Imprime la última línea del contrato (JSON de una sola línea) y
     devuelve el código de salida: 0 solo para 'creado' y 'ya_existia'."""

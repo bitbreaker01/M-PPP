@@ -37,6 +37,7 @@ from _comun import (  # noqa: E402
     Rastro,
     comprobar_solucion_e_idioma,
     dividir_secciones,
+    escribir_metadatos,
     etiqueta_web_api,
     etiqueta_y_otros_idiomas,
     exigir_etiqueta,
@@ -490,11 +491,11 @@ def ajustar_primaria(dv, datos, identidad):
     definicion["@odata.type"] = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
     definicion["MaxLength"] = p["largo"]
     definicion["RequiredLevel"] = {**nivel, "Value": "ApplicationRequired" if p["requerida"] else "None"}
-    est, cuerpo, _ = dv.call("PUT", ruta, definicion, solucion=identidad["solucion"], cabeceras={"MSCRM.MergeLabels": "true"})
+    est, cuerpo, _ = escribir_metadatos(dv, "PUT", ruta, definicion, solucion=identidad["solucion"], cabeceras={"MSCRM.MergeLabels": "true"})
     if est != 204:
         return f"falló ajustar la columna primaria {p['nombre']}: HTTP {est} {cuerpo}"
     xml = f"<importexportxml><entities><entity>{tabla}</entity></entities></importexportxml>"
-    est, cuerpo, _ = dv.call("POST", "PublishXml", {"ParameterXml": xml})
+    est, cuerpo, _ = escribir_metadatos(dv, "POST", "PublishXml", {"ParameterXml": xml})
     if est != 204:
         return f"se ajustó la columna primaria {p['nombre']} pero falló publicar la tabla: HTTP {est} {cuerpo}"
     return None
@@ -528,11 +529,11 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_p
             return "difiere", componente, "; ".join(actual["diffs"])
         return "ya_existia", componente, f"coincide en todo lo que exige la receta y pertenece a '{solucion}'; no se modificó nada"
 
-    est, cuerpo, _ = dv.call("POST", "EntityDefinitions", construir_payload(datos, identidad, choices), solucion=solucion)
+    est, cuerpo, _ = escribir_metadatos(dv, "POST", "EntityDefinitions", construir_payload(datos, identidad, choices), solucion=solucion)
     if est != 204:
         return "error", componente, f"la creación falló: HTTP {est} {cuerpo}"
     for extra in columnas_protegidas_payload(datos, identidad, choices):
-        est, cuerpo, _ = dv.call("POST", f"EntityDefinitions(LogicalName='{datos['nombre']}')/Attributes", extra, solucion=solucion)
+        est, cuerpo, _ = escribir_metadatos(dv, "POST", f"EntityDefinitions(LogicalName='{datos['nombre']}')/Attributes", extra, solucion=solucion)
         if est != 204:
             return (
                 "error",
