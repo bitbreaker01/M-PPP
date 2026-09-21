@@ -1,7 +1,7 @@
 {
  "proyecto": "MPPP · fase 1",
  "criterio_hecho": "ciclo cerrado: construido, verificado en Dev y muestra exportada; si el ciclo enseñó algo nuevo, además el reporte aprobado por el aprobador",
- "en_curso": "3.2 Plan — construida y aprobada por el verificador en su segunda vuelta; enseñó algo nuevo (el playbook no cambia lo que el diccionario decide), falta la aprobación del aprobador · 3.3 Autorizado — en construcción",
+ "en_curso": "3.2 Plan y 3.3 Autorizado — construidas y aprobadas por el verificador; enseñaron algo nuevo, falta la aprobación del aprobador · 3.4 Autorización — en construcción",
  "grupos": {
   "P-01": "Solución",
   "P-02": "Choices globales",

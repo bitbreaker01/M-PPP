@@ -530,11 +530,11 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_p
         est, cuerpo, _ = escribir_metadatos(dv, "POST", "PublishXml", {"ParameterXml": xml})
         if est != 204:
             return "error", componente, f"la tabla coincide con el playbook pero falló publicarla: HTTP {est} {cuerpo}"
-        return "ya_existia", componente, f"coincide en todo lo que exige la receta y pertenece a '{solucion}'; se publicó de nuevo y no se modificó nada más"
+        return "ya_existia", componente, f"MetadataId {actual['metadata_id']}; coincide en todo lo que exige la receta y pertenece a '{solucion}'; se publicó de nuevo y no se modificó nada más"
     if actual["existe"]:
         if actual["diffs"]:
             return "difiere", componente, "; ".join(actual["diffs"])
-        return "ya_existia", componente, f"coincide en todo lo que exige la receta y pertenece a '{solucion}'; no se modificó nada"
+        return "ya_existia", componente, f"MetadataId {actual['metadata_id']}; coincide en todo lo que exige la receta y pertenece a '{solucion}'; no se modificó nada"
 
     est, cuerpo, _ = escribir_metadatos(dv, "POST", "EntityDefinitions", construir_payload(datos, identidad, choices), solucion=solucion)
     if est != 204:

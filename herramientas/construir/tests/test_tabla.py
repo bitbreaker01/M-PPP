@@ -461,6 +461,7 @@ class Caminos(Base):
         cliente = armar(ClienteSimulado(), COMPLETO)
         estado, _, detalle = self.con_cliente(cliente, COMPLETO)
         self.assertEqual(estado, "ya_existia", detalle)
+        self.assertIn(META_TABLA, detalle)  # quien verifica necesita el identificador para cruzar contra el entorno
         self.assertFalse(cliente.hubo_escritura())
 
     def test_solo_verificar_sin_tabla_es_error_y_no_crea(self):
