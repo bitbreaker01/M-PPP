@@ -131,6 +131,14 @@ namespace Sanic.Mppp.Plugins.Validacion
                 texto = texto + " " + veredicto.Precision;
             }
 
+            // `sanic_mensaje` (M(4000)) junta hasta ocho de estos motivos: sin este tope, un valor larguísimo del Excel del
+            // cliente (citado o no) termina en una excepción de Dataverse al guardar. Se corta la COLA -el texto general
+            // queda adelante- y el "…" cuenta dentro de LargoMaximo (quedan 449 caracteres + "…").
+            if (texto.Length > LargoMaximo)
+            {
+                texto = texto.Substring(0, LargoMaximo - 1) + "…";
+            }
+
             return texto;
         }
 
