@@ -204,6 +204,7 @@ Desaparece el Flow B de la definición (`07` DF-01). Los hijos se construyen ant
 | 13.2 | Cuenta de servicio licenciada, con su rol 6.6 y acceso exclusivo al buzón (C-04) | Administrador de Power Platform | 1 |
 | 13.3 | Asignación de roles a ejecutivos, supervisores y administradores | Administrador de Power Platform | 1 |
 | 13.4 | Auditoría sobre asignación de roles activada (D-38) | Administrador de Power Platform | 1 |
+| 13.7 | Grupo de seguridad de Entra ID para quienes leen datos sensibles, su equipo de grupo en el entorno, y la asociación de ese equipo al perfil 6.1 (D-8, `04` §4) | Administrador de Azure y de Power Platform | 1 |
 | 13.5 | Usuario de aplicación del RPA | | 2 |
 | 13.6 | Usuario de aplicación del histórico e infraestructura Azure | Administrador de Azure | 3 |
 

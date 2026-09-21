@@ -4,6 +4,8 @@ Proyecto: 2026-001-referencias-planes-pago · Etapa 3 · Estado: **revisado con 
 
 Reglas citadas: BP-PP-051, 052, 053, 055, 057, 060. Todas las Custom API: **unbound**, `AllowedCustomProcessingStepType = None`, `IsPrivate = true`, plugin de respaldo en el paquete `Sanic.Mppp.Plugins`. Sin llamadas HTTP salientes (D-22, BP-PP-052).
 
+**Quién puede ejecutarlas** (D-9, decisión del aprobador del 2026-09-21). La plataforma gobierna la ejecución de una Custom API con `ExecutePrivilegeName`, que tiene que nombrar un privilegio **que ya exista**: no se puede crear uno a medida. Las dos de fase 1 (`clasificarcorreo` y `validarsolicitud`) llevan `ExecutePrivilegeName = prvCreatesanic_mppp_tbl_solicitud`: en fase 1 el único rol con `C` sobre Solicitud es `SR - MPPP - Servicio de ingesta` (`04` §3), y quien puede dar de alta una solicitud puede clasificarla y validarla. En fase 3 el rol Histórico también tendrá ese privilegio: se acepta o se revisa al diseñar esa fase. Las dos de fase 2 (RPA) quedan por decidir: el RPA solo tiene lecturas que comparte con el Ejecutivo, así que hará falta una comprobación dentro del plugin o una tabla marcadora.
+
 ## 0. `sanic_mppp_capi_clasificarcorreo` — fase 1 (Action) · el plugin liviano
 
 Responde una sola pregunta, **¿este correo merece procesarse?**, sin abrir la plantilla (`07` DF-08). Quién la llama: `MPPP-ING`, apenas el correo quedó guardado y movido; y `MPPP-VIG` en un reintento. Identidad: cuenta de servicio.

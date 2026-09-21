@@ -2,7 +2,7 @@
 
 Proyecto: 2026-001-referencias-planes-pago · Etapa 3 · Estado: **revisado con el aprobador el 2026-09-18**
 
-Reglas citadas: BP-PP-001, 002, 003, 004, 008. Una sola business unit (la raíz del entorno); sin sharing manual; sin teams.
+Reglas citadas: BP-PP-001, 002, 003, 004, 008. Una sola business unit (la raíz del entorno); sin sharing manual; sin teams, **con una única excepción**: el equipo que recibe el perfil de seguridad de columna (§4, D-8).
 
 Notación: `C` crear · `R` leer · `W` escribir · `D` borrar · `Ap` append · `At` append to · `As` asignar. Alcance: **O** organización · **U** propio · `—` sin privilegio. **Todas las tablas son user-owned** (BP-PP-013), así que toda celda con privilegio lleva su alcance explícito, sin excepción.
 
@@ -68,16 +68,20 @@ Mismo criterio en Solicitud para los humanos: solo `sanic_requiererevision` (el 
 
 Columnas: `sanic_mppp_tbl_fila.sanic_numeroidentificacion` y `sanic_mppp_tbl_fila.sanic_numerocuenta` (RNF-04, BP-PP-004).
 
-| Miembro | Leer | Crear | Actualizar |
-|---|---|---|---|
-| SR - MPPP - Ejecutivo, SR - MPPP - Supervisor | sí | no | no |
-| SR - MPPP - RPA | sí | no | no |
-| SR - MPPP - Histórico | sí | sí | no |
-| Servicio de ingesta, Administrador de planes, Administrador técnico | no | no | no |
+**Cómo funciona en la plataforma** (verificado en Learn el 2026-09-21): un perfil de seguridad de columna se asigna a **usuarios o equipos, nunca a roles**, y sus permisos son **del perfil entero**, no de cada miembro. Por eso hay un perfil por nivel de acceso.
+
+| Perfil | Leer | Crear | Actualizar | Quién necesita estar | Fase |
+|---|---|---|---|---|---|
+| `CSP - MPPP - Datos sensibles` | sí | no | no | Ejecutivos y Supervisores. El usuario de aplicación del RPA, en fase 2 | 1 |
+| Un segundo perfil, de lectura **y creación** (se nombra al diseñar la fase 3) | sí | sí | no | El usuario de aplicación del Histórico | 3 |
+
+Nadie más: ni la cuenta de servicio de ingesta, ni el Administrador de planes, ni el Administrador técnico.
+
+**Cómo llegan las personas al perfil** (D-8, decisión del aprobador del 2026-09-21): **por equipo**. El administrador crea un **grupo de seguridad en Entra ID** y su **equipo de grupo** en Power Platform, y a ese equipo se le asigna el perfil. Es la única excepción a "sin teams" de esta matriz. El perfil y sus permisos viajan en la solución (inventario 6.1); **el grupo, el equipo y la asociación equipo ↔ perfil no viajan**: son una tarea de administración en cada entorno (inventario 13.7). Quien entra o sale del grupo de Entra gana o pierde la lectura de esas dos columnas sin tocar Dataverse.
 
 - El Ejecutivo **tiene** que leerlas: son lo que digita en AS400. La protección es contra todos los demás y contra exportaciones.
 - Histórico las lee para que el paquete no llegue con columnas vacías (RNF-09), y las crea al reactivar.
-- SYSTEM (la Custom API) no necesita estar en el perfil.
+- SYSTEM (la Custom API) no necesita estar en ningún perfil.
 - El `.eml` y el Excel originales contienen los mismos datos en crudo y **no** los cubre la seguridad de columna: los protege el registro padre. Por eso el Administrador de planes **no tiene lectura de Solicitud**: no la necesita para administrar catálogos y le daría el Excel crudo con cuentas e identificaciones. El Administrador técnico tampoco, por el mismo motivo.
 
 ## 5. Cómo se verifica
