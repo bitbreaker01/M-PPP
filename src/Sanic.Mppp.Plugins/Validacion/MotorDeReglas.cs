@@ -126,6 +126,23 @@ namespace Sanic.Mppp.Plugins.Validacion
             _evaluadoresPorCodigo = new Dictionary<string, IEvaluador<TContexto>>(StringComparer.Ordinal);
             foreach (var evaluador in evaluadores)
             {
+                // Cableado mal armado (revisión de código, 2026-09-21): un evaluador nulo, sin código, o dos evaluadores
+                // para el mismo código (antes ganaba el último en silencio) son un error de configuración, no un caso a tolerar.
+                if (evaluador == null)
+                {
+                    throw new ConfiguracionDeReglasInvalidaException(null, "El cableado de evaluadores trae un evaluador nulo.");
+                }
+
+                if (string.IsNullOrWhiteSpace(evaluador.Codigo))
+                {
+                    throw new ConfiguracionDeReglasInvalidaException(null, "El cableado de evaluadores trae un evaluador sin código.");
+                }
+
+                if (_evaluadoresPorCodigo.ContainsKey(evaluador.Codigo))
+                {
+                    throw new ConfiguracionDeReglasInvalidaException(evaluador.Codigo, $"Hay dos evaluadores registrados para el código de regla '{evaluador.Codigo}'.");
+                }
+
                 _evaluadoresPorCodigo[evaluador.Codigo] = evaluador;
             }
         }
@@ -141,28 +158,31 @@ namespace Sanic.Mppp.Plugins.Validacion
                 throw new ArgumentNullException(nameof(reglasActivas));
             }
 
-            // "El motor evalúa todas las reglas activas, de menor a mayor Orden (sin importar el orden en que llegan)" (orden del constructor).
-            var ordenadas = reglasActivas.OrderBy(r => r.Orden).ToList();
+            var lista = reglasActivas.ToList();
+
+            // "El motor evalúa todas las reglas activas, de menor a mayor Orden; empatadas, por Código ordinal" (desempate determinista:
+            // no depende de cómo vinieron de la consulta).
+            var ordenadas = lista.OrderBy(r => r.Orden).ThenBy(r => r?.Codigo, StringComparer.Ordinal).ToList();
+
+            // Valida el catálogo ENTERO antes de llamar a ningún evaluador: así un catálogo roto no deja media evaluación hecha.
+            var porCodigo = ValidarCatalogo(lista, ordenadas);
+
             var resultados = new List<ResultadoDeRegla>(ordenadas.Count);
             var resultadoPorCodigo = new Dictionary<string, ResultadoDeLaRegla>(StringComparer.Ordinal);
 
             foreach (var regla in ordenadas)
             {
                 // DD-13: las dependencias que no resultaron TODAS Cumplida (incluye Omitida) bloquean la regla, que queda Omitida.
+                // Una dependencia repetida (DependeDe = ["A","A"]) nombra a "A" una sola vez en la razón.
                 var dependenciasQueBloquean = new List<string>();
                 if (regla.DependeDe != null)
                 {
                     foreach (var codigoDependencia in regla.DependeDe)
                     {
-                        if (!resultadoPorCodigo.TryGetValue(codigoDependencia, out var resultadoDependencia))
-                        {
-                            // Decisión provisoria del constructor (no fijada por diseño ni por pruebas): una regla que depende
-                            // de otra que no está entre las activas falla cerrado en vez de decidir algo por su cuenta.
-                            throw new InvalidOperationException(
-                                $"La regla '{regla.Codigo}' depende de '{codigoDependencia}', que no está entre las reglas activas evaluadas.");
-                        }
-
-                        if (resultadoDependencia != ResultadoDeLaRegla.Cumplida)
+                        // El catálogo ya está validado: la dependencia existe y se evaluó antes (ValidarCatalogo lo garantiza).
+                        var resultadoDependencia = resultadoPorCodigo[codigoDependencia];
+                        if (resultadoDependencia != ResultadoDeLaRegla.Cumplida
+                            && !dependenciasQueBloquean.Contains(codigoDependencia, StringComparer.Ordinal))
                         {
                             dependenciasQueBloquean.Add(codigoDependencia);
                         }
@@ -178,14 +198,16 @@ namespace Sanic.Mppp.Plugins.Validacion
                 }
                 else
                 {
-                    if (!_evaluadoresPorCodigo.TryGetValue(regla.Codigo, out var evaluador))
+                    // El catálogo ya está validado: la regla tiene evaluador registrado (ValidarCatalogo lo garantiza).
+                    var evaluador = _evaluadoresPorCodigo[regla.Codigo];
+                    var veredicto = evaluador.Evaluar(contexto);
+                    if (veredicto == null)
                     {
-                        // Decisión provisoria del constructor (no fijada por diseño ni por pruebas): una regla activa sin
-                        // evaluador registrado falla cerrado en vez de decidir algo por su cuenta (02 §2.6: "es un error de configuración").
-                        throw new InvalidOperationException($"La regla activa '{regla.Codigo}' no tiene evaluador registrado.");
+                        // Un evaluador nuestro con un bug (devuelve null en vez de un Veredicto) es cableado mal armado, no una excepción real
+                        // del evaluador: si lo fuera (Una_excepcion_real_de_un_evaluador...), no pasa por acá porque Evaluar() misma revienta antes.
+                        throw new ConfiguracionDeReglasInvalidaException(regla.Codigo, $"El evaluador de la regla '{regla.Codigo}' devolvió un veredicto nulo.");
                     }
 
-                    var veredicto = evaluador.Evaluar(contexto);
                     var resultadoRegla = veredicto.Cumple ? ResultadoDeLaRegla.Cumplida : ResultadoDeLaRegla.NoCumplida;
                     resultado = new ResultadoDeRegla(regla.Codigo, regla.Orden, resultadoRegla, veredicto.Razon, regla.Efecto);
                 }
@@ -195,6 +217,96 @@ namespace Sanic.Mppp.Plugins.Validacion
             }
 
             return resultados;
+        }
+
+        /// <summary>
+        /// Valida el catálogo entero antes de evaluar nada (revisión de código, 2026-09-21): definiciones nulas, código nulo o en blanco,
+        /// códigos repetidos, dependencias nulas o en blanco, una regla que depende de sí misma, un ciclo (que siempre se manifiesta como una
+        /// dependencia con Orden mayor o igual: ver nota abajo), una dependencia que no está entre las activas, y una regla activa sin
+        /// evaluador. Devuelve el catálogo indexado por código para que el resto de Evaluar no vuelva a recorrerlo.
+        /// </summary>
+        private Dictionary<string, DefinicionDeRegla> ValidarCatalogo(IList<DefinicionDeRegla> lista, IList<DefinicionDeRegla> ordenadas)
+        {
+            foreach (var regla in lista)
+            {
+                if (regla == null)
+                {
+                    throw new ConfiguracionDeReglasInvalidaException(null, "El catálogo de reglas trae una definición nula.");
+                }
+
+                if (string.IsNullOrWhiteSpace(regla.Codigo))
+                {
+                    throw new ConfiguracionDeReglasInvalidaException(null, "El catálogo de reglas trae una regla sin código.");
+                }
+            }
+
+            var porCodigo = new Dictionary<string, DefinicionDeRegla>(StringComparer.Ordinal);
+            foreach (var regla in lista)
+            {
+                if (porCodigo.ContainsKey(regla.Codigo))
+                {
+                    throw new ConfiguracionDeReglasInvalidaException(regla.Codigo, $"El código de regla '{regla.Codigo}' está repetido en el catálogo.");
+                }
+
+                porCodigo[regla.Codigo] = regla;
+            }
+
+            // Posición de cada regla en el orden real de evaluación (Orden asc, empatadas por Código ordinal): sirve para saber si una
+            // dependencia ya se evaluó cuando le toca el turno a quien depende de ella.
+            var posicion = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (var i = 0; i < ordenadas.Count; i++)
+            {
+                posicion[ordenadas[i].Codigo] = i;
+            }
+
+            foreach (var regla in lista)
+            {
+                // Decisión provisoria (D-13, pendiente; ninguna prueba lo ejercita): una regla activa sin evaluador registrado falla
+                // cerrado (02 §2.6: "es un error de configuración") en vez de decidir algo por su cuenta.
+                if (!_evaluadoresPorCodigo.ContainsKey(regla.Codigo))
+                {
+                    throw new ConfiguracionDeReglasInvalidaException(regla.Codigo, $"La regla activa '{regla.Codigo}' no tiene evaluador registrado.");
+                }
+
+                if (regla.DependeDe == null)
+                {
+                    continue;
+                }
+
+                foreach (var codigoDependencia in regla.DependeDe)
+                {
+                    if (string.IsNullOrWhiteSpace(codigoDependencia))
+                    {
+                        throw new ConfiguracionDeReglasInvalidaException(regla.Codigo, $"La regla '{regla.Codigo}' tiene una dependencia sin código.");
+                    }
+
+                    if (string.Equals(codigoDependencia, regla.Codigo, StringComparison.Ordinal))
+                    {
+                        throw new ConfiguracionDeReglasInvalidaException(regla.Codigo, $"La regla '{regla.Codigo}' depende de sí misma.");
+                    }
+
+                    if (!porCodigo.ContainsKey(codigoDependencia))
+                    {
+                        // Decisión provisoria (D-13, pendiente; ninguna prueba lo ejercita): una dependencia que no está entre
+                        // las reglas activas falla cerrado en vez de decidir algo por su cuenta.
+                        throw new ConfiguracionDeReglasInvalidaException(
+                            regla.Codigo, $"La regla '{regla.Codigo}' depende de '{codigoDependencia}', que no está entre las reglas activas.");
+                    }
+
+                    if (posicion[codigoDependencia] >= posicion[regla.Codigo])
+                    {
+                        // Distinto del caso de arriba: la dependencia SÍ existe en el catálogo, pero por su Orden (mayor o igual al de
+                        // quien depende de ella) todavía no se evaluó cuando le toca el turno. Un ciclo (A depende de B, B depende de A)
+                        // siempre se manifiesta acá: en cualquier ciclo hay al menos un tramo que "sube" de Orden.
+                        throw new ConfiguracionDeReglasInvalidaException(
+                            regla.Codigo,
+                            $"La regla '{regla.Codigo}' depende de '{codigoDependencia}', pero por ORDEN esa dependencia todavía no se evaluó "
+                            + "(tiene 'sanic_orden' mayor o igual, o hay un ciclo entre ambas).");
+                    }
+                }
+            }
+
+            return porCodigo;
         }
     }
 
