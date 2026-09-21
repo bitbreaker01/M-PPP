@@ -1,7 +1,7 @@
 {
  "proyecto": "MPPP · fase 1",
  "criterio_hecho": "ciclo cerrado: construido, verificado en Dev y muestra exportada; si el ciclo enseñó algo nuevo, además el reporte aprobado por el aprobador",
- "en_curso": "P-06/07 Seguridad — 5 roles construidos y verificados; falta solo el perfil de columnas 6.1 (herramienta ensayada y playbook listo; espera la orden del aprobador)",
+ "en_curso": "P-08 Código de plugins (C#) — por arrancar: falta acordar con el aprobador cómo es el ciclo para código de producto y cómo conviven 'nunca compilar' y TDD estricto",
  "grupos": {
   "P-01": "Solución",
   "P-02": "Choices globales",
@@ -362,7 +362,7 @@
    "grupo": "P-06/07",
    "nombre": "Column security profile: CSP - MPPP - Datos sensibles (fila.sanic_numeroidentificacion, fi",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "6.2",
