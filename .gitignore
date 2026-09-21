@@ -26,3 +26,6 @@ datos/reales/
 # Python
 __pycache__/
 *.pyc
+
+# permisos locales de Claude Code (propios de cada máquina)
+.claude/settings.local.json
