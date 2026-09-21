@@ -234,8 +234,18 @@ namespace Sanic.Mppp.Plugins.Validacion
                         throw new ConfiguracionDeReglasInvalidaException(regla.Codigo, $"El evaluador de la regla '{regla.Codigo}' devolvió un veredicto nulo.");
                     }
 
-                    var resultadoRegla = veredicto.Cumple ? ResultadoDeLaRegla.Cumplida : ResultadoDeLaRegla.NoCumplida;
-                    resultado = new ResultadoDeRegla(regla.Codigo, regla.Orden, resultadoRegla, veredicto.Razon, regla.Efecto);
+                    if (veredicto.Cumple)
+                    {
+                        resultado = new ResultadoDeRegla(regla.Codigo, regla.Orden, ResultadoDeLaRegla.Cumplida, veredicto.Razon, regla.Efecto);
+                    }
+                    else
+                    {
+                        // D-19: la razón que ve el cliente sale de la plantilla del catálogo (o del por defecto del evaluador si
+                        // no hay, o está mal escrita), compuesta por MensajeAlCliente. La Omitida no pasa por acá: su razón la arma
+                        // el motor mismo, arriba, y no tiene plantilla de catálogo.
+                        var razon = MensajeAlCliente.Componer(regla.MensajeCliente, veredicto, regla.Codigo);
+                        resultado = new ResultadoDeRegla(regla.Codigo, regla.Orden, ResultadoDeLaRegla.NoCumplida, razon, regla.Efecto);
+                    }
                 }
 
                 resultados.Add(resultado);
