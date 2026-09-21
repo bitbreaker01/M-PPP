@@ -1,7 +1,7 @@
 {
  "proyecto": "MPPP · fase 1",
  "criterio_hecho": "ciclo cerrado: construido, revisado, verificado en Dev, muestra exportada y reporte aprobado por el aprobador (compuerta B)",
- "en_curso": "",
+ "en_curso": "2.1 sanic_mppp_ch_moneda — construido, verificado y exportado; falta la aprobación del reporte (compuerta B)",
  "grupos": {
   "P-01": "Solución",
   "P-02": "Choices globales",

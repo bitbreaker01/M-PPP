@@ -1,0 +1,151 @@
+{
+ "@odata.context": "https://org36e60d9d.crm.dynamics.com/api/data/v9.2/$metadata#GlobalOptionSetDefinitions/Microsoft.Dynamics.CRM.OptionSetMetadata/$entity",
+ "@odata.type": "#Microsoft.Dynamics.CRM.OptionSetMetadata",
+ "MetadataId": "d3155d07-54b5-f111-aaad-000d3a350099",
+ "HasChanged": null,
+ "IsCustomOptionSet": true,
+ "IsGlobal": true,
+ "IsManaged": false,
+ "Name": "sanic_mppp_ch_moneda",
+ "ExternalTypeName": null,
+ "OptionSetType": "Picklist",
+ "IntroducedVersion": "1.0.0.0",
+ "ParentOptionSetName": null,
+ "Description": {
+  "LocalizedLabels": [
+   {
+    "Label": "Moneda de un plan de pago o de la cuenta de una referencia. La usan las tablas Plan y Fila.",
+    "LanguageCode": 1033,
+    "IsManaged": false,
+    "MetadataId": "d5155d07-54b5-f111-aaad-000d3a350099",
+    "HasChanged": null
+   }
+  ],
+  "UserLocalizedLabel": {
+   "Label": "Moneda de un plan de pago o de la cuenta de una referencia. La usan las tablas Plan y Fila.",
+   "LanguageCode": 1033,
+   "IsManaged": false,
+   "MetadataId": "d5155d07-54b5-f111-aaad-000d3a350099",
+   "HasChanged": null
+  }
+ },
+ "DisplayName": {
+  "LocalizedLabels": [
+   {
+    "Label": "CH - MPPP - Moneda",
+    "LanguageCode": 1033,
+    "IsManaged": false,
+    "MetadataId": "d4155d07-54b5-f111-aaad-000d3a350099",
+    "HasChanged": null
+   }
+  ],
+  "UserLocalizedLabel": {
+   "Label": "CH - MPPP - Moneda",
+   "LanguageCode": 1033,
+   "IsManaged": false,
+   "MetadataId": "d4155d07-54b5-f111-aaad-000d3a350099",
+   "HasChanged": null
+  }
+ },
+ "IsCustomizable": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "iscustomizable"
+ },
+ "Options": [
+  {
+   "Value": 159460001,
+   "Color": null,
+   "IsManaged": false,
+   "ExternalValue": "",
+   "ParentValues": [],
+   "Tag": null,
+   "IsHidden": false,
+   "MetadataId": null,
+   "HasChanged": null,
+   "Label": {
+    "LocalizedLabels": [
+     {
+      "Label": "COR",
+      "LanguageCode": 1033,
+      "IsManaged": false,
+      "MetadataId": "5e406528-3d3f-40b4-8264-b75c3239a136",
+      "HasChanged": null
+     }
+    ],
+    "UserLocalizedLabel": {
+     "Label": "COR",
+     "LanguageCode": 1033,
+     "IsManaged": false,
+     "MetadataId": "5e406528-3d3f-40b4-8264-b75c3239a136",
+     "HasChanged": null
+    }
+   },
+   "Description": {
+    "LocalizedLabels": [
+     {
+      "Label": "Córdoba",
+      "LanguageCode": 1033,
+      "IsManaged": false,
+      "MetadataId": "05aa2c06-13ad-4b5d-93c8-2970c7565650",
+      "HasChanged": null
+     }
+    ],
+    "UserLocalizedLabel": {
+     "Label": "Córdoba",
+     "LanguageCode": 1033,
+     "IsManaged": false,
+     "MetadataId": "05aa2c06-13ad-4b5d-93c8-2970c7565650",
+     "HasChanged": null
+    }
+   }
+  },
+  {
+   "Value": 159460002,
+   "Color": null,
+   "IsManaged": false,
+   "ExternalValue": "",
+   "ParentValues": [],
+   "Tag": null,
+   "IsHidden": false,
+   "MetadataId": null,
+   "HasChanged": null,
+   "Label": {
+    "LocalizedLabels": [
+     {
+      "Label": "USD",
+      "LanguageCode": 1033,
+      "IsManaged": false,
+      "MetadataId": "928ac1e8-6e65-4bd7-ad9a-4dc1338c894f",
+      "HasChanged": null
+     }
+    ],
+    "UserLocalizedLabel": {
+     "Label": "USD",
+     "LanguageCode": 1033,
+     "IsManaged": false,
+     "MetadataId": "928ac1e8-6e65-4bd7-ad9a-4dc1338c894f",
+     "HasChanged": null
+    }
+   },
+   "Description": {
+    "LocalizedLabels": [
+     {
+      "Label": "Dólar estadounidense",
+      "LanguageCode": 1033,
+      "IsManaged": false,
+      "MetadataId": "0aba6674-b393-4160-83ad-523a181fc0d4",
+      "HasChanged": null
+     }
+    ],
+    "UserLocalizedLabel": {
+     "Label": "Dólar estadounidense",
+     "LanguageCode": 1033,
+     "IsManaged": false,
+     "MetadataId": "0aba6674-b393-4160-83ad-523a181fc0d4",
+     "HasChanged": null
+    }
+   }
+  }
+ ]
+}

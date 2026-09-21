@@ -1,0 +1,30 @@
+<optionset Name="sanic_mppp_ch_moneda" localizedName="CH - MPPP - Moneda" description="Moneda de un plan de pago o de la cuenta de una referencia. La usan las tablas Plan y Fila.">
+      <OptionSetType>picklist</OptionSetType>
+      <IsGlobal>1</IsGlobal>
+      <IntroducedVersion>1.0.0.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="CH - MPPP - Moneda" languagecode="1033" />
+      </displaynames>
+      <Descriptions>
+        <Description description="Moneda de un plan de pago o de la cuenta de una referencia. La usan las tablas Plan y Fila." languagecode="1033" />
+      </Descriptions>
+      <options>
+        <option value="159460001" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="COR" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Córdoba" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460002" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="USD" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Dólar estadounidense" languagecode="1033" />
+          </Descriptions>
+        </option>
+      </options>
+    </optionset>
