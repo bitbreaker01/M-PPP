@@ -15,7 +15,7 @@ Se limpia a medida que se decide. **Cuando quede vacío, se elimina.**
 
 No se construye ningún componente hasta que el aprobador revise el diseño de la app (`05`) y de los flujos (`07`) y dé la orden. **Dev está vacío**: existe solo la solución `sanic_mppp_sol_mantenimientoppp`, sin componentes (el choice de prueba del ciclo 1 se borró el 2026-09-20 por orden del aprobador).
 
-Cuando se reanude, lo primero es corregir dos observaciones del revisor en `herramientas/construir/choice_global.py`: (1) un estado HTTP no previsto en una consulta de precondición se informa como `bloqueado` y según la receta es `error`; (2) la fase de validación sin red no tiene contención propia y falta la prueba de tipo de `prefijo_opciones`. Ninguna hace que se cree nada de más.
+Las dos observaciones del revisor sobre `herramientas/construir/choice_global.py` quedaron **resueltas el 2026-09-20** (estado `error` frente a `bloqueado`, red de contención sin red), junto con lo que destaparon: toda respuesta del entorno se valida por tipo hasta el último nivel con `exigir_forma` (`_comun.py`). 105 pruebas sin red, comprobadas por mutación.
 
 ## 0. Diseño en revisión
 

@@ -44,6 +44,68 @@ class Bloqueado(Exception):
     nada."""
 
 
+class ErrorEntorno(Exception):
+    """No se pudo averiguar algo contra el entorno: una consulta de
+    precondición o de verificación devolvió un HTTP inesperado, o devolvió
+    200 con una forma inesperada (cuerpo que no es un objeto, o un campo que
+    la consulta declara devolver —'value', 'RetrieveProvisionedLanguages',
+    'MetadataId', etc.— ausente o de otro tipo del esperado). Nunca se llegó
+    a determinar si la precondición se cumple o no: por eso nunca es
+    `Bloqueado`, siempre termina en el estado `error`."""
+
+
+_NOMBRE_TIPO = {int: "un entero", str: "un texto", bool: "un booleano", dict: "un objeto", list: "una lista"}
+
+
+def _es_del_tipo(valor, tipo):
+    if tipo is int:
+        # En Python `bool` es subclase de `int`: True no es un entero válido.
+        return isinstance(valor, int) and not isinstance(valor, bool)
+    return isinstance(valor, tipo)
+
+
+def _acotado(valor, largo=160):
+    texto = repr(valor)
+    return texto if len(texto) <= largo else texto[:largo] + "…"
+
+
+def exigir_forma(valor, tipo, consulta, campo, no_vacio=False, permite_nulo=False):
+    """Único punto donde se valida el TIPO de un valor leído de una respuesta
+    del entorno, antes de usarlo para decidir algo. Devuelve el valor si
+    cumple; si no, lanza `ErrorEntorno` con un mensaje uniforme que nombra la
+    consulta, el campo, qué se esperaba y qué llegó (acotado en largo).
+
+    `tipo` es `int`, `str`, `bool`, `dict` o `list`; o una lista de un
+    elemento (`[int]`, `[dict]`...) para "lista de", que valida CADA elemento
+    y dice cuál falló. `no_vacio` aplica a textos y listas. `permite_nulo`
+    acepta `None` (para lo que la plataforma devuelve nulo legítimamente).
+
+    Regla: un valor ausente o de otro tipo con HTTP 200 es "no se pudo
+    averiguar" (`error`), nunca una respuesta de negocio. Quien llama decide
+    aparte qué vacíos SÍ son de negocio (p. ej. `value: []` en `solutions`)."""
+    if valor is None and permite_nulo:
+        return None
+    lista_de = isinstance(tipo, list)
+    base = list if lista_de else tipo
+    esperado = f"una lista de {_NOMBRE_TIPO[tipo[0]][3:]}s" if lista_de else _NOMBRE_TIPO[base]
+
+    def fallar(nombre_campo, se_esperaba, llego):
+        raise ErrorEntorno(
+            f"{consulta} devolvió 200 con forma inesperada: '{nombre_campo}' debía ser {se_esperaba} "
+            f"y llegó {_acotado(llego)}"
+        )
+
+    if not _es_del_tipo(valor, base):
+        fallar(campo, esperado, valor)
+    if lista_de:
+        for i, elemento in enumerate(valor):
+            if not _es_del_tipo(elemento, tipo[0]):
+                fallar(f"{campo}[{i}]", _NOMBRE_TIPO[tipo[0]], elemento)
+    if no_vacio and not valor:
+        fallar(campo, f"{esperado} no vacío", valor)
+    return valor
+
+
 def leer_texto(ruta):
     with open(ruta, encoding="utf-8") as f:
         return f.read()

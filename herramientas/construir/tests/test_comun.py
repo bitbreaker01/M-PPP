@@ -146,5 +146,56 @@ class Salida(unittest.TestCase):
         self.assertEqual(obj, {"estado": "creado", "componente": "sanic_mppp_ch_moneda", "detalle": "detalle"})
 
 
+class ExigirForma(unittest.TestCase):
+    """`exigir_forma` es el único punto donde se valida el tipo de un valor
+    leído de una respuesta del entorno."""
+
+    def ok(self, valor, tipo, **kw):
+        return c.exigir_forma(valor, tipo, "GET consulta", "campo", **kw)
+
+    def test_devuelve_el_valor_cuando_cumple(self):
+        self.assertEqual(self.ok(1033, int), 1033)
+        self.assertEqual(self.ok("x", str), "x")
+        self.assertIs(self.ok(False, bool), False)
+        self.assertEqual(self.ok({"a": 1}, dict), {"a": 1})
+        self.assertEqual(self.ok([1, 2], [int]), [1, 2])
+        self.assertEqual(self.ok([], [dict]), [])
+        self.assertIsNone(self.ok(None, dict, permite_nulo=True))
+
+    def test_rechaza_el_tipo_equivocado(self):
+        for valor, tipo in [("1033", int), (None, int), (1.0, int), (5, str), (None, str), ("false", bool),
+                            (0, bool), ([], dict), ({}, [int]), ("abc", [str]), (None, [int])]:
+            with self.subTest(valor=valor, tipo=tipo):
+                with self.assertRaises(c.ErrorEntorno):
+                    self.ok(valor, tipo)
+
+    def test_un_booleano_no_es_un_entero(self):
+        with self.assertRaises(c.ErrorEntorno):
+            self.ok(True, int)
+        with self.assertRaises(c.ErrorEntorno):
+            self.ok([1033, True], [int])
+
+    def test_lista_valida_cada_elemento_y_dice_cual_fallo(self):
+        with self.assertRaises(c.ErrorEntorno) as ctx:
+            self.ok([1033, "3082"], [int])
+        self.assertIn("'campo[1]'", str(ctx.exception))
+
+    def test_no_vacio_aplica_a_texto_y_a_lista(self):
+        for valor, tipo in [("", str), ([], [int])]:
+            with self.subTest(valor=valor):
+                with self.assertRaises(c.ErrorEntorno):
+                    self.ok(valor, tipo, no_vacio=True)
+
+    def test_el_mensaje_es_uniforme_y_acota_lo_que_vuelca(self):
+        with self.assertRaises(c.ErrorEntorno) as ctx:
+            self.ok("x" * 5000, int)
+        msg = str(ctx.exception)
+        self.assertIn("GET consulta", msg)
+        self.assertIn("forma inesperada", msg)
+        self.assertIn("'campo'", msg)
+        self.assertIn("un entero", msg)
+        self.assertLess(len(msg), 600)
+
+
 if __name__ == "__main__":
     unittest.main()

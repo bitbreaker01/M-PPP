@@ -32,8 +32,10 @@ if _HERRAMIENTAS not in sys.path:
 
 from _comun import (  # noqa: E402
     Bloqueado,
+    ErrorEntorno,
     ErrorPlaybook,
     dividir_secciones,
+    exigir_forma,
     leer_texto,
     obtener_componente,
     obtener_identidad,
@@ -226,29 +228,73 @@ def comparar_contra_playbook(cuerpo_choice, datos, identidad):
     return diffs
 
 
+C_SOLUCION = "la consulta de la solución (GET solutions)"
+C_IDIOMA_BASE = "la consulta del idioma base del entorno (GET organizations)"
+C_IDIOMAS = "la consulta de idiomas provisionados (GET RetrieveProvisionedLanguages)"
+C_CHOICE = "el GET de existencia del choice (GET GlobalOptionSetDefinitions)"
+C_PERTENENCIA = "la consulta de pertenencia a la solución (GET solutioncomponents)"
+
+
+def _exigir_etiqueta(etiqueta, consulta, campo, permite_nulo=False):
+    """Forma de un `Label` del Web API: objeto con `LocalizedLabels`, lista
+    de objetos con `LanguageCode` entero y `Label` texto."""
+    if exigir_forma(etiqueta, dict, consulta, campo, permite_nulo=permite_nulo) is None:
+        return
+    locs = exigir_forma(etiqueta.get("LocalizedLabels"), [dict], consulta, f"{campo}.LocalizedLabels", permite_nulo=True)
+    for i, ll in enumerate(locs or []):
+        exigir_forma(ll.get("LanguageCode"), int, consulta, f"{campo}.LocalizedLabels[{i}].LanguageCode")
+        exigir_forma(ll.get("Label"), str, consulta, f"{campo}.LocalizedLabels[{i}].Label", permite_nulo=True)
+
+
+def _exigir_forma_choice(cuerpo):
+    """Valida por tipo TODO lo que `comparar_contra_playbook` y `_verificar`
+    leen del choice, antes de comparar nada: así una respuesta con forma rara
+    termina en `error` y nunca se lee como una diferencia (`difiere`) ni como
+    una coincidencia (`ya_existia` / `creado`). `Description` puede ser nula:
+    un choice o una opción sin descripción es legítimo."""
+    exigir_forma(cuerpo, dict, C_CHOICE, "cuerpo")
+    exigir_forma(cuerpo.get("MetadataId"), str, C_CHOICE, "MetadataId", no_vacio=True)
+    exigir_forma(cuerpo.get("Name"), str, C_CHOICE, "Name")
+    exigir_forma(cuerpo.get("IsGlobal"), bool, C_CHOICE, "IsGlobal")
+    exigir_forma(cuerpo.get("IsManaged"), bool, C_CHOICE, "IsManaged")
+    exigir_forma(cuerpo.get("OptionSetType"), str, C_CHOICE, "OptionSetType")
+    _exigir_etiqueta(cuerpo.get("DisplayName"), C_CHOICE, "DisplayName")
+    _exigir_etiqueta(cuerpo.get("Description"), C_CHOICE, "Description", permite_nulo=True)
+    opciones = exigir_forma(cuerpo.get("Options"), [dict], C_CHOICE, "Options")
+    for i, op in enumerate(opciones):
+        exigir_forma(op.get("Value"), int, C_CHOICE, f"Options[{i}].Value")
+        _exigir_etiqueta(op.get("Label"), C_CHOICE, f"Options[{i}].Label")
+        _exigir_etiqueta(op.get("Description"), C_CHOICE, f"Options[{i}].Description", permite_nulo=True)
+
+
 def _verificar(dv, datos, identidad, solution_id):
     """Consulta el entorno y devuelve todo lo que necesitan los tres caminos
     (creado / ya_existia / --solo-verificar): existencia, diferencias contra
     el playbook (comparar_contra_playbook) y pertenencia a la solución. Nunca
-    modifica nada. Un GET de existencia que no es 200 ni 404 **nunca** se
-    trata como 'no existe': se propaga como una falla (RuntimeError), para
-    que la herramienta termine en `error` y no cree nada."""
+    modifica nada. Un GET de existencia que no es 200 ni 404, o un 200 con
+    forma inesperada, **nunca** se trata como 'no existe': se propaga como
+    `ErrorEntorno`, para que la herramienta termine en `error` y no cree
+    nada."""
     ruta_choice = f"GlobalOptionSetDefinitions(Name='{datos['nombre']}')"
     est, cuerpo, _ = dv.call("GET", ruta_choice)
     if est == 404:
         return {"existe": False, "diffs": None, "metadata_id": None}
     if est != 200:
-        raise RuntimeError(f"GET de existencia del choice devolvió HTTP {est} (ni 200 ni 404): {cuerpo}")
+        raise ErrorEntorno(f"{C_CHOICE} devolvió HTTP {est} (ni 200 ni 404): {cuerpo}")
+    _exigir_forma_choice(cuerpo)
 
     diffs = comparar_contra_playbook(cuerpo, datos, identidad)
-    metadata_id = cuerpo.get("MetadataId")
+    metadata_id = cuerpo["MetadataId"]
 
     ruta_sc = f"solutioncomponents?$filter=_solutionid_value eq {solution_id} and objectid eq {metadata_id}"
     est_sc, cuerpo_sc, _ = dv.call("GET", ruta_sc)
     if est_sc != 200:
-        raise RuntimeError(f"GET de solutioncomponents devolvió HTTP {est_sc}: {cuerpo_sc}")
-    filas_sc = cuerpo_sc.get("value", [])
+        raise ErrorEntorno(f"{C_PERTENENCIA} devolvió HTTP {est_sc} (se esperaba 200): {cuerpo_sc}")
+    exigir_forma(cuerpo_sc, dict, C_PERTENENCIA, "cuerpo")
+    filas_sc = exigir_forma(cuerpo_sc.get("value"), [dict], C_PERTENENCIA, "value")
     if len(filas_sc) != 1:
+        # 0 (o más de 1) filas SÍ es una respuesta de negocio legítima: el
+        # choice no pertenece (o pertenece más de una vez) a la solución.
         diffs = diffs + [f"pertenencia a la solución: {len(filas_sc)} filas en solutioncomponents, se esperaba 1"]
 
     return {"existe": True, "diffs": diffs, "metadata_id": metadata_id}
@@ -267,40 +313,54 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente):
     )
     est, cuerpo, _ = dv.call("GET", ruta_sol)
     if est != 200:
-        raise Bloqueado(f"no se pudo consultar la solución '{solucion}': HTTP {est} {cuerpo}")
-    filas = cuerpo.get("value", [])
+        raise ErrorEntorno(f"{C_SOLUCION} '{solucion}' devolvió HTTP {est} (se esperaba 200): {cuerpo}")
+    exigir_forma(cuerpo, dict, C_SOLUCION, "cuerpo")
+    filas = exigir_forma(cuerpo.get("value"), [dict], C_SOLUCION, "value")
     if len(filas) != 1:
+        # 'value' con otra cantidad de filas (incluida la lista vacía) SÍ es
+        # una respuesta de negocio legítima: la solución no existe (o hay
+        # más de una con el mismo unique name).
         raise Bloqueado(f"la solución '{solucion}' no existe o hay más de una fila ({len(filas)})")
     fila_sol = filas[0]
-    if fila_sol.get("ismanaged") is not False:
+    # Primero la forma de TODO lo que se va a usar; recién después se decide.
+    es_managed = exigir_forma(fila_sol.get("ismanaged"), bool, C_SOLUCION, "ismanaged")
+    solution_id = exigir_forma(fila_sol.get("solutionid"), str, C_SOLUCION, "solutionid", no_vacio=True)
+    publisher = exigir_forma(fila_sol.get("publisherid"), dict, C_SOLUCION, "publisherid")
+    pub_nombre = exigir_forma(publisher.get("uniquename"), str, C_SOLUCION, "publisherid.uniquename")
+    pub_prefijo = exigir_forma(publisher.get("customizationprefix"), str, C_SOLUCION, "publisherid.customizationprefix")
+    pub_prefijo_opciones = exigir_forma(
+        publisher.get("customizationoptionvalueprefix"), int, C_SOLUCION, "publisherid.customizationoptionvalueprefix"
+    )
+    if es_managed:
         raise Bloqueado(f"la solución '{solucion}' está managed; no se construye ahí")
-    publisher = fila_sol.get("publisherid") or {}
-    if publisher.get("uniquename") != identidad["publisher"]:
+    if pub_nombre != identidad["publisher"]:
+        raise Bloqueado(f"el publisher de '{solucion}' es {pub_nombre!r}, el playbook espera {identidad['publisher']!r}")
+    if pub_prefijo != identidad["prefijo"]:
+        raise Bloqueado(f"el prefijo del publisher es {pub_prefijo!r}, el playbook espera {identidad['prefijo']!r}")
+    if pub_prefijo_opciones != identidad["prefijo_opciones"]:
         raise Bloqueado(
-            f"el publisher de '{solucion}' es {publisher.get('uniquename')!r}, "
-            f"el playbook espera {identidad['publisher']!r}"
-        )
-    if publisher.get("customizationprefix") != identidad["prefijo"]:
-        raise Bloqueado(
-            f"el prefijo del publisher es {publisher.get('customizationprefix')!r}, "
-            f"el playbook espera {identidad['prefijo']!r}"
-        )
-    if publisher.get("customizationoptionvalueprefix") != identidad["prefijo_opciones"]:
-        raise Bloqueado(
-            f"el prefijo de opciones del publisher es {publisher.get('customizationoptionvalueprefix')!r}, "
+            f"el prefijo de opciones del publisher es {pub_prefijo_opciones!r}, "
             f"el playbook espera {identidad['prefijo_opciones']!r}"
         )
-    solution_id = fila_sol.get("solutionid")
 
     est, cuerpo, _ = dv.call("GET", "organizations?$select=languagecode")
-    if est != 200 or not cuerpo.get("value"):
-        raise Bloqueado(f"no se pudo leer el idioma base del entorno: HTTP {est} {cuerpo}")
-    lcid_base = cuerpo["value"][0].get("languagecode")
+    if est != 200:
+        raise ErrorEntorno(f"{C_IDIOMA_BASE} devolvió HTTP {est} (se esperaba 200): {cuerpo}")
+    # Todo entorno tiene exactamente una organización con su idioma base: acá
+    # una lista vacía no es una respuesta de negocio, es forma inesperada.
+    exigir_forma(cuerpo, dict, C_IDIOMA_BASE, "cuerpo")
+    filas_org = exigir_forma(cuerpo.get("value"), [dict], C_IDIOMA_BASE, "value", no_vacio=True)
+    lcid_base = exigir_forma(filas_org[0].get("languagecode"), int, C_IDIOMA_BASE, "languagecode")
 
     est, cuerpo, _ = dv.call("GET", "RetrieveProvisionedLanguages")
     if est != 200:
-        raise Bloqueado(f"no se pudo leer los idiomas provisionados: HTTP {est} {cuerpo}")
-    provisionados = cuerpo.get("RetrieveProvisionedLanguages", [])
+        raise ErrorEntorno(f"{C_IDIOMAS} devolvió HTTP {est} (se esperaba 200): {cuerpo}")
+    # El idioma base siempre está provisionado: una lista vacía tampoco es
+    # una respuesta de negocio.
+    exigir_forma(cuerpo, dict, C_IDIOMAS, "cuerpo")
+    provisionados = exigir_forma(
+        cuerpo.get("RetrieveProvisionedLanguages"), [int], C_IDIOMAS, "RetrieveProvisionedLanguages", no_vacio=True
+    )
     if identidad["lcid"] != lcid_base or identidad["lcid"] not in provisionados:
         raise Bloqueado(
             f"lcid {identidad['lcid']} del playbook no es el idioma base ({lcid_base}) "
@@ -342,6 +402,19 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente):
 # ---------------------------------------------------------------------------
 # Punto de entrada, inyectable para las pruebas.
 # ---------------------------------------------------------------------------
+class _Rastro:
+    """Envuelve al cliente para recordar qué consulta estaba en curso: la red
+    de último recurso la nombra, así un fallo imprevisto dice dónde saltó."""
+
+    def __init__(self, dv):
+        self._dv = dv
+        self.en_curso = "la preparación de la primera consulta"
+
+    def call(self, metodo, ruta, *args, **kwargs):
+        self.en_curso = f"{metodo} {ruta.split('?')[0]}"
+        return self._dv.call(metodo, ruta, *args, **kwargs)
+
+
 def construir(ruta_playbook, solo_verificar, fabrica_cliente):
     """Núcleo de la herramienta. `fabrica_cliente` es un callable sin
     argumentos que devuelve un cliente con el mismo `call()` que
@@ -349,14 +422,21 @@ def construir(ruta_playbook, solo_verificar, fabrica_cliente):
     pruebas). Nunca lanza: captura toda excepción, prevista o no, y siempre
     devuelve `(estado, componente, detalle)` — nunca una traza."""
     componente = os.path.basename(ruta_playbook)
+    paso = "leer el playbook"
     try:
         texto = leer_texto(ruta_playbook)
+        paso = "separar las secciones del playbook"
         secciones = dividir_secciones(texto)
+        paso = "leer el bloque '## 2. Qué se crea'"
         datos = obtener_componente(secciones, TIPO)
         componente = datos.get("nombre", componente)
+        paso = "leer el bloque '## 1. Identidad'"
         identidad = obtener_identidad(secciones)
+        paso = "validar el bloque del componente"
         validar_json_componente(datos)
+        paso = "validar los nombres"
         validar_nombres(datos, identidad)
+        paso = "validar el rango de los valores"
         validar_rango_offline(datos, identidad)
     except ErrorPlaybook as e:
         return "error", componente, str(e)
@@ -364,6 +444,12 @@ def construir(ruta_playbook, solo_verificar, fabrica_cliente):
         return "bloqueado", componente, str(e)
     except OSError as e:
         return "error", componente, f"no se pudo leer el playbook '{ruta_playbook}': {e}"
+    except Exception as e:
+        # Red de contención propia de esta fase: cualquier excepción no
+        # prevista (p. ej. un TypeError por un dato con forma rara) nunca
+        # escapa como traza; termina en 'error' igual que cualquier otra
+        # falla de esta fase.
+        return "error", componente, f"fallo inesperado validando el playbook (offline), al {paso}: {type(e).__name__}: {e}"
 
     print(f"Playbook leído y validado (offline). tipo={datos.get('tipo')} nombre={datos.get('nombre')}")
 
@@ -372,12 +458,19 @@ def construir(ruta_playbook, solo_verificar, fabrica_cliente):
     except Exception:
         return "error", componente, MENSAJE_FALLO_CLIENTE
 
+    rastro = _Rastro(dv)
     try:
-        return _contra_entorno(dv, datos, identidad, solo_verificar, componente)
+        return _contra_entorno(rastro, datos, identidad, solo_verificar, componente)
     except Bloqueado as e:
         return "bloqueado", componente, str(e)
+    except ErrorEntorno as e:
+        # Error previsto: una consulta contra el entorno no se pudo
+        # interpretar (HTTP inesperado o forma inesperada). Se distingue del
+        # 'fallo inesperado' de más abajo por el mensaje, que siempre nombra
+        # la consulta.
+        return "error", componente, str(e)
     except Exception as e:
-        return "error", componente, f"fallo inesperado hablando con Dataverse: {type(e).__name__}: {e}"
+        return "error", componente, f"fallo inesperado hablando con Dataverse, durante {rastro.en_curso}: {type(e).__name__}: {e}"
 
 
 def main():
