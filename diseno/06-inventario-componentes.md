@@ -136,7 +136,7 @@ Un solo paquete, `sanic_mppp_pkg_plugins` (`Sanic.Mppp.Plugins`). Se construye p
 | 7.7 | `Api/ValidarSolicitudApi` | Plugin de la Custom API de validación | 1 |
 | 7.8 | `Steps/` lista blanca de columnas (Fila y Solicitud) | | 1 |
 | 7.9 | `Steps/` transición de Fila (Pre) y post-transición (Post) | | 1 |
-| 7.10 | `Steps/` normalizar y validar (Cliente, Plan, Autorizado, Parametro, Regla) | | 1 |
+| 7.10 | `Steps/` normalizar y validar (Cliente, Plan, Autorizado, Parametro, Regla) | En Regla: impide desactivar una regla de la que dependen otras activas (D-13); impide que `AUTORIZACION_CORREO_PLAN` tenga otro efecto que Rechaza (D-14); impide el efecto Envía a revisión fuera de las reglas del sobre —niveles Correo y Solicitud—, nunca en Registro (D-20) | 1 |
 | 7.11 | `Steps/` nombre calculado (Plan, AutorizacionPlan) e integridad de AutorizacionPlan | | 1 |
 | 7.12 | `Steps/` atender no reconocida | | 1 |
 | 7.13 | `Api/ObtenerFilasPendientesApi`, `Api/RegistrarResultadoRpaApi` | | 2 |

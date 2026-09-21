@@ -47,8 +47,8 @@ Entrada: identificador de Outlook del mensaje y origen. Salida: identificador de
 |---|---|---|
 | 1 | *Get email (V2)* | Con adjuntos. Trae `internetMessageId`, remitente, asunto y fecha de recepción. |
 | 2 | Componer la clave | `take(replace(replace(internetMessageId,'<',''),'>',''), 450)` (DD-03). |
-| 3 | Filtrar adjuntos | `isInline` = false (DF-07). `cantidadadjuntos` = cuántos quedan. El Excel candidato es el único que termina en `.xlsx`; si hay cero o más de uno no se sube ninguno, y la regla correspondiente falla en la validación, que es donde tiene que fallar. |
-| 4 | *Add a new row* → Solicitud | `sanic_messageid`, remitente, asunto, `sanic_fecharecibido` (la del correo), `sanic_fechaingresada` = `utcNow()`, estado = Ingresada, `sanic_cantidadadjuntos`. **Alta simple, nunca upsert por clave** (DD-03). |
+| 3 | Filtrar adjuntos | `isInline` = false (DF-07). `cantidadadjuntos` = cuántos quedan; `cantidadexcel` = cuántos de esos adjuntos terminan en `.xlsx` (D-15). El Excel candidato es el único que termina en `.xlsx`; si hay cero o más de uno no se sube ninguno, y la regla correspondiente falla en la validación, que es donde tiene que fallar. |
+| 4 | *Add a new row* → Solicitud | `sanic_messageid`, remitente, asunto, `sanic_fecharecibido` (la del correo), `sanic_fechaingresada` = `utcNow()`, estado = Ingresada, `sanic_cantidadadjuntos`, `sanic_cantidadexcel` (D-15). **Alta simple, nunca upsert por clave** (DD-03). |
 | 4b | Si el alta falla por **clave duplicada** | La Solicitud ya existe. Se busca por `sanic_messageid` con *List rows*, se sigue desde el paso 7 con esa Solicitud, y el resultado es `ya_existia`. Cualquier **otro** error va al bloque de errores. |
 | 5 | *Export email (V2)* → *Upload a file or an image* | El `.eml` a `sanic_correocrudo` (RF-10). Es lo que lee el plugin liviano. |
 | 6 | *Upload a file or an image* | El Excel a `sanic_exceloriginal`, si hay exactamente uno (D-31). |

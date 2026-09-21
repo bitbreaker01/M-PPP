@@ -62,7 +62,7 @@ Valor = correlativo estable (ver `01` §6). `T` = estado terminal.
 
 **El RPA no es un estado, es un actor**: cuando digite y apruebe, la fila pasa por Digitada y Aprobada igual que con una persona, con el usuario de aplicación del RPA en `sanic_digitadapor` y `sanic_aprobadapor`.
 
-**Efecto de regla**: qué le pasa a la Solicitud cuando esa regla de solicitud falla. *Rechaza*: en una regla de solicitud, se le responde al cliente con el motivo; en una de registro, se rechaza esa fila. *Envía a revisión*: solo para reglas de solicitud; no se responde, queda No reconocida y la revisa un ejecutivo. *Advierte*: se registra y el proceso sigue.
+**Efecto de regla**: qué le pasa a la Solicitud cuando esa regla de solicitud falla. *Rechaza*: en una regla de solicitud, se le responde al cliente con el motivo; en una de registro, se rechaza esa fila. *Envía a revisión*: válido en las reglas del sobre —niveles Correo y Solicitud— y nunca en Registro; no se responde, queda No reconocida y la revisa un ejecutivo (D-20). *Advierte*: se registra y el proceso sigue.
 
 **Banco y tipo de identificación como choice**: agregar un banco nuevo exige desplegar una versión de la solución, además de agregarlo con su código en `plantilla.listas`. Es el costo aceptado de tratar todas las listas igual.
 
@@ -125,15 +125,20 @@ Regla de integridad (plugin PreOperation, BP-PP-051): el cliente del plan debe s
 
 | Código | Tipo | Contenido |
 |---|---|---|
-| `plantilla.estructura` | JSON | **La ventana de lectura** (LP-04): hoja `Datos`, fila de encabezado 12, primera fila de datos 13, cantidad de filas (100); y por cada campo: en qué columna está, encabezado esperado, largo mínimo y máximo, formato. El lector no mira nada fuera de esa ventana |
-| `plantilla.listas` | JSON | Valores aceptados de Gestión, Clasificación, Tipo de identificación, Moneda y Banco, con sus variantes de escritura; **cada banco con su código de 3 dígitos** (DD-10) |
-| `plantilla.obligatoriedad` | JSON | Campos obligatorios por Gestión × Clasificación × tipo de formato del plan. **Versión inicial: todos obligatorios salvo Referencia** (DD-16) |
+| `plantilla.estructura` | JSON | **La ventana de lectura** (LP-04): hoja `Datos`, fila de encabezado 12, primera fila de datos 13, cantidad de filas (100); y por cada campo: en qué columna está, encabezado esperado, largo mínimo y máximo, formato. El lector no mira nada fuera de esa ventana. El `formato` de cada campo es una lista **cerrada**: `texto`, `digitos`, `alfanumerico`, más `largoMinimo` y `largoMaximo`; sin expresiones regulares (D-18) |
+| `plantilla.listas` | JSON | Valores aceptados de Gestión, Clasificación, Tipo de identificación, Moneda y Banco, con sus variantes de escritura; **cada banco con su código de 3 dígitos** (DD-10). La comparación de un valor contra estos valores **no distingue mayúsculas, tildes ni espacios al inicio y al final**; las variantes de escritura son explícitas en el parámetro (D-18) |
+| `plantilla.obligatoriedad` | JSON | Campos obligatorios por Gestión × Clasificación × tipo de formato del plan. **Versión inicial: todos obligatorios salvo Referencia** (DD-16). Se expresa como una **lista de excepciones sobre un valor por defecto** (D-18) |
 | `lectura.limites` | JSON | Peso máximo del archivo comprimido y peso máximo descomprimido (LP-02, LP-03) |
 | `retencion.dias.general` · `retencion.dias.noreconocidas` | Número | Plazos del histórico (fase 3) |
 | `vigilancia.minutos.sinvalidar` · `vigilancia.minutos.sinresponder` · `vigilancia.reintentos.maximo` | Número | `MPPP-VIG` |
 | `correo.prefijos.reenvio` | JSON | Prefijos de asunto que identifican un reenvío: `FW:`, `FWD:`, `RV:`, `REENV:` (`03` §0) |
 | `clasificacion.dias.vencimiento` | Número | Días que un correo puede quedar en Por clasificar antes de pasar a Vencida. Inicial: 30 |
 | `rpa.puedeaprobar` | Texto | `no` hasta contar con el aval de C-03. En `si`, el bot puede aprobar lo que él mismo digitó, siempre como evento aparte (`03` §3) |
+
+**Las tres formas de D-18** (ejemplos tal cual figuran en `PENDIENTES.md`):
+- `plantilla.listas`: comparación sin mayúsculas, tildes ni espacios a los lados, con variantes explícitas por valor: `{"gestion":[{"valor":"Inclusion","variantes":["inclusión","alta"]}]}`.
+- `plantilla.estructura` (`formato`): lista corta y cerrada — `texto`, `digitos`, `alfanumerico` — más `largoMinimo` y `largoMaximo`; nada de expresiones regulares en un parámetro.
+- `plantilla.obligatoriedad`: lista de excepciones sobre un valor por defecto: `{"porDefecto":"obligatorio","opcionales":[{"campo":"referencia"}],"reglas":[{"gestion":"Exclusion","clasificacion":"*","formato":"*","opcionales":["moneda","banco"]}]}`; arranca con todo obligatorio salvo Referencia (DD-16) y crece cuando el negocio escriba la matriz.
 
 Largos de la plantilla vigente (ficha §9): Nombre ≤44 · Identificación 1–16 · Referencia ≤20 · Cuenta 1–16.
 
@@ -144,15 +149,19 @@ Largos de la plantilla vigente (ficha §9): Nombre ≤44 · Identificación 1–
 | `sanic_codigo` | T(50) | S | **Clave** `sanic_mppp_key_regla_codigo`. El código C# tiene un evaluador por código; una regla activa sin evaluador es un error de configuración. |
 | `sanic_nivel` | C:nivelregla | S | *Correo*: la evalúa el plugin liviano, sin abrir la plantilla. *Solicitud*: una vez, sobre el correo y su adjunto. *Registro*: por cada fila. |
 | `sanic_orden` | E | S | Orden de evaluación dentro de su nivel. |
-| `sanic_dependede` | T(500) | | Códigos de las reglas de las que depende, separados por coma. Si alguna de ellas no resultó Cumplida, esta regla **se omite** (DD-13). Un plugin valida al guardar: los códigos existen, son del mismo nivel, tienen orden menor y no forman ciclos. |
-| `sanic_efecto` | C:efectoregla | S | *Envía a revisión* solo es válido en el nivel Solicitud. |
-| `sanic_mensajecliente` | M(2000) | | Texto para el cliente cuando la regla falla. |
+| `sanic_dependede` | T(500) | | Códigos de las reglas de las que depende, separados por coma. Si alguna de ellas no resultó Cumplida, esta regla **se omite** (DD-13). Un plugin valida al guardar: los códigos existen, son del mismo nivel, tienen orden menor y no forman ciclos; también **impide desactivar una regla de la que dependen otras reglas activas** (D-13, pieza 7.10). |
+| `sanic_efecto` | C:efectoregla | S | *Envía a revisión* es válido en las reglas del sobre (niveles Correo y Solicitud) y nunca en Registro; lo impide 7.10, y si igual llega, el motor lo trata como catálogo mal armado y falla cerrado (D-20). `AUTORIZACION_CORREO_PLAN` no admite otro efecto que Rechaza; también lo impide 7.10, y el motor falla cerrado si igual llega (D-14). |
+| `sanic_mensajecliente` | M(2000) | | Texto para el cliente cuando la regla falla: es una **PLANTILLA** con marcadores que completa el evaluador (`{valor}`, `{campo}`, `{plan}`, `{regla}`). Si queda vacío, el evaluador usa un mensaje propio por defecto, para que el motivo nunca salga en blanco (D-19). |
 
 Semillas de nivel **Correo**, que evalúa el plugin liviano (→ = depende de): `ES_CORREO_NUEVO` · `REMITENTE_RECONOCIDO` → ES_CORREO_NUEVO (las dos con efecto Envía a revisión).
 
 Semillas de nivel **Solicitud**, que evalúa el plugin de validación: `TRAE_ADJUNTO` · `ADJUNTO_ES_EXCEL` → TRAE_ADJUNTO · `UN_SOLO_EXCEL` → ADJUNTO_ES_EXCEL · `ESTRUCTURA_PLANTILLA` → UN_SOLO_EXCEL · `TIENE_FILAS` → ESTRUCTURA_PLANTILLA (todas Rechaza).
 
+**Condiciones exactas de las 5 reglas del sobre** (D-16, D-15): `TRAE_ADJUNTO` = `sanic_cantidadadjuntos` ≥ 1 · `ADJUNTO_ES_EXCEL` = `sanic_cantidadexcel` ≥ 1 · `UN_SOLO_EXCEL` = `sanic_cantidadexcel` = 1 · `ESTRUCTURA_PLANTILLA` = el lector de 7.2 devuelve válido (hoja, encabezados y orden correctos; si no, la razón son los errores del lector, que ya son texto para el cliente) · `TIENE_FILAS` = el lector devolvió al menos una fila con datos.
+
 Semillas de nivel **Registro**: `LISTAS_VALIDAS` · `LARGOS_Y_FORMATO` · `PLAN_EXISTE` · `FORMATO_11_SOLO_ACH` → PLAN_EXISTE, LISTAS_VALIDAS · `OBLIGATORIEDAD` → PLAN_EXISTE, LISTAS_VALIDAS · `REFERENCIA_FORMATO_11` → FORMATO_11_SOLO_ACH, OBLIGATORIEDAD · `MONEDA_DEL_PLAN` → PLAN_EXISTE, LISTAS_VALIDAS · `AUTORIZACION_CORREO_PLAN` → PLAN_EXISTE (todas Rechaza; la última deja la fila en Sin autorización).
+
+**Mala configuración del catálogo** (D-13): una regla ACTIVA sin evaluador en el código, o que depende de una regla INACTIVA, hace que el motor **falle cerrado y ruidoso** (`ConfiguracionDeReglasInvalidaException`, `03` §1): la transacción se revierte, la Solicitud sigue en Ingresada, `MPPP-VIG` reintenta y al agotar los reintentos marca `sanic_requiererevision`.
 
 ## 3. Unidad histórica (relación **parental** desde Solicitud, D-32)
 
@@ -178,6 +187,7 @@ Semillas de nivel **Registro**: `LISTAS_VALIDAS` · `LARGOS_Y_FORMATO` · `PLAN_
 | `sanic_correocrudo` | A (25 MB) | | `.eml` exportado (RF-10). |
 | `sanic_exceloriginal` | A (10 MB) | | La columna de archivo ya conserva el nombre original. |
 | `sanic_cantidadadjuntos` | E | | |
+| `sanic_cantidadexcel` | E | | Cuántos de los adjuntos son Excel; mínimo 0. La llena `MPPP-ING`, igual que `sanic_cantidadadjuntos` (D-15). |
 | `sanic_filastotales` · `sanic_filasvalidas` · `sanic_filasrechazadas` | E | | |
 | `sanic_versionparametros` | T(200) | | Versiones de los parámetros `plantilla.*` usadas. |
 | `sanic_reintentosvalidacion` | E | | Veces que `MPPP-VIG` reintentó la validación. |
