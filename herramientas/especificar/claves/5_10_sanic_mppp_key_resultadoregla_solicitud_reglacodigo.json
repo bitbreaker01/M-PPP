@@ -1,0 +1,27 @@
+{
+ "inventario": "5.10",
+ "diccionario": "§3.3",
+ "componente": {
+  "tipo": "clave",
+  "nombre": "sanic_mppp_key_resultadoregla_solicitud_reglacodigo",
+  "displayname": "KEY - MPPP - Resultado de regla - Solicitud y código de regla",
+  "tabla": "sanic_mppp_tbl_resultadoregla",
+  "columnas": [
+   "sanic_solicitudid",
+   "sanic_reglacodigo"
+  ]
+ },
+ "columnas_opcionales": [
+  "sanic_solicitudid"
+ ],
+ "viene_del_diseno": [
+  "Columnas de la clave: `02` §3.3 e inventario §5, renglón 5.10.",
+  "Una regla se evalúa una sola vez por solicitud.",
+  "`sanic_solicitudid` es opcional en `02` §3.3 (pendiente D-7): si D-7 lo vuelve requerido, la clave no cambia."
+ ],
+ "fuera_de_alcance": [
+  "La relación que crea el lookup de esta clave: inventario 4.6, ya construida.",
+  "El plugin o Custom API que usa esta clave para detectar duplicados: inventario 7 y 8.",
+  "Importación de datos por clave (semillas): inventario 9."
+ ]
+}

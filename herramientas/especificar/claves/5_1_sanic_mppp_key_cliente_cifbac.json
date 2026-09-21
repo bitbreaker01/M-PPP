@@ -1,0 +1,22 @@
+{
+ "inventario": "5.1",
+ "diccionario": "§2.1",
+ "componente": {
+  "tipo": "clave",
+  "nombre": "sanic_mppp_key_cliente_cifbac",
+  "displayname": "KEY - MPPP - Cliente - CIF BAC",
+  "tabla": "sanic_mppp_tbl_cliente",
+  "columnas": [
+   "sanic_cifbac"
+  ]
+ },
+ "columnas_opcionales": [],
+ "viene_del_diseno": [
+  "Columnas de la clave: `02` §2.1 e inventario §5, renglón 5.1.",
+  "Un solo cliente por CIF BAC (9 dígitos)."
+ ],
+ "fuera_de_alcance": [
+  "El plugin o Custom API que usa esta clave para detectar duplicados: inventario 7 y 8.",
+  "Importación de datos por clave (semillas): inventario 9."
+ ]
+}

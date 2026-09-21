@@ -1,0 +1,23 @@
+{
+ "inventario": "5.6",
+ "diccionario": "§2.5",
+ "componente": {
+  "tipo": "clave",
+  "nombre": "sanic_mppp_key_parametro_nombre_version",
+  "displayname": "KEY - MPPP - Parámetro - Nombre y versión",
+  "tabla": "sanic_mppp_tbl_parametro",
+  "columnas": [
+   "sanic_nombre",
+   "sanic_version"
+  ]
+ },
+ "columnas_opcionales": [],
+ "viene_del_diseno": [
+  "Columnas de la clave: `02` §2.5 e inventario §5, renglón 5.6.",
+  "Un parámetro no repite versión."
+ ],
+ "fuera_de_alcance": [
+  "El plugin o Custom API que usa esta clave para detectar duplicados: inventario 7 y 8.",
+  "Importación de datos por clave (semillas): inventario 9."
+ ]
+}

@@ -1,0 +1,22 @@
+{
+ "inventario": "5.8",
+ "diccionario": "§3.1 y DD-03",
+ "componente": {
+  "tipo": "clave",
+  "nombre": "sanic_mppp_key_solicitud_messageid",
+  "displayname": "KEY - MPPP - Solicitud - Message-ID",
+  "tabla": "sanic_mppp_tbl_solicitud",
+  "columnas": [
+   "sanic_messageid"
+  ]
+ },
+ "columnas_opcionales": [],
+ "viene_del_diseno": [
+  "Columnas de la clave: `02` §3.1 y DD-03 e inventario §5, renglón 5.8.",
+  "Un correo genera una sola solicitud. 450 caracteres = 900 bytes, justo el máximo. Sirve para unicidad, **no** para upsert por clave (DD-03)."
+ ],
+ "fuera_de_alcance": [
+  "El plugin o Custom API que usa esta clave para detectar duplicados: inventario 7 y 8.",
+  "Importación de datos por clave (semillas): inventario 9."
+ ]
+}

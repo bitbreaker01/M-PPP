@@ -1,0 +1,25 @@
+{
+ "inventario": "5.5",
+ "diccionario": "§2.4",
+ "componente": {
+  "tipo": "clave",
+  "nombre": "sanic_mppp_key_autorizacionplan_autorizado_plan",
+  "displayname": "KEY - MPPP - Autorización - Autorizado y plan",
+  "tabla": "sanic_mppp_tbl_autorizacionplan",
+  "columnas": [
+   "sanic_autorizadoid",
+   "sanic_planid"
+  ]
+ },
+ "columnas_opcionales": [],
+ "viene_del_diseno": [
+  "Columnas de la clave: `02` §2.4 e inventario §5, renglón 5.5.",
+  "Una sola autorización por correo y plan."
+ ],
+ "fuera_de_alcance": [
+  "La relación que crea el lookup de esta clave: inventario 4.3, ya construida.",
+  "La relación que crea el lookup de esta clave: inventario 4.4, ya construida.",
+  "El plugin o Custom API que usa esta clave para detectar duplicados: inventario 7 y 8.",
+  "Importación de datos por clave (semillas): inventario 9."
+ ]
+}

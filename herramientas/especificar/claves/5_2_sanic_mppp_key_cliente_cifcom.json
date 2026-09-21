@@ -1,0 +1,22 @@
+{
+ "inventario": "5.2",
+ "diccionario": "§2.1",
+ "componente": {
+  "tipo": "clave",
+  "nombre": "sanic_mppp_key_cliente_cifcom",
+  "displayname": "KEY - MPPP - Cliente - CIF COM",
+  "tabla": "sanic_mppp_tbl_cliente",
+  "columnas": [
+   "sanic_cifcom"
+  ]
+ },
+ "columnas_opcionales": [],
+ "viene_del_diseno": [
+  "Columnas de la clave: `02` §2.1 e inventario §5, renglón 5.2.",
+  "Un solo cliente por CIF COM."
+ ],
+ "fuera_de_alcance": [
+  "El plugin o Custom API que usa esta clave para detectar duplicados: inventario 7 y 8.",
+  "Importación de datos por clave (semillas): inventario 9."
+ ]
+}

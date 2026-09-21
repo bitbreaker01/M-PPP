@@ -1,0 +1,24 @@
+{
+ "inventario": "5.9",
+ "diccionario": "§3.2",
+ "componente": {
+  "tipo": "clave",
+  "nombre": "sanic_mppp_key_fila_solicitud_numerofila",
+  "displayname": "KEY - MPPP - Fila - Solicitud y número de fila",
+  "tabla": "sanic_mppp_tbl_fila",
+  "columnas": [
+   "sanic_solicitudid",
+   "sanic_numerofila"
+  ]
+ },
+ "columnas_opcionales": [],
+ "viene_del_diseno": [
+  "Columnas de la clave: `02` §3.2 e inventario §5, renglón 5.9.",
+  "Un número de fila no se repite dentro de una solicitud."
+ ],
+ "fuera_de_alcance": [
+  "La relación que crea el lookup de esta clave: inventario 4.5, ya construida.",
+  "El plugin o Custom API que usa esta clave para detectar duplicados: inventario 7 y 8.",
+  "Importación de datos por clave (semillas): inventario 9."
+ ]
+}

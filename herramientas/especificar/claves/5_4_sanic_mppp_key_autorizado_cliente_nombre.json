@@ -1,0 +1,24 @@
+{
+ "inventario": "5.4",
+ "diccionario": "§2.3",
+ "componente": {
+  "tipo": "clave",
+  "nombre": "sanic_mppp_key_autorizado_cliente_nombre",
+  "displayname": "KEY - MPPP - Autorizado - Cliente y correo",
+  "tabla": "sanic_mppp_tbl_autorizado",
+  "columnas": [
+   "sanic_clienteid",
+   "sanic_nombre"
+  ]
+ },
+ "columnas_opcionales": [],
+ "viene_del_diseno": [
+  "Columnas de la clave: `02` §2.3 e inventario §5, renglón 5.4.",
+  "Un correo figura una sola vez por cliente. La clave no distingue mayúsculas (spike C-05)."
+ ],
+ "fuera_de_alcance": [
+  "La relación que crea el lookup de esta clave: inventario 4.2, ya construida.",
+  "El plugin o Custom API que usa esta clave para detectar duplicados: inventario 7 y 8.",
+  "Importación de datos por clave (semillas): inventario 9."
+ ]
+}

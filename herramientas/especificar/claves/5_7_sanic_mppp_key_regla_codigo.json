@@ -1,0 +1,22 @@
+{
+ "inventario": "5.7",
+ "diccionario": "§2.6",
+ "componente": {
+  "tipo": "clave",
+  "nombre": "sanic_mppp_key_regla_codigo",
+  "displayname": "KEY - MPPP - Regla - Código",
+  "tabla": "sanic_mppp_tbl_regla",
+  "columnas": [
+   "sanic_codigo"
+  ]
+ },
+ "columnas_opcionales": [],
+ "viene_del_diseno": [
+  "Columnas de la clave: `02` §2.6 e inventario §5, renglón 5.7.",
+  "El código C# tiene un evaluador por código de regla."
+ ],
+ "fuera_de_alcance": [
+  "El plugin o Custom API que usa esta clave para detectar duplicados: inventario 7 y 8.",
+  "Importación de datos por clave (semillas): inventario 9."
+ ]
+}
