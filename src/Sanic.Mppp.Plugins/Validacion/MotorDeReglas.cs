@@ -5,6 +5,23 @@ using Sanic.Mppp.Plugins.Dominio;
 
 namespace Sanic.Mppp.Plugins.Validacion
 {
+    /// <summary>
+    /// El catálogo de reglas, o el cableado de sus evaluadores, está mal: código vacío o repetido, dependencia vacía, una regla que depende de sí
+    /// misma, un ciclo, una dependencia que no se evaluó antes, un evaluador que devuelve nulo. SIEMPRE nombra la regla. No es un rechazo de negocio:
+    /// es una excepción real (diseno/03 §1 "Errores"): la transacción se revierte y la solicitud queda para reintento y revisión.
+    /// </summary>
+    public sealed class ConfiguracionDeReglasInvalidaException : Exception
+    {
+        public ConfiguracionDeReglasInvalidaException(string codigoDeRegla, string mensaje)
+            : base(mensaje)
+        {
+            CodigoDeRegla = codigoDeRegla;
+        }
+
+        /// <summary>La regla que tiene el problema (o `null` si el problema es justamente que no tiene código).</summary>
+        public string CodigoDeRegla { get; }
+    }
+
     /// <summary>Una regla ACTIVA del catálogo (`sanic_mppp_tbl_regla`), tal como la entrega la capa de datos. Sin SDK.</summary>
     public sealed class DefinicionDeRegla
     {
@@ -59,6 +76,17 @@ namespace Sanic.Mppp.Plugins.Validacion
     {
         public ResultadoDeRegla(string codigo, int orden, ResultadoDeLaRegla resultado, string razon, EfectoDeLaRegla efectoAplicado)
         {
+            // Es el tipo que sobrevive a la evaluación (se persiste y se rehidrata): protege la misma invariante que Veredicto.
+            if (string.IsNullOrWhiteSpace(codigo))
+            {
+                throw new ArgumentException("Un resultado tiene que decir de qué regla es.", nameof(codigo));
+            }
+
+            if (resultado != ResultadoDeLaRegla.Cumplida && string.IsNullOrWhiteSpace(razon))
+            {
+                throw new ArgumentException($"El resultado {resultado} de la regla {codigo} tiene que llevar su razón: un motivo en blanco nunca llega al cliente.", nameof(razon));
+            }
+
             Codigo = codigo;
             Orden = orden;
             Resultado = resultado;

@@ -151,6 +151,112 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Throws<ArgumentException>(() => Veredicto.NoCumplida(" "));
         }
 
+        // ------------------------------------------------------------------ un catálogo mal armado falla cerrado, y dice qué regla
+        // Hallazgos de la revisión de código (2026-09-21). No son reglas de negocio: son invariantes del catálogo y del cableado.
+        private sealed class EvaluadorFijo : IEvaluador<ISet<string>>
+        {
+            private readonly Func<Veredicto> _que;
+
+            public EvaluadorFijo(string codigo, Func<Veredicto> que)
+            {
+                Codigo = codigo;
+                _que = que;
+            }
+
+            public string Codigo { get; }
+
+            public Veredicto Evaluar(ISet<string> contexto) => _que();
+        }
+
+        private static MotorDeReglas<ISet<string>> MotorPara(params string[] codigos)
+        {
+            return new MotorDeReglas<ISet<string>>(codigos.Select(c => new EvaluadorFijo(c, Veredicto.Cumplida)).ToList());
+        }
+
+        public static IEnumerable<object[]> CatalogosMalArmados()
+        {
+            yield return new object[] { "código nulo", null, new[] { new DefinicionDeRegla { Codigo = null, Orden = 1 } } };
+            yield return new object[] { "código en blanco", null, new[] { new DefinicionDeRegla { Codigo = "  ", Orden = 1 } } };
+            yield return new object[] { "definición nula", null, new DefinicionDeRegla[] { null } };
+            yield return new object[] { "código repetido", "A", new[] { Regla("A", 1), Regla("A", 2) } };
+            yield return new object[] { "dependencia nula", "B", new[] { Regla("A", 1), Regla("B", 2, new string[] { null }) } };
+            yield return new object[] { "dependencia en blanco", "B", new[] { Regla("A", 1), Regla("B", 2, " ") } };
+            yield return new object[] { "depende de sí misma", "A", new[] { Regla("A", 1, "A") } };
+            yield return new object[] { "ciclo", "A", new[] { Regla("A", 1, "B"), Regla("B", 2, "A") } };
+            yield return new object[] { "dependencia que se evalúa después", "A", new[] { Regla("A", 1, "B"), Regla("B", 2) } };
+        }
+
+        [Theory]
+        [MemberData(nameof(CatalogosMalArmados))]
+        public void Un_catalogo_mal_armado_falla_cerrado_con_una_excepcion_propia_que_nombra_la_regla(string caso, string reglaEsperada, DefinicionDeRegla[] reglas)
+        {
+            var ex = Assert.Throws<ConfiguracionDeReglasInvalidaException>(() => MotorPara("A", "B").Evaluar(reglas, new HashSet<string>()));
+            Assert.Equal(reglaEsperada, ex.CodigoDeRegla);
+            Assert.False(string.IsNullOrWhiteSpace(ex.Message), caso);
+            if (reglaEsperada != null)
+            {
+                Assert.Contains(reglaEsperada, ex.Message);
+            }
+        }
+
+        [Fact]
+        public void El_mensaje_distingue_una_dependencia_que_se_evalua_despues_de_una_que_no_esta()
+        {
+            var despues = Assert.Throws<ConfiguracionDeReglasInvalidaException>(() => MotorPara("A", "B").Evaluar(new[] { Regla("A", 1, "B"), Regla("B", 2) }, new HashSet<string>()));
+            Assert.Contains("orden", despues.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Dos_evaluadores_con_el_mismo_codigo_son_un_error_de_cableado_no_gana_el_ultimo_en_silencio()
+        {
+            var ex = Assert.Throws<ConfiguracionDeReglasInvalidaException>(() => MotorPara("A", "B", "A"));
+            Assert.Equal("A", ex.CodigoDeRegla);
+            Assert.Throws<ConfiguracionDeReglasInvalidaException>(() => new MotorDeReglas<ISet<string>>(new IEvaluador<ISet<string>>[] { null }));
+            Assert.Throws<ConfiguracionDeReglasInvalidaException>(() => MotorPara("A", " "));
+        }
+
+        [Fact]
+        public void Un_evaluador_que_devuelve_nulo_es_un_error_que_nombra_la_regla()
+        {
+            var motor = new MotorDeReglas<ISet<string>>(new[] { new EvaluadorFijo("A", () => null) });
+            var ex = Assert.Throws<ConfiguracionDeReglasInvalidaException>(() => motor.Evaluar(new[] { Regla("A", 1) }, new HashSet<string>()));
+            Assert.Equal("A", ex.CodigoDeRegla);
+        }
+
+        [Fact]
+        public void Una_excepcion_real_de_un_evaluador_se_propaga_tal_cual_nunca_se_disfraza_de_regla_no_cumplida()
+        {
+            // diseno/03 §1 "Errores": excepción real → se revierte todo. Una regla "No cumplida" por un bug nuestro rechazaría filas buenas.
+            var motor = new MotorDeReglas<ISet<string>>(new[] { new EvaluadorFijo("A", () => throw new DivideByZeroException("bug")) });
+            Assert.Throws<DivideByZeroException>(() => motor.Evaluar(new[] { Regla("A", 1) }, new HashSet<string>()));
+        }
+
+        [Fact]
+        public void Dos_reglas_con_el_mismo_orden_se_desempatan_por_codigo_no_por_como_vinieron_de_la_consulta()
+        {
+            var ida = Correr(new[] { Regla("ZETA", 10), Regla("ALFA", 10), Regla("BETA", 5) }).resultados.Select(r => r.Codigo);
+            var vuelta = Correr(new[] { Regla("ALFA", 10), Regla("BETA", 5), Regla("ZETA", 10) }).resultados.Select(r => r.Codigo);
+            Assert.Equal(new[] { "BETA", "ALFA", "ZETA" }, ida);
+            Assert.Equal(ida, vuelta);
+        }
+
+        [Fact]
+        public void Una_dependencia_repetida_no_ensucia_la_razon_de_la_omitida()
+        {
+            var (rs, _) = Correr(new[] { Regla("A", 1), Regla("B", 2, "A", "A") }, "A");
+            var razon = rs.Single(r => r.Codigo == "B").Razon;
+            Assert.Equal(razon.IndexOf("A", StringComparison.Ordinal), razon.LastIndexOf("A", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void Un_resultado_que_no_es_cumplida_no_se_puede_construir_sin_razon_ni_ninguno_sin_codigo()
+        {
+            Assert.Throws<ArgumentException>(() => new ResultadoDeRegla("A", 1, ResultadoDeLaRegla.NoCumplida, " ", EfectoDeLaRegla.Rechaza));
+            Assert.Throws<ArgumentException>(() => new ResultadoDeRegla("A", 1, ResultadoDeLaRegla.Omitida, null, EfectoDeLaRegla.Rechaza));
+            Assert.Throws<ArgumentException>(() => new ResultadoDeRegla(" ", 1, ResultadoDeLaRegla.Cumplida, null, EfectoDeLaRegla.Rechaza));
+            Assert.Null(new ResultadoDeRegla("A", 1, ResultadoDeLaRegla.Cumplida, null, EfectoDeLaRegla.Rechaza).Razon);
+        }
+
         // ------------------------------------------------------------------ del historial a los estados (pasos 5 y 7)
         private static ResultadoDeRegla R(string codigo, ResultadoDeLaRegla resultado, EfectoDeLaRegla efecto = EfectoDeLaRegla.Rechaza, int orden = 1)
         {
