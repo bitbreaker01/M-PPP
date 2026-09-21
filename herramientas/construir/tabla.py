@@ -17,8 +17,13 @@ salvo que sea autonumérica. Enseguida de crear se reenvía su definición
 completa con PUT y se publica. `--corregir-primaria` repara una tabla que ya
 existe cuando su ÚNICA diferencia es la primaria: largo, requerida, o pasar
 de texto común a autonumérica (nunca otra cosa, y nunca al revés).
+`--agregar-columnas` (D-15, 2026-09-21) agrega a una tabla que ya existe las
+columnas que el playbook declara y el entorno no tiene, con el mismo cuerpo
+que la creación, y solo si esa es su ÚNICA diferencia; nunca cambia ni borra
+una columna existente. PENDIENTE de ensayo contra la plataforma.
 Las columnas lookup no van acá: nacen con su relación.
-Nunca modifica ni borra: si la tabla existe y no coincide, informa `difiere`.
+Fuera de esos flags de reparación, nunca modifica ni borra: si la tabla
+existe y no coincide, informa `difiere`.
 
 Última línea de la salida: JSON de una línea con `estado`
 (creado | ya_existia | difiere | bloqueado | error), `componente`, `detalle`.
@@ -616,7 +621,38 @@ def corregir_nombres(dv, datos, identidad, plan):
     return None if est == 204 else f"se cambiaron los nombres pero falló publicar la tabla: HTTP {est} {resp}"
 
 
-def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_primaria=False, publicar=False, corregir=False):
+def _columnas_que_faltan(datos, diffs):
+    """Lo único que `--agregar-columnas` acepta reparar: que TODAS las
+    diferencias sean columnas que el playbook declara (no la primaria) y el
+    entorno no tiene. Devuelve esas columnas en el orden del playbook; si hay
+    cualquier otra diferencia, `None`: no se toca nada."""
+    prefijo = "falta la columna "
+    declaradas = {c["nombre"] for c in datos["columnas"]}
+    faltan = set()
+    for d in diffs:
+        if not d.startswith(prefijo) or d[len(prefijo):] not in declaradas:
+            return None
+        faltan.add(d[len(prefijo):])
+    return [c for c in datos["columnas"] if c["nombre"] in faltan] or None
+
+
+def agregar_columnas(dv, datos, identidad, choices, columnas):
+    """`POST …/Attributes` por cada columna, con EL MISMO cuerpo que usa la
+    creación de la tabla (es la ruta que ya usan las columnas protegidas), y
+    publicar una vez. Nunca borra ni cambia una columna existente. Devuelve `None` o el problema."""
+    tabla, hechas = datos["nombre"], []
+    for c in columnas:
+        est, cuerpo, _ = escribir_metadatos(dv, "POST", f"EntityDefinitions(LogicalName='{tabla}')/Attributes",
+                                            _columna_payload(c, identidad["lcid"], choices), solucion=identidad["solucion"])
+        if est != 204:
+            return f"falló agregar la columna {c['nombre']}: HTTP {est} {cuerpo}; ya se agregaron: {', '.join(hechas) or 'ninguna'}. Se puede volver a correr con --agregar-columnas"
+        hechas.append(c["nombre"])
+    xml = f"<importexportxml><entities><entity>{tabla}</entity></entities></importexportxml>"
+    est, cuerpo, _ = escribir_metadatos(dv, "POST", "PublishXml", {"ParameterXml": xml})
+    return None if est == 204 else f"se agregaron las columnas ({', '.join(hechas)}) pero falló publicar la tabla: HTTP {est} {cuerpo}. Volver a correr con --publicar"
+
+
+def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_primaria=False, publicar=False, corregir=False, agregar=False):
     solucion = identidad["solucion"]
     solution_id = comprobar_solucion_e_idioma(dv, identidad)
     choices = comprobar_choices(dv, datos)
@@ -635,6 +671,18 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_p
                 cuantos = int(plan["tabla"]) + len(plan["columnas"]) + len(plan["si_no"])
                 return "ya_existia", componente, (f"MetadataId {actual['metadata_id']}; la tabla existía y solo diferían nombres visibles; se corrigieron {cuantos} "
                                                   f"y ahora coincide en todo; pertenece a '{solucion}'")
+    if actual["existe"] and agregar and not solo_verificar:
+        faltan = _columnas_que_faltan(datos, actual["diffs"])
+        if faltan:
+            problema = agregar_columnas(dv, datos, identidad, choices, faltan)
+            if problema:
+                return "error", componente, problema
+            actual = _verificar(dv, datos, identidad, solution_id)
+            if actual["diffs"]:
+                return "error", componente, f"se agregaron las columnas pero no coincide con el playbook al releer: {'; '.join(actual['diffs'])}"
+            nombres = ", ".join(c["nombre"] for c in faltan)
+            return "ya_existia", componente, (f"MetadataId {actual['metadata_id']}; la tabla existía y solo le faltaban columnas; se agregaron {len(faltan)} columnas "
+                                              f"({nombres}) y ahora coincide en todo; pertenece a '{solucion}'")
     if actual["existe"] and corregir_primaria and not solo_verificar and _solo_difiere_la_primaria(datos, actual["diffs"]):
         problema = ajustar_primaria(dv, datos, identidad)
         if problema:
@@ -682,7 +730,7 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_p
 
 
 def construir(ruta_playbook, solo_verificar, fabrica_cliente, verificadas=VERIFICADAS_EN_PLATAFORMA, permitir_no_verificadas=False,
-              corregir_primaria=False, publicar=False, corregir_nombres=False):
+              corregir_primaria=False, publicar=False, corregir_nombres=False, agregar_columnas=False):
     """Nunca lanza: siempre devuelve `(estado, componente, detalle)`."""
     componente = os.path.basename(ruta_playbook)
     paso = "leer el playbook"
@@ -715,7 +763,7 @@ def construir(ruta_playbook, solo_verificar, fabrica_cliente, verificadas=VERIFI
 
     rastro = Rastro(dv)
     try:
-        return _contra_entorno(rastro, datos, identidad, solo_verificar, componente, corregir_primaria, publicar, corregir=corregir_nombres)
+        return _contra_entorno(rastro, datos, identidad, solo_verificar, componente, corregir_primaria, publicar, corregir=corregir_nombres, agregar=agregar_columnas)
     except Bloqueado as e:
         return "bloqueado", componente, str(e)
     except ErrorEntorno as e:
@@ -728,13 +776,13 @@ def main():
     argv = sys.argv[1:]
     rutas = [a for a in argv if not a.startswith("--")]
     if len(rutas) != 1:
-        return salida("error", "desconocido", "uso incorrecto: tabla.py <playbook.md> [--solo-verificar] [--permitir-no-verificadas] [--corregir-primaria] [--publicar]")
+        return salida("error", "desconocido", "uso incorrecto: tabla.py <playbook.md> [--solo-verificar] [--permitir-no-verificadas] [--corregir-primaria] [--publicar] [--corregir-nombres] [--agregar-columnas]")
     from dataverse_api import Dataverse
 
     estado, componente, detalle = construir(rutas[0], "--solo-verificar" in argv, Dataverse,
                                             permitir_no_verificadas="--permitir-no-verificadas" in argv,
                                             corregir_primaria="--corregir-primaria" in argv, publicar="--publicar" in argv,
-                                            corregir_nombres="--corregir-nombres" in argv)
+                                            corregir_nombres="--corregir-nombres" in argv, agregar_columnas="--agregar-columnas" in argv)
     return salida(estado, componente, detalle)
 
 
