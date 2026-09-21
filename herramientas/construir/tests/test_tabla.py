@@ -172,15 +172,23 @@ def armar(cliente, datos, existe=True, genericas=None, por_tipo=None, tabla=None
 
     cliente.responder("POST", "EntityDefinitions", al_crear)
     cliente.responder("POST", f"EntityDefinitions(LogicalName='{datos['nombre']}')/Attributes", (204, None, {}))
+    ruta_prim = f"EntityDefinitions(LogicalName='{datos['nombre']}')/Attributes(LogicalName='{datos['primaria']['nombre']}')"
+    # La plataforma crea la primaria con SUS valores (850, opcional) y devuelve el cast sin '@odata.type'.
+    cliente.responder("GET", ruta_prim + "/Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                      (200, {"LogicalName": datos["primaria"]["nombre"], "SchemaName": datos["primaria"]["nombre"], "MaxLength": 850,
+                             "RequiredLevel": rl("None"), "FormatName": {"Value": "Text"}, "DisplayName": label(datos["primaria"]["displayname"])}, {}))
+    cliente.responder("PUT", ruta_prim, (204, None, {}))
+    cliente.responder("POST", "PublishXml", (204, None, {}))
     return cliente
 
 
 class Base(unittest.TestCase):
-    def correr(self, fabrica, datos, solo_verificar=False, verificadas=TODO_VERIFICADO, permitir=False):
+    def correr(self, fabrica, datos, solo_verificar=False, verificadas=TODO_VERIFICADO, permitir=False, corregir_primaria=False):
         with tempfile.TemporaryDirectory() as d:
             ruta = os.path.join(d, "playbook.md")
             open(ruta, "w", encoding="utf-8").write(playbook_md(IDENT, datos))
-            return tb.construir(ruta, solo_verificar, fabrica, verificadas=verificadas, permitir_no_verificadas=permitir)
+            return tb.construir(ruta, solo_verificar, fabrica, verificadas=verificadas, permitir_no_verificadas=permitir,
+                                corregir_primaria=corregir_primaria)
 
     def con_cliente(self, cliente, datos, **kw):
         return self.correr(lambda: cliente, datos, **kw)
@@ -342,8 +350,7 @@ class Caminos(Base):
         self.assertEqual(estado, "creado", detalle)
         self.assertEqual(comp, TABLA)
         posts = [l for l in cliente.llamadas if l["metodo"] == "POST"]
-        self.assertEqual(len(posts), 1)
-        self.assertEqual(posts[0]["ruta"], "EntityDefinitions")
+        self.assertEqual([p["ruta"] for p in posts], ["EntityDefinitions", "PublishXml"])
         self.assertEqual(posts[0]["solucion"], IDENT["solucion"])
         self.assertEqual(len(posts[0]["cuerpo"]["Attributes"]), 10)
         self.assertIn(META_TABLA, detalle)
@@ -357,13 +364,13 @@ class Caminos(Base):
         self.assertEqual(estado, "creado", detalle)
         posts = [l for l in cliente.llamadas if l["metodo"] == "POST"]
         self.assertEqual([p["ruta"] for p in posts], ["EntityDefinitions", f"EntityDefinitions(LogicalName='{TABLA}')/Attributes",
-                                                      f"EntityDefinitions(LogicalName='{TABLA}')/Attributes"])
+                                                      f"EntityDefinitions(LogicalName='{TABLA}')/Attributes", "PublishXml"])
         en_tabla = [a["SchemaName"] for a in posts[0]["cuerpo"]["Attributes"]]
         self.assertNotIn("sanic_codigo", en_tabla)
         self.assertNotIn("sanic_orden", en_tabla)
         self.assertEqual(len(en_tabla), 8)
-        self.assertEqual([p["cuerpo"]["SchemaName"] for p in posts[1:]], ["sanic_codigo", "sanic_orden"])
-        for p in posts:
+        self.assertEqual([p["cuerpo"]["SchemaName"] for p in posts[1:3]], ["sanic_codigo", "sanic_orden"])
+        for p in posts[:3]:
             self.assertEqual(p["solucion"], IDENT["solucion"])
         self.assertIs(posts[1]["cuerpo"]["IsSecured"], True)
 
@@ -377,6 +384,64 @@ class Caminos(Base):
         self.assertIn("sanic_codigo", detalle)
         self.assertIn("HTTP 400", detalle)
         self.assertIn("incompleta", detalle)
+
+    def test_la_primaria_se_ajusta_despues_de_crear_porque_la_plataforma_ignora_su_largo_y_su_requerida(self):
+        """Verificado el 2026-09-20: al crear la tabla la plataforma deja la
+        primaria en 850 y opcional, diga lo que diga el POST (salvo que sea
+        autonumérica). Hay que reenviar su definición completa con PUT."""
+        cliente = armar(ClienteSimulado(), COMPLETO, existe=False)
+        estado, _, detalle = self.con_cliente(cliente, COMPLETO)
+        self.assertEqual(estado, "creado", detalle)
+        puts = [l for l in cliente.llamadas if l["metodo"] == "PUT"]
+        self.assertEqual(len(puts), 1)
+        self.assertEqual(puts[0]["ruta"], f"EntityDefinitions(LogicalName='{TABLA}')/Attributes(LogicalName='sanic_nombre')")
+        c = puts[0]["cuerpo"]
+        self.assertEqual(c["@odata.type"], "Microsoft.Dynamics.CRM.StringAttributeMetadata")
+        self.assertEqual(c["MaxLength"], 200)
+        self.assertEqual(c["RequiredLevel"]["Value"], "ApplicationRequired")
+        self.assertEqual(c["DisplayName"], label("Nombre"))  # el resto de la definición se conserva
+        self.assertEqual(puts[0]["cabeceras"], {"MSCRM.MergeLabels": "true"})
+        self.assertEqual(puts[0]["solucion"], IDENT["solucion"])
+        orden = [(l["metodo"], l["ruta"]) for l in cliente.llamadas if l["metodo"] in ("POST", "PUT")]
+        self.assertEqual(orden[-1][1], "PublishXml")
+        self.assertIn(TABLA, [l for l in cliente.llamadas if l["ruta"] == "PublishXml"][0]["cuerpo"]["ParameterXml"])
+
+    def test_una_primaria_autonumerica_no_se_ajusta(self):
+        auto = con_cambio(COMPLETO, ["primaria", "autonumerico"], "ZZ-{SEQNUM:8}")
+        cliente = armar(ClienteSimulado(), auto, existe=False)
+        estado, _, detalle = self.con_cliente(cliente, auto)
+        self.assertEqual(estado, "creado", detalle)
+        self.assertEqual([l for l in cliente.llamadas if l["metodo"] == "PUT"], [])
+
+    def test_si_falla_el_ajuste_de_la_primaria_dice_que_quedo_incompleta(self):
+        cliente = ClienteSimulado()
+        cliente.responder("PUT", lambda r: True, (400, {"error": "boom"}, {}))
+        armar(cliente, COMPLETO, existe=False)
+        estado, _, detalle = self.con_cliente(cliente, COMPLETO)
+        self.assertEqual(estado, "error", detalle)
+        self.assertIn("incompleta", detalle)
+        self.assertIn("sanic_nombre", detalle)
+        self.assertIn("HTTP 400", detalle)
+
+    def test_corregir_primaria_repara_solo_ese_caso(self):
+        pt = filas_por_tipo(COMPLETO)
+        pt["String"][0]["MaxLength"] = 850
+        gen = [fila_generica(dict(COMPLETO["primaria"], requerida=False), True)] + [fila_generica(c) for c in COMPLETO["columnas"]] + SISTEMA
+        # sin el flag: difiere y no escribe
+        cliente = armar(ClienteSimulado(), COMPLETO, por_tipo=pt, genericas=gen)
+        estado, _, detalle = self.con_cliente(cliente, COMPLETO)
+        self.assertEqual(estado, "difiere", detalle)
+        self.assertFalse(cliente.hubo_escritura())
+        # con el flag: hace el PUT y publica (la relectura simulada sigue difiriendo: acá importa que lo intentó)
+        cliente = armar(ClienteSimulado(), COMPLETO, por_tipo=pt, genericas=gen)
+        self.con_cliente(cliente, COMPLETO, corregir_primaria=True)
+        self.assertEqual([l["metodo"] for l in cliente.llamadas if l["metodo"] in ("PUT", "POST")], ["PUT", "POST"])
+        # con el flag pero con OTRA diferencia además: no toca nada
+        otra = con_cambio(pt, ["Integer", 0, "MaxValue"], 5)
+        cliente = armar(ClienteSimulado(), COMPLETO, por_tipo=otra, genericas=gen)
+        estado, _, detalle = self.con_cliente(cliente, COMPLETO, corregir_primaria=True)
+        self.assertEqual(estado, "difiere", detalle)
+        self.assertFalse(cliente.hubo_escritura())
 
     def test_ya_existia_no_escribe(self):
         cliente = armar(ClienteSimulado(), COMPLETO)

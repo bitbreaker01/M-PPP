@@ -27,7 +27,7 @@ class ClienteSimulado:
         return self
 
     def call(self, metodo, ruta, cuerpo=None, solucion=None, cabeceras=None, timeout=180):
-        self.llamadas.append({"metodo": metodo, "ruta": ruta, "cuerpo": cuerpo, "solucion": solucion})
+        self.llamadas.append({"metodo": metodo, "ruta": ruta, "cuerpo": cuerpo, "solucion": solucion, "cabeceras": cabeceras})
         for m, matcher, respuesta in self._reglas:
             if m != metodo:
                 continue

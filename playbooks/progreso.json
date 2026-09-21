@@ -1,7 +1,7 @@
 {
  "proyecto": "MPPP · fase 1",
  "criterio_hecho": "ciclo cerrado: construido, verificado en Dev y muestra exportada; si el ciclo enseñó algo nuevo, además el reporte aprobado por el aprobador",
- "en_curso": "3.1 sanic_mppp_tbl_cliente — playbook escrito y herramienta ensayada contra la plataforma; espera la aprobación del playbook para crearla",
+ "en_curso": "3.1 sanic_mppp_tbl_cliente — construida y verificada; enseñó algo nuevo (la primaria se ajusta después de crear), falta la aprobación del reporte",
  "grupos": {
   "P-01": "Solución",
   "P-02": "Choices globales",

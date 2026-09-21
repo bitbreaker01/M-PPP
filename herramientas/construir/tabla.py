@@ -4,13 +4,18 @@ de tipo `tabla`. Contrato: `power-platform-construir`,
 `references/modelo-datos/patrones.md` §1 y §2.2.
 
     python3 herramientas/construir/tabla.py <playbook.md> [--solo-verificar]
-                                            [--permitir-no-verificadas]
+                                            [--permitir-no-verificadas] [--corregir-primaria]
 
 La tabla y sus columnas propias viajan en un solo POST: o existe completa o
 no existe. La única excepción son las columnas protegidas (seguridad de
 columna): la plataforma rechaza con un 400 genérico una columna con
 `IsSecured = true` dentro del POST que crea la tabla, y sí la acepta agregada
 después (verificado el 2026-09-20); esas se agregan una por una enseguida.
+Segunda excepción, también verificada: al crear la tabla la plataforma IGNORA
+el largo y el "requerida" de la columna primaria (la deja en 850 y opcional),
+salvo que sea autonumérica. Enseguida de crear se reenvía su definición
+completa con PUT y se publica. `--corregir-primaria` repara una tabla que ya
+existe cuando esa es su ÚNICA diferencia (nunca otra cosa).
 Las columnas lookup no van acá: nacen con su relación.
 Nunca modifica ni borra: si la tabla existe y no coincide, informa `difiere`.
 
@@ -470,7 +475,37 @@ def _comparar_familia(c, f, i, consulta, lcid, difs):
 
 
 # ---------------------------------------------------------------------------
-def _contra_entorno(dv, datos, identidad, solo_verificar, componente):
+def ajustar_primaria(dv, datos, identidad):
+    """Reenvía la definición completa de la columna primaria con el largo y el
+    nivel de requerida del playbook, y publica la tabla. Devuelve `None` si
+    salió bien, o el texto del problema. PUT reemplaza la definición entera:
+    por eso se parte de la que devuelve el entorno y se cambian solo esas dos
+    propiedades. El GET con cast no trae '@odata.type' y el PUT lo exige."""
+    tabla, p = datos["nombre"], datos["primaria"]
+    ruta = f"EntityDefinitions(LogicalName='{tabla}')/Attributes(LogicalName='{p['nombre']}')"
+    consulta = f"la lectura de la columna primaria (GET Attributes '{p['nombre']}')"
+    actual = _get(dv, ruta + "/Microsoft.Dynamics.CRM.StringAttributeMetadata", consulta)
+    nivel = exigir_forma(actual.get("RequiredLevel"), dict, consulta, "RequiredLevel")
+    definicion = {k: v for k, v in actual.items() if k != "@odata.context"}
+    definicion["@odata.type"] = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+    definicion["MaxLength"] = p["largo"]
+    definicion["RequiredLevel"] = {**nivel, "Value": "ApplicationRequired" if p["requerida"] else "None"}
+    est, cuerpo, _ = dv.call("PUT", ruta, definicion, solucion=identidad["solucion"], cabeceras={"MSCRM.MergeLabels": "true"})
+    if est != 204:
+        return f"falló ajustar la columna primaria {p['nombre']}: HTTP {est} {cuerpo}"
+    xml = f"<importexportxml><entities><entity>{tabla}</entity></entities></importexportxml>"
+    est, cuerpo, _ = dv.call("POST", "PublishXml", {"ParameterXml": xml})
+    if est != 204:
+        return f"se ajustó la columna primaria {p['nombre']} pero falló publicar la tabla: HTTP {est} {cuerpo}"
+    return None
+
+
+def _solo_difiere_la_primaria(datos, diffs):
+    n = datos["primaria"]["nombre"]
+    return bool(diffs) and all(d.startswith((f"{n}.MaxLength:", f"{n}.RequiredLevel:")) for d in diffs)
+
+
+def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_primaria=False):
     solucion = identidad["solucion"]
     solution_id = comprobar_solucion_e_idioma(dv, identidad)
     choices = comprobar_choices(dv, datos)
@@ -478,6 +513,16 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente):
 
     if solo_verificar and not actual["existe"]:
         return "error", componente, "la tabla no existe en el entorno; --solo-verificar no crea nada, correr la herramienta sin ese flag primero"
+    if actual["existe"] and corregir_primaria and not solo_verificar and _solo_difiere_la_primaria(datos, actual["diffs"]):
+        problema = ajustar_primaria(dv, datos, identidad)
+        if problema:
+            return "error", componente, problema
+        actual = _verificar(dv, datos, identidad, solution_id)
+        if not actual["diffs"]:
+            return "ya_existia", componente, (
+                "la tabla existía y su única diferencia era la columna primaria, que la plataforma había creado con sus valores "
+                f"por defecto; se corrigió (largo y requerida) y ahora coincide en todo; pertenece a '{solucion}'"
+            )
     if actual["existe"]:
         if actual["diffs"]:
             return "difiere", componente, "; ".join(actual["diffs"])
@@ -495,6 +540,10 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente):
                 f"la tabla se creó pero quedó incompleta: falló agregar la columna protegida {extra['SchemaName']}: HTTP {est} {cuerpo}. "
                 "La herramienta no repara una tabla existente: borrar la tabla (está vacía) y volver a correr",
             )
+    if not datos["primaria"]["autonumerico"]:
+        problema = ajustar_primaria(dv, datos, identidad)
+        if problema:
+            return "error", componente, f"la tabla se creó pero quedó incompleta: {problema}. Volver a correr con --corregir-primaria"
     final = _verificar(dv, datos, identidad, solution_id)
     if not final["existe"]:
         return "error", componente, "se creó (204) pero no aparece al releer del entorno"
@@ -503,7 +552,8 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente):
     return "creado", componente, f"MetadataId {final['metadata_id']}, con {1 + len(datos['columnas'])} columnas, en la solución '{solucion}'"
 
 
-def construir(ruta_playbook, solo_verificar, fabrica_cliente, verificadas=VERIFICADAS_EN_PLATAFORMA, permitir_no_verificadas=False):
+def construir(ruta_playbook, solo_verificar, fabrica_cliente, verificadas=VERIFICADAS_EN_PLATAFORMA, permitir_no_verificadas=False,
+              corregir_primaria=False):
     """Nunca lanza: siempre devuelve `(estado, componente, detalle)`."""
     componente = os.path.basename(ruta_playbook)
     paso = "leer el playbook"
@@ -536,7 +586,7 @@ def construir(ruta_playbook, solo_verificar, fabrica_cliente, verificadas=VERIFI
 
     rastro = Rastro(dv)
     try:
-        return _contra_entorno(rastro, datos, identidad, solo_verificar, componente)
+        return _contra_entorno(rastro, datos, identidad, solo_verificar, componente, corregir_primaria)
     except Bloqueado as e:
         return "bloqueado", componente, str(e)
     except ErrorEntorno as e:
@@ -549,11 +599,12 @@ def main():
     argv = sys.argv[1:]
     rutas = [a for a in argv if not a.startswith("--")]
     if len(rutas) != 1:
-        return salida("error", "desconocido", "uso incorrecto: tabla.py <playbook.md> [--solo-verificar] [--permitir-no-verificadas]")
+        return salida("error", "desconocido", "uso incorrecto: tabla.py <playbook.md> [--solo-verificar] [--permitir-no-verificadas] [--corregir-primaria]")
     from dataverse_api import Dataverse
 
     estado, componente, detalle = construir(rutas[0], "--solo-verificar" in argv, Dataverse,
-                                            permitir_no_verificadas="--permitir-no-verificadas" in argv)
+                                            permitir_no_verificadas="--permitir-no-verificadas" in argv,
+                                            corregir_primaria="--corregir-primaria" in argv)
     return salida(estado, componente, detalle)
 
 
