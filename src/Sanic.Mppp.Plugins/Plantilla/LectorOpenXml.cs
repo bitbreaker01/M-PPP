@@ -44,6 +44,7 @@ namespace Sanic.Mppp.Plugins.Plantilla
         {
             if (excel == null) throw new ArgumentNullException(nameof(excel));
             if (configuracion == null) throw new ArgumentNullException(nameof(configuracion));
+            ValidarConfiguracion(configuracion); // LP-01: config mal armada a mano es bug nuestro, no archivo inválido.
 
             // LP-02: tope de bytes de entrada con copia acotada. Nunca Stream.Length/CanSeek: un stream no seekable
             // (típico de una descarga) no los soporta de forma confiable.
@@ -59,6 +60,7 @@ namespace Sanic.Mppp.Plugins.Plantilla
         {
             if (excel == null) throw new ArgumentNullException(nameof(excel));
             if (configuracion == null) throw new ArgumentNullException(nameof(configuracion));
+            ValidarConfiguracion(configuracion); // LP-01: config mal armada a mano es bug nuestro, no archivo inválido.
 
             // Un byte[] ya está completo en memoria: su Length es un dato del CLR, no una promesa de un stream externo
             // que puede no cumplirse. No hace falta copia acotada.
@@ -66,6 +68,50 @@ namespace Sanic.Mppp.Plugins.Plantilla
                 return ResultadoLecturaPlantilla.ConError(FormatoTamanoEntradaExcedido(excel.LongLength));
 
             return LeerDesdeBytesEnMemoria(excel, configuracion);
+        }
+
+        // LP-01: la configuración la arma código nuestro (a mano, o ConfiguracionPlantilla.DesdeJson). Una configuración
+        // mal armada es un error de PROGRAMACIÓN, nunca "archivo inválido": por eso se valida ANTES del try que atrapa
+        // las excepciones del SDK, y con ArgumentException (no con el resultado ConError). Mismas reglas que
+        // ConfiguracionPlantilla.DesdeJson valida al leer de JSON, traducidas a excepción en vez de a FormatException.
+        private static void ValidarConfiguracion(ConfiguracionPlantilla configuracion)
+        {
+            if (configuracion.Campos == null || configuracion.Campos.Count == 0)
+                throw new ArgumentException("La configuración de lectura no trae ningún campo.", nameof(configuracion));
+
+            foreach (CampoPlantilla campo in configuracion.Campos)
+            {
+                if (campo == null)
+                    throw new ArgumentException("La configuración de lectura trae un campo nulo.", nameof(configuracion));
+
+                if (string.IsNullOrWhiteSpace(campo.Columna) || !ConfiguracionPlantilla.RegexColumna.IsMatch(campo.Columna.Trim()))
+                    throw new ArgumentException(
+                        $"La configuración de lectura trae una columna inválida ('{campo.Columna}').", nameof(configuracion));
+            }
+
+            if (string.IsNullOrWhiteSpace(configuracion.Hoja))
+                throw new ArgumentException("La configuración de lectura no indica la hoja.", nameof(configuracion));
+
+            if (configuracion.FilaEncabezado < 1)
+                throw new ArgumentException(
+                    "La configuración de lectura tiene una fila de encabezado inválida: debe ser 1 o mayor.", nameof(configuracion));
+
+            if (configuracion.PrimeraFila <= configuracion.FilaEncabezado)
+                throw new ArgumentException(
+                    "La configuración de lectura tiene una primera fila inválida: tiene que ser posterior a la fila de encabezado.",
+                    nameof(configuracion));
+
+            if (configuracion.CantidadFilas < 1)
+                throw new ArgumentException(
+                    "La configuración de lectura tiene una cantidad de filas inválida: debe ser 1 o mayor.", nameof(configuracion));
+
+            // LP-08: misma función que usa ConfiguracionPlantilla.DesdeJson, para que la regla no se separe con el tiempo.
+            if (!ConfiguracionPlantilla.VentanaCabeEnHoja(configuracion.PrimeraFila, configuracion.CantidadFilas))
+                throw new ArgumentException(string.Format(
+                    CultureInfo.InvariantCulture,
+                    "La configuración de lectura define una ventana que no cabe en una hoja de Excel (hasta la fila {0}).",
+                    ConfiguracionPlantilla.FilaMaximaHojaExcel),
+                    nameof(configuracion));
         }
 
         // LP-02: lee como mucho máximo + 1 bytes a memoria. Si el stream tiene más, se corta ahí mismo: nunca se sigue
@@ -121,12 +167,16 @@ namespace Sanic.Mppp.Plugins.Plantilla
             if (!TamanoDescomprimidoDentroDelTope(contenido, _limites.TamanoMaximoBytesDescomprimidos, out errorZip))
                 return ResultadoLecturaPlantilla.ConError(errorZip);
 
+            // Lógica propia (no toca el SDK): se calcula ANTES del try de LP-01 para que ese try no tenga más
+            // responsabilidad que atrapar las excepciones del SDK (hallazgo de la revisión de código, 2026-09-21).
+            int ultimaColumnaConfigurada = ColumnaMaximaConfigurada(configuracion);
+
             // LP-01: único try para TODO el trato con Open XML SDK (abrir, ubicar partes, recorrer). Cualquier excepción
             // se convierte en error del archivo, salvo las que no tiene sentido atrapar.
             DatosCrudosPlantilla datos;
             try
             {
-                datos = LeerDatosCrudosConSdk(contenido, configuracion);
+                datos = LeerDatosCrudosConSdk(contenido, configuracion, ultimaColumnaConfigurada);
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException || ex is StackOverflowException || ex is System.Threading.ThreadAbortException))
             {
@@ -188,7 +238,8 @@ namespace Sanic.Mppp.Plugins.Plantilla
         // LeerDesdeBytesEnMemoria (LP-01). Solo devuelve datos propios (CeldaCruda, strings, ints), nunca tipos de
         // Open XML, para que lo que sigue después del try sea indiscutiblemente lógica nuestra. ----
 
-        private static DatosCrudosPlantilla LeerDatosCrudosConSdk(byte[] contenido, ConfiguracionPlantilla configuracion)
+        private static DatosCrudosPlantilla LeerDatosCrudosConSdk(
+            byte[] contenido, ConfiguracionPlantilla configuracion, int ultimaColumnaConfigurada)
         {
             using (var stream = new MemoryStream(contenido, writable: false))
             using (var documento = SpreadsheetDocument.Open(stream, isEditable: false))
@@ -212,7 +263,6 @@ namespace Sanic.Mppp.Plugins.Plantilla
                 int filaEncabezado = configuracion.FilaEncabezado;
                 int primeraFila = configuracion.PrimeraFila;
                 int filaHasta = configuracion.PrimeraFila + configuracion.CantidadFilas - 1;
-                int ultimaColumnaConfigurada = ColumnaMaximaConfigurada(configuracion);
 
                 var celdasPorFila = new Dictionary<int, Dictionary<string, CeldaCruda>>();
                 int ultimaFilaResuelta = 0; // LP-06: primera fila sin r = anterior(0) + 1 = 1
@@ -233,7 +283,8 @@ namespace Sanic.Mppp.Plugins.Plantilla
                         int indice = indiceExplicito ?? (ultimaFilaResuelta + 1);
 
                         // LP-05: el orden se exige sobre TODO lo que se llega a recorrer, incluidas las filas que están
-                        // antes del encabezado o entre el encabezado y la ventana.
+                        // antes del encabezado o entre el encabezado y la ventana. Una fila que RETROCEDE o se REPITE
+                        // invalida el archivo.
                         if (indice <= ultimaFilaResuelta)
                         {
                             return DatosCrudosPlantilla.ConError(string.Format(
@@ -241,25 +292,13 @@ namespace Sanic.Mppp.Plugins.Plantilla
                                 "El archivo no está en orden: la fila {0} aparece después de la fila {1}.",
                                 indice, ultimaFilaResuelta));
                         }
-                        // LP-04 dice "se deja de leer en la PRIMERA fila que queda más allá de la ventana": eso solo es
-                        // seguro cuando ya se terminó de recorrer la ventana en orden (la fila anterior llegó exactamente
-                        // a filaHasta). Si esta fila salta más allá de la ventana ANTES de completarla, no es un corte
-                        // limpio: es el bug que encontró el revisor del spike (fila 500 antes que la fila 6, que se
-                        // perdía en silencio). Acá se convierte en archivo inválido en vez de perder datos.
-                        if (indice > filaHasta && ultimaFilaResuelta < filaHasta)
-                        {
-                            return DatosCrudosPlantilla.ConError(string.Format(
-                                CultureInfo.InvariantCulture,
-                                "El archivo no está en orden: la fila {0} salta más allá de la ventana configurada (hasta la fila {1}) sin haberla completado.",
-                                indice, filaHasta));
-                        }
-                        bool ventanaYaCompleta = indice > filaHasta;
                         ultimaFilaResuelta = indice;
 
-                        // LP-04: se deja de leer en la primera fila que queda más allá de la última fila configurada.
-                        // El encabezado siempre está antes de la ventana (lo exige ConfiguracionPlantilla.DesdeJson), así
-                        // que este corte nunca lo deja afuera.
-                        if (ventanaYaCompleta) break;
+                        // LP-04 (aclaración D-12, diseno/PENDIENTES.md): una fila EN ORDEN pero más allá de la última
+                        // fila de la ventana corta la lectura SIN invalidar nada -caso legítimo: pocas filas llenas y
+                        // una nota al pie mucho más abajo-. Lo que venga después del corte no se mira: detectar un
+                        // desorden ahí exigiría seguir leyendo, que es el costo no acotado que LP-04 elimina.
+                        if (indice > filaHasta) break;
 
                         bool esEncabezado = indice == filaEncabezado;
                         bool esDeLaVentana = indice >= primeraFila && indice <= filaHasta;
@@ -276,7 +315,8 @@ namespace Sanic.Mppp.Plugins.Plantilla
                             string columnaTexto = columnaExplicita ?? SiguienteColumna(ultimaColumnaResuelta); // LP-06
                             int columnaNumero = ColumnaANumero(columnaTexto);
 
-                            // LP-05: el orden también se exige dentro de la fila.
+                            // LP-05: el orden también se exige dentro de la fila. Una celda que RETROCEDE o se REPITE
+                            // invalida el archivo.
                             if (columnaNumero <= ultimaColumnaResuelta)
                             {
                                 return DatosCrudosPlantilla.ConError(string.Format(
@@ -284,20 +324,12 @@ namespace Sanic.Mppp.Plugins.Plantilla
                                     "El archivo no está en orden: en la fila {0} la celda {1} aparece fuera de orden.",
                                     indice, columnaTexto + indice.ToString(CultureInfo.InvariantCulture)));
                             }
-                            // Mismo razonamiento que a nivel de fila: cortar apenas se ve una columna más allá de la
-                            // última configurada solo es seguro si ya se completaron las columnas configuradas.
-                            if (columnaNumero > ultimaColumnaConfigurada && ultimaColumnaResuelta < ultimaColumnaConfigurada)
-                            {
-                                return DatosCrudosPlantilla.ConError(string.Format(
-                                    CultureInfo.InvariantCulture,
-                                    "El archivo no está en orden: en la fila {0} la celda {1} salta más allá de las columnas configuradas sin haberlas completado.",
-                                    indice, columnaTexto + indice.ToString(CultureInfo.InvariantCulture)));
-                            }
-                            bool columnasYaCompletas = columnaNumero > ultimaColumnaConfigurada;
                             ultimaColumnaResuelta = columnaNumero;
 
-                            // LP-04: dentro de cada fila no se mira nada más allá de la última columna configurada.
-                            if (columnasYaCompletas) break;
+                            // LP-04 (aclaración D-12): una celda EN ORDEN pero más allá de la última columna configurada
+                            // corta ESTA fila sin invalidar nada -caso legítimo: trae C, no trae D, y después trae Z-.
+                            // Los campos configurados que no llegaron a aparecer quedan como texto vacío.
+                            if (columnaNumero > ultimaColumnaConfigurada) break;
 
                             celdas[columnaTexto] = CapturarCeldaCruda(
                                 columnaTexto + indice.ToString(CultureInfo.InvariantCulture), celda);
@@ -554,7 +586,14 @@ namespace Sanic.Mppp.Plugins.Plantilla
 
             if (celda.Tipo == TipoCeldaCruda.Boolean)
             {
-                return LecturaCelda.ConTexto(crudo == "1" ? "1" : "0");
+                // LP-07: nada se pierde callado. Solo "1" y "0" son valores booleanos válidos; cualquier otro crudo
+                // (vacío incluido) invalida el archivo nombrando la celda, igual que las demás celdas mal formadas.
+                if (crudo == "1" || crudo == "0")
+                    return LecturaCelda.ConTexto(crudo);
+
+                return LecturaCelda.ConError(string.Format(
+                    CultureInfo.InvariantCulture,
+                    "celda {0}: valor booleano inválido ('{1}'); solo se acepta '1' o '0'", referencia, crudo));
             }
 
             if (celda.Tipo == TipoCeldaCruda.Error)
@@ -718,6 +757,7 @@ namespace Sanic.Mppp.Plugins.Plantilla
 
             public static LecturaCelda ConTexto(string texto) => new LecturaCelda(texto, null, null);
             public static LecturaCelda ConTextoYAdvertencia(string texto, string advertencia) => new LecturaCelda(texto, null, advertencia);
+            public static LecturaCelda ConError(string error) => new LecturaCelda(null, error, null);
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 
@@ -61,6 +62,14 @@ namespace Sanic.Mppp.Plugins.Plantilla
             if (dto.CantidadFilas < 1)
                 throw new FormatException("El parámetro de estructura de la plantilla tiene una cantidad de filas inválida: debe ser 1 o mayor.");
 
+            // LP-08: la ventana tiene que caber en una hoja de Excel. Misma función que usa LectorOpenXml.Leer (revisión
+            // de código, 2026-09-21), para que la regla no se separe con el tiempo.
+            if (!VentanaCabeEnHoja(dto.PrimeraFila, dto.CantidadFilas))
+                throw new FormatException(string.Format(
+                    CultureInfo.InvariantCulture,
+                    "El parámetro de estructura de la plantilla define una ventana que no cabe en una hoja de Excel (hasta la fila {0}).",
+                    FilaMaximaHojaExcel));
+
             if (dto.Campos == null || dto.Campos.Count == 0)
                 throw new FormatException("El parámetro de estructura de la plantilla no trae ningún campo.");
 
@@ -101,7 +110,26 @@ namespace Sanic.Mppp.Plugins.Plantilla
             };
         }
 
-        private static readonly Regex RegexColumna = new Regex("^[A-Za-z]+$", RegexOptions.Compiled);
+        /// <summary>Filas máximas de una hoja de Excel (LP-08): la ventana (primeraFila .. primeraFila + cantidadFilas - 1)
+        /// tiene que caber dentro de este límite.</summary>
+        internal const int FilaMaximaHojaExcel = 1_048_576;
+
+        /// <summary>
+        /// True si la ventana definida por <paramref name="primeraFila"/> y <paramref name="cantidadFilas"/> cabe en una
+        /// hoja de Excel (LP-08). La cuenta se hace en <c>long</c> para no desbordar cuando <paramref name="cantidadFilas"/>
+        /// es grande (ej. <see cref="int.MaxValue"/>). La usan <see cref="DesdeJson"/> (traduce a <see cref="FormatException"/>)
+        /// y <c>LectorOpenXml.Leer</c> (traduce a <see cref="ArgumentException"/>), para que la regla de LP-08 no se
+        /// separe con el tiempo (revisión de código, 2026-09-21).
+        /// </summary>
+        internal static bool VentanaCabeEnHoja(int primeraFila, int cantidadFilas)
+        {
+            long ultimaFila = (long)primeraFila + (long)cantidadFilas - 1L;
+            return ultimaFila <= FilaMaximaHojaExcel;
+        }
+
+        /// <summary>Letra(s) de columna válida: solo letras (LP-01/LP-08). Interna para que LectorOpenXml.Leer valide la
+        /// misma regla antes de entrar al try del SDK, sin duplicar el patrón.</summary>
+        internal static readonly Regex RegexColumna = new Regex("^[A-Za-z]+$", RegexOptions.Compiled);
 
         [DataContract]
         private sealed class ConfiguracionPlantillaDto
