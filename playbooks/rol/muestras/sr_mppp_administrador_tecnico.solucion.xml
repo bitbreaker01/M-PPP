@@ -1,4 +1,4 @@
-<Role id="{7bb451d8-cbb5-f111-aaad-000d3a350099}" name="SR - MPPP - Administrador técnico">
+<Role id="{7bb451d8-cbb5-f111-aaad-000d3a350099}" name="SR - MPPP - Administrador tecnico">
       <IsCustomizable>1</IsCustomizable>
       <IsAutoAssigned>0</IsAutoAssigned>
       <Description>Administra lo técnico: parámetros y catálogo de reglas. No ve datos de negocio. Se asigna a pedido y se retira al terminar.</Description>
