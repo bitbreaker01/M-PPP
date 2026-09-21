@@ -80,6 +80,7 @@ python3 herramientas/construir/relacion.py playbooks/relacion/sanic_mppp_autoriz
 
 ```
 python3 herramientas/construir/relacion.py playbooks/relacion/sanic_mppp_autorizado_autorizacionplan.md --solo-verificar
+python3 herramientas/construir/muestra_relacion.py playbooks/relacion/sanic_mppp_autorizado_autorizacionplan.md --guardar
 python3 herramientas/construir/tabla.py playbooks/tabla/sanic_mppp_tbl_autorizacionplan.md --solo-verificar
 ```
 
@@ -91,6 +92,7 @@ python3 herramientas/construir/tabla.py playbooks/tabla/sanic_mppp_tbl_autorizac
 | 4 | Pertenencia a la solución | la de la tabla hija: `sanic_mppp_tbl_autorizacionplan` está una vez en la solución de la sección 1, con todos sus subcomponentes (una relación no es un componente propio) |
 | 5 | Segunda ejecución sin `--solo-verificar` | estado `ya_existia`, código de salida 0 |
 | 6 | La tabla hija sigue coincidiendo con su propio playbook | `ya_existia`: un lookup no la hace diferir |
+| 7 | Comprobación independiente contra el XML exportado (`muestra_relacion.py`) | `OK`, y la muestra queda en `playbooks/relacion/muestras/` |
 
 ## 6. Si ya existe
 

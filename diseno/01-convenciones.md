@@ -35,7 +35,7 @@ Si un componente **no tiene nombre lógico** en la plataforma, aplica solo la re
 | Lookup | Texto de negocio | `sanic_<destino>id` | `sanic_solicitudid`, `sanic_planid` |
 | Choice global | `CH - MPPP - Nombre` | `sanic_mppp_ch_nombre` | `sanic_mppp_ch_estadofila` |
 | Clave alternativa | `KEY - MPPP - Tabla - Campos` | `sanic_mppp_key_<tabla>_<campos>` | `sanic_mppp_key_fila_solicitud_numero` |
-| Relación 1:N | no tiene | `sanic_mppp_<padre>_<hijo>` | `sanic_mppp_solicitud_fila` |
+| Relación 1:N | no tiene | `sanic_mppp_<padre>_<hijo>`; con más de una relación entre el mismo par, sufijo con el lookup sin prefijo | `sanic_mppp_solicitud_fila` · `sanic_mppp_systemuser_fila_digitadapor` |
 | Custom API | `CAPI - MPPP - Nombre` | `sanic_mppp_capi_nombre` | `CAPI - MPPP - Validar solicitud` · `sanic_mppp_capi_validarsolicitud` |
 | Parámetro de entrada de Custom API | `CAPI_IP - MPPP - Nombre` | `uniquename` **corto**: `nombre` · `name`: `sanic_mppp_capiip_<api>_<nombre>` | `CAPI_IP - MPPP - Solicitud id` · `solicitudid` · `sanic_mppp_capiip_validarsolicitud_solicitudid` |
 | Parámetro de salida de Custom API | `CAPI_OP - MPPP - Nombre` | `uniquename` corto · `name`: `sanic_mppp_capiop_<api>_<nombre>` | `filasvalidas` |

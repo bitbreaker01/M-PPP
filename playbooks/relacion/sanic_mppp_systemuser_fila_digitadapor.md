@@ -48,7 +48,7 @@ Decisiones que este playbook toma y el diseño no traía:
 
 | Decisión | Valor | Por qué |
 |---|---|---|
-| Sufijo en el nombre de la relación | `_digitadapor` | Hay dos relaciones entre `systemuser` y Fila: la regla `<padre>_<hijo>` (BP-PP-188) les daría el mismo nombre. Se agrega el nombre del lookup sin prefijo. **Pendiente de aprobación del aprobador: el nombre de una relación es irreversible** |
+| Sufijo en el nombre de la relación | `_digitadapor` | Hay dos relaciones entre `systemuser` y Fila: la regla `<padre>_<hijo>` les daría el mismo nombre. Con más de una relación entre el mismo par, cada una lleva como sufijo el nombre de su lookup sin prefijo (BP-PP-188; aprobado por el aprobador el 2026-09-20) |
 | Nombre visible y descripción del lookup | «Digitada por» | El diccionario trae el nombre lógico; el texto de negocio lo fija el playbook (`02` DD-19) |
 | Comportamiento | `restringido` | El inventario la marca `R`. Un usuario del sistema no se borra (se deshabilita), así que en la práctica nunca se dispara |
 
@@ -82,6 +82,7 @@ python3 herramientas/construir/relacion.py playbooks/relacion/sanic_mppp_systemu
 
 ```
 python3 herramientas/construir/relacion.py playbooks/relacion/sanic_mppp_systemuser_fila_digitadapor.md --solo-verificar
+python3 herramientas/construir/muestra_relacion.py playbooks/relacion/sanic_mppp_systemuser_fila_digitadapor.md --guardar
 python3 herramientas/construir/tabla.py playbooks/tabla/sanic_mppp_tbl_fila.md --solo-verificar
 ```
 
@@ -93,6 +94,7 @@ python3 herramientas/construir/tabla.py playbooks/tabla/sanic_mppp_tbl_fila.md -
 | 4 | Pertenencia a la solución | la de la tabla hija: `sanic_mppp_tbl_fila` está una vez en la solución de la sección 1, con todos sus subcomponentes (una relación no es un componente propio) |
 | 5 | Segunda ejecución sin `--solo-verificar` | estado `ya_existia`, código de salida 0 |
 | 6 | La tabla hija sigue coincidiendo con su propio playbook | `ya_existia`: un lookup no la hace diferir |
+| 7 | Comprobación independiente contra el XML exportado (`muestra_relacion.py`) | `OK`, y la muestra queda en `playbooks/relacion/muestras/` |
 
 ## 6. Si ya existe
 

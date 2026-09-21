@@ -19,7 +19,7 @@
   [
    "Sufijo en el nombre de la relación",
    "`_digitadapor`",
-   "Hay dos relaciones entre `systemuser` y Fila: la regla `<padre>_<hijo>` (BP-PP-188) les daría el mismo nombre. Se agrega el nombre del lookup sin prefijo. **Pendiente de aprobación del aprobador: el nombre de una relación es irreversible**"
+   "Hay dos relaciones entre `systemuser` y Fila: la regla `<padre>_<hijo>` les daría el mismo nombre. Con más de una relación entre el mismo par, cada una lleva como sufijo el nombre de su lookup sin prefijo (BP-PP-188; aprobado por el aprobador el 2026-09-20)"
   ],
   [
    "Nombre visible y descripción del lookup",

@@ -89,6 +89,7 @@ python3 herramientas/construir/relacion.py playbooks/relacion/{nombre}.md
 
 ```
 python3 herramientas/construir/relacion.py playbooks/relacion/{nombre}.md --solo-verificar
+python3 herramientas/construir/muestra_relacion.py playbooks/relacion/{nombre}.md --guardar
 python3 herramientas/construir/tabla.py playbooks/tabla/{comp["tabla_hija"]}.md --solo-verificar
 ```
 
@@ -100,6 +101,7 @@ python3 herramientas/construir/tabla.py playbooks/tabla/{comp["tabla_hija"]}.md 
 | 4 | Pertenencia a la solución | la de la tabla hija: `{comp["tabla_hija"]}` está una vez en la solución de la sección 1, con todos sus subcomponentes (una relación no es un componente propio) |
 | 5 | Segunda ejecución sin `--solo-verificar` | estado `ya_existia`, código de salida 0 |
 | 6 | La tabla hija sigue coincidiendo con su propio playbook | `ya_existia`: un lookup no la hace diferir |
+| 7 | Comprobación independiente contra el XML exportado (`muestra_relacion.py`) | `OK`, y la muestra queda en `playbooks/relacion/muestras/` |
 
 ## 6. Si ya existe
 
