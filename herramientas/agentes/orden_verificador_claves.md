@@ -10,7 +10,7 @@ Fuentes de verdad, en este orden: `diseno/02-diccionario-datos.md` (la sección 
 2. Entorno, por DOS caminos y solo lectura:
    a. Web API crudo, `python3 herramientas/dataverse_api.py GET "<ruta>"`: `EntityDefinitions(LogicalName='<tabla>')/Keys(LogicalName='<K>')` → `KeyAttributes` (exactamente las columnas, sin importar el orden), `EntityKeyIndexStatus = Active`, `IsManaged = false`, `DisplayName` en 1033 y sin otro idioma.
    b. El XML exportado que dejó el constructor, `playbooks/clave/muestras/<K>.solucion.xml` (de esta corrida).
-   c. Pertenencia a la solución: una clave NO tiene fila propia; viaja dentro de su tabla. Comprobá que la tabla está una vez en `sanic_mppp_sol_mantenimientoppp` con `rootcomponentbehavior = 0` (`solutioncomponents`, `componenttype eq 1`, `objectid eq <MetadataId de la tabla>`).
+   c. Pertenencia a la solución: una clave NO tiene fila propia; viaja dentro de su tabla. Comprobá que la tabla está una vez en `sanic_mppp_sol_mantenimientoppp` con `rootcomponentbehavior = 0` (`solutioncomponents`, filtrando SIEMPRE por `_solutionid_value eq <id de la solución>`, porque todo componente figura además en `Default`; `componenttype eq 1`, `objectid eq <MetadataId de la tabla>`).
 3. Corré vos, por clave: `python3 herramientas/construir/clave.py playbooks/clave/<K>.md --solo-verificar` y `python3 herramientas/construir/muestra_clave.py playbooks/clave/<K>.md` (SIN `--guardar`). Y una vez por cada tabla distinta: `python3 herramientas/construir/tabla.py playbooks/tabla/<tabla>.md --solo-verificar`.
 4. Buscá lo que sobra: `EntityDefinitions(LogicalName='<tabla>')/Keys?$select=LogicalName,KeyAttributes,EntityKeyIndexStatus` → ¿alguna clave que NO figura en el inventario §5? ¿La Bitácora quedó sin claves (DD-04)?
 

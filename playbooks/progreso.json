@@ -1,7 +1,7 @@
 {
  "proyecto": "MPPP · fase 1",
  "criterio_hecho": "ciclo cerrado: construido, verificado en Dev y muestra exportada; si el ciclo enseñó algo nuevo, además el reporte aprobado por el aprobador",
- "en_curso": "P-05 Claves alternativas — herramienta, verificador de XML y los 10 playbooks listos y ensayados con tablas descartables; falta la orden de construir",
+ "en_curso": "P-06/07 Seguridad — herramienta de roles en escritura y ensayo con un rol descartable; el perfil de columnas espera la decisión D-8 y el rol de ingesta la D-9",
  "grupos": {
   "P-01": "Solución",
   "P-02": "Choices globales",
@@ -291,70 +291,70 @@
    "grupo": "P-05",
    "nombre": "sanic_mppp_key_cliente_cifbac",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "5.2",
    "grupo": "P-05",
    "nombre": "sanic_mppp_key_cliente_cifcom",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "5.3",
    "grupo": "P-05",
    "nombre": "sanic_mppp_key_plan_codigo",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "5.4",
    "grupo": "P-05",
    "nombre": "sanic_mppp_key_autorizado_cliente_nombre",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "5.5",
    "grupo": "P-05",
    "nombre": "sanic_mppp_key_autorizacionplan_autorizado_plan",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "5.6",
    "grupo": "P-05",
    "nombre": "sanic_mppp_key_parametro_nombre_version",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "5.7",
    "grupo": "P-05",
    "nombre": "sanic_mppp_key_regla_codigo",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "5.8",
    "grupo": "P-05",
    "nombre": "sanic_mppp_key_solicitud_messageid",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "5.9",
    "grupo": "P-05",
    "nombre": "sanic_mppp_key_fila_solicitud_numerofila",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "5.10",
    "grupo": "P-05",
    "nombre": "sanic_mppp_key_resultadoregla_solicitud_reglacodigo",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "6.1",

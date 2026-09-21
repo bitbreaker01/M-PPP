@@ -1,0 +1,14 @@
+<EntityKey>
+              <Name>sanic_mppp_key_autorizado_cliente_nombre</Name>
+              <LogicalName>sanic_mppp_key_autorizado_cliente_nombre</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_clienteid</AttributeName>
+                <AttributeName>sanic_nombre</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - Autorizado - Cliente y correo" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+          

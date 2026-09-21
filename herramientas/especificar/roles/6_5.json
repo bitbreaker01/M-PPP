@@ -1,0 +1,34 @@
+{
+ "inventario": "6.5",
+ "matriz": "§2",
+ "componente": {
+  "tipo": "rol",
+  "nombre": "SR - MPPP - Administrador técnico",
+  "descripcion": "Administra lo técnico: parámetros y catálogo de reglas. No ve datos de negocio. Se asigna a pedido y se retira al terminar.",
+  "base": "App Opener",
+  "tablas": {
+   "sanic_mppp_tbl_parametro": {
+    "crear": "organizacion",
+    "leer": "organizacion",
+    "escribir": "organizacion"
+   },
+   "sanic_mppp_tbl_regla": {
+    "crear": "organizacion",
+    "leer": "organizacion",
+    "escribir": "organizacion"
+   }
+  },
+  "otros_privilegios": {}
+ },
+ "viene_del_diseno": [
+  "Privilegios: `04` §2, columna Administrador técnico.",
+  "No ve clientes, autorizados, solicitudes, filas, resultados ni bitácora (`04` §2).",
+  "Se asigna a pedido y se retira al terminar (D-38).",
+  "Se parte de \"App Opener\", no de \"Basic User\" (`04` §2)."
+ ],
+ "fuera_de_alcance": [
+  "Asignar el rol a las personas: tarea de administración en cada entorno, inventario 13.",
+  "Dar al rol acceso a la app model-driven: va con la app, inventario 12.",
+  "El perfil de seguridad de columna de los datos sensibles: inventario 6.1 (espera la decisión D-8)."
+ ]
+}

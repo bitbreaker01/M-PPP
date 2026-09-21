@@ -1,0 +1,14 @@
+<EntityKey>
+              <Name>sanic_mppp_key_parametro_nombre_version</Name>
+              <LogicalName>sanic_mppp_key_parametro_nombre_version</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_nombre</AttributeName>
+                <AttributeName>sanic_version</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - Parámetro - Nombre y versión" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+          

@@ -1,0 +1,57 @@
+{
+ "inventario": "6.4",
+ "matriz": "§2",
+ "componente": {
+  "tipo": "rol",
+  "nombre": "SR - MPPP - Administrador de planes",
+  "descripcion": "Administra los catálogos de negocio: clientes, planes, correos autorizados y sus autorizaciones. No ve solicitudes ni filas.",
+  "base": "App Opener",
+  "tablas": {
+   "sanic_mppp_tbl_cliente": {
+    "crear": "organizacion",
+    "leer": "organizacion",
+    "escribir": "organizacion",
+    "anexar": "organizacion",
+    "anexar_a": "organizacion",
+    "asignar": "organizacion"
+   },
+   "sanic_mppp_tbl_plan": {
+    "crear": "organizacion",
+    "leer": "organizacion",
+    "escribir": "organizacion",
+    "anexar": "organizacion",
+    "anexar_a": "organizacion"
+   },
+   "sanic_mppp_tbl_autorizado": {
+    "crear": "organizacion",
+    "leer": "organizacion",
+    "escribir": "organizacion",
+    "anexar": "organizacion",
+    "anexar_a": "organizacion"
+   },
+   "sanic_mppp_tbl_autorizacionplan": {
+    "crear": "organizacion",
+    "leer": "organizacion",
+    "escribir": "organizacion",
+    "anexar": "organizacion",
+    "anexar_a": "organizacion"
+   },
+   "sanic_mppp_tbl_regla": {
+    "leer": "organizacion"
+   }
+  },
+  "otros_privilegios": {}
+ },
+ "viene_del_diseno": [
+  "Privilegios: `04` §2, columna Administrador de planes.",
+  "Nadie borra: los catálogos se desactivan (`04` §2).",
+  "`asignar` solo sobre Cliente: el dueño del cliente es su ejecutivo (RF-19, D-23).",
+  "No lee Solicitud ni Fila a propósito: traen cuentas e identificaciones en crudo (`04` §4).",
+  "Se parte de \"App Opener\", no de \"Basic User\" (`04` §2)."
+ ],
+ "fuera_de_alcance": [
+  "Asignar el rol a las personas: tarea de administración en cada entorno, inventario 13.",
+  "Dar al rol acceso a la app model-driven: va con la app, inventario 12.",
+  "El perfil de seguridad de columna de los datos sensibles: inventario 6.1 (espera la decisión D-8)."
+ ]
+}

@@ -1,0 +1,13 @@
+<EntityKey>
+              <Name>sanic_mppp_key_solicitud_messageid</Name>
+              <LogicalName>sanic_mppp_key_solicitud_messageid</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_messageid</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - Solicitud - Message-ID" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+          

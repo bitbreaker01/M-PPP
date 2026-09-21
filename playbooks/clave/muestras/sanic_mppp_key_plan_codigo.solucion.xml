@@ -1,0 +1,13 @@
+<EntityKey>
+              <Name>sanic_mppp_key_plan_codigo</Name>
+              <LogicalName>sanic_mppp_key_plan_codigo</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_codigo</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - Plan - Código" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+          

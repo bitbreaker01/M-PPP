@@ -1,0 +1,55 @@
+{
+ "inventario": "6.3",
+ "matriz": "§2",
+ "componente": {
+  "tipo": "rol",
+  "nombre": "SR - MPPP - Supervisor",
+  "descripcion": "Supervisor: consulta catálogos y solicitudes, y aprueba o devuelve las filas digitadas.",
+  "base": "App Opener",
+  "tablas": {
+   "sanic_mppp_tbl_cliente": {
+    "leer": "organizacion"
+   },
+   "sanic_mppp_tbl_plan": {
+    "leer": "organizacion"
+   },
+   "sanic_mppp_tbl_autorizado": {
+    "leer": "organizacion"
+   },
+   "sanic_mppp_tbl_autorizacionplan": {
+    "leer": "organizacion"
+   },
+   "sanic_mppp_tbl_regla": {
+    "leer": "organizacion"
+   },
+   "sanic_mppp_tbl_solicitud": {
+    "leer": "organizacion",
+    "anexar_a": "organizacion"
+   },
+   "sanic_mppp_tbl_fila": {
+    "leer": "organizacion",
+    "escribir": "organizacion",
+    "anexar": "organizacion"
+   },
+   "sanic_mppp_tbl_resultadoregla": {
+    "leer": "organizacion"
+   },
+   "sanic_mppp_tbl_bitacora": {
+    "leer": "organizacion"
+   }
+  },
+  "otros_privilegios": {}
+ },
+ "viene_del_diseno": [
+  "Privilegios: `04` §2, columna Supervisor.",
+  "Nadie borra (`04` §2).",
+  "Mismos privilegios que el Ejecutivo sobre Fila: lo que los distingue es qué transición les permite el plugin (`04` §2).",
+  "No tiene `escribir` sobre Solicitud: el botón \"Revisado\" es del Ejecutivo.",
+  "Se parte de \"App Opener\", no de \"Basic User\" (`04` §2)."
+ ],
+ "fuera_de_alcance": [
+  "Asignar el rol a las personas: tarea de administración en cada entorno, inventario 13.",
+  "Dar al rol acceso a la app model-driven: va con la app, inventario 12.",
+  "El perfil de seguridad de columna de los datos sensibles: inventario 6.1 (espera la decisión D-8)."
+ ]
+}

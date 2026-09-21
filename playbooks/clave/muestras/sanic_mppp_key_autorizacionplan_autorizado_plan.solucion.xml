@@ -1,0 +1,14 @@
+<EntityKey>
+              <Name>sanic_mppp_key_autorizacionplan_autorizado_plan</Name>
+              <LogicalName>sanic_mppp_key_autorizacionplan_autorizado_plan</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_autorizadoid</AttributeName>
+                <AttributeName>sanic_planid</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - Autorización - Autorizado y plan" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+          

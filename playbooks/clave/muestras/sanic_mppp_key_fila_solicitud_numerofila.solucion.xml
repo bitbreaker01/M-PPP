@@ -1,0 +1,14 @@
+<EntityKey>
+              <Name>sanic_mppp_key_fila_solicitud_numerofila</Name>
+              <LogicalName>sanic_mppp_key_fila_solicitud_numerofila</LogicalName>
+              <IntroducedVersion>1.0.0.0</IntroducedVersion>
+              <IsCustomizable>0</IsCustomizable>
+              <EntityKeyAttributes>
+                <AttributeName>sanic_numerofila</AttributeName>
+                <AttributeName>sanic_solicitudid</AttributeName>
+              </EntityKeyAttributes>
+              <displaynames>
+                <displayname description="KEY - MPPP - Fila - Solicitud y número de fila" languagecode="1033" />
+              </displaynames>
+            </EntityKey>
+          
