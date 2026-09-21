@@ -77,7 +77,7 @@ class LasHerramientasLaUsan(unittest.TestCase):
     def test_ninguna_herramienta_escribe_metadatos_por_fuera(self):
         """Toda escritura (POST, PUT) de las herramientas pasa por `escribir_metadatos`."""
         import re
-        for archivo in ("tabla.py", "choice_global.py", "relacion.py"):
+        for archivo in ("tabla.py", "choice_global.py", "relacion.py", "clave.py"):
             with self.subTest(archivo):
                 fuente = open(os.path.join(os.path.dirname(_AQUI), archivo), encoding="utf-8").read()
                 self.assertEqual(re.findall(r'dv\.call\(\s*"(?:POST|PUT|PATCH|DELETE)"', fuente), [])
