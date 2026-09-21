@@ -1,7 +1,7 @@
 {
  "proyecto": "MPPP · fase 1",
  "criterio_hecho": "ciclo cerrado: construido, verificado en Dev y muestra exportada; si el ciclo enseñó algo nuevo, además el reporte aprobado por el aprobador",
- "en_curso": "P-08 Código de plugins — 7.1 Dominio hecho; sigue 7.2 Plantilla (lector del Excel, reglas LP-01 a LP-08)",
+ "en_curso": "P-08 Código de plugins — 7.1 Dominio y 7.2 Plantilla hechos; sigue 7.3 Validacion (motor de reglas)",
  "grupos": {
   "P-01": "Solución",
   "P-02": "Choices globales",
@@ -411,7 +411,7 @@
    "grupo": "P-08",
    "nombre": "Plantilla/",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "7.3",
