@@ -1,0 +1,39 @@
+<optionset Name="sanic_mppp_ch_efectoregla" localizedName="CH - MPPP - Efecto de la regla" description="Qué pasa cuando una regla falla. La usan las tablas Regla y ResultadoRegla.">
+      <OptionSetType>picklist</OptionSetType>
+      <IsGlobal>1</IsGlobal>
+      <IntroducedVersion>1.0.0.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="CH - MPPP - Efecto de la regla" languagecode="1033" />
+      </displaynames>
+      <Descriptions>
+        <Description description="Qué pasa cuando una regla falla. La usan las tablas Regla y ResultadoRegla." languagecode="1033" />
+      </Descriptions>
+      <options>
+        <option value="159460001" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Rechaza" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Regla de solicitud: se responde al cliente con el motivo. Regla de registro: se rechaza esa fila" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460002" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Envía a revisión" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Solo reglas de solicitud: no se responde; la revisa un ejecutivo" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460003" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Advierte" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Se registra y el proceso sigue" languagecode="1033" />
+          </Descriptions>
+        </option>
+      </options>
+    </optionset>
+    

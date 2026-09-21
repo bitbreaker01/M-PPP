@@ -1,0 +1,39 @@
+<optionset Name="sanic_mppp_ch_nivelregla" localizedName="CH - MPPP - Nivel de la regla" description="A qué se aplica una regla: al correo, a la solicitud completa o a cada registro. La usa la tabla Regla.">
+      <OptionSetType>picklist</OptionSetType>
+      <IsGlobal>1</IsGlobal>
+      <IntroducedVersion>1.0.0.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="CH - MPPP - Nivel de la regla" languagecode="1033" />
+      </displaynames>
+      <Descriptions>
+        <Description description="A qué se aplica una regla: al correo, a la solicitud completa o a cada registro. La usa la tabla Regla." languagecode="1033" />
+      </Descriptions>
+      <options>
+        <option value="159460001" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Solicitud" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Se evalúa una vez por solicitud" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460002" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Registro" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Se evalúa por cada fila de la plantilla" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460003" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Correo" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Se evalúa sobre las cabeceras del correo, antes de validar" languagecode="1033" />
+          </Descriptions>
+        </option>
+      </options>
+    </optionset>
+    

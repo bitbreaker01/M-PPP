@@ -1,0 +1,55 @@
+<optionset Name="sanic_mppp_ch_tipoidentificacion" localizedName="CH - MPPP - Tipo de identificación" description="Tipo de documento de identidad del titular de la referencia. La usa la tabla Fila.">
+      <OptionSetType>picklist</OptionSetType>
+      <IsGlobal>1</IsGlobal>
+      <IntroducedVersion>1.0.0.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="CH - MPPP - Tipo de identificación" languagecode="1033" />
+      </displaynames>
+      <Descriptions>
+        <Description description="Tipo de documento de identidad del titular de la referencia. La usa la tabla Fila." languagecode="1033" />
+      </Descriptions>
+      <options>
+        <option value="159460001" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="CNA" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Cédula nacional" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460002" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="CRE" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Cédula de residencia" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460003" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="PAS" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Pasaporte" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460004" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="PEX" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Persona extranjera" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460005" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="RUC" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Registro único de contribuyente" languagecode="1033" />
+          </Descriptions>
+        </option>
+      </options>
+    </optionset>
+    

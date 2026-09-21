@@ -1,0 +1,79 @@
+<optionset Name="sanic_mppp_ch_origenevento" localizedName="CH - MPPP - Origen del evento" description="Qué pieza de la solución escribió un renglón de la bitácora; sirve para diagnosticar. La usa la tabla Bitacora.">
+      <OptionSetType>picklist</OptionSetType>
+      <IsGlobal>1</IsGlobal>
+      <IntroducedVersion>1.0.0.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="CH - MPPP - Origen del evento" languagecode="1033" />
+      </displaynames>
+      <Descriptions>
+        <Description description="Qué pieza de la solución escribió un renglón de la bitácora; sirve para diagnosticar. La usa la tabla Bitacora." languagecode="1033" />
+      </Descriptions>
+      <options>
+        <option value="159460001" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="MPPP-REC" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Flujo Recibir correo nuevo" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460002" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="MPPP-ING" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Flujo Ingerir y validar correo" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460003" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="MPPP-COM" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Flujo Detectar comunicación pendiente" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460004" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="MPPP-ENV" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Flujo Enviar comunicación al cliente" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460005" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="MPPP-VIG" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Flujo Vigilar pendientes" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460006" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Custom API" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460007" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Plugin" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460008" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="App" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+      </options>
+    </optionset>
+    

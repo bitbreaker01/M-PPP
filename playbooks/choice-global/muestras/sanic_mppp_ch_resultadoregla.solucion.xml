@@ -1,0 +1,39 @@
+<optionset Name="sanic_mppp_ch_resultadoregla" localizedName="CH - MPPP - Resultado de la regla" description="Resultado de evaluar una regla sobre una solicitud. La usa la tabla ResultadoRegla.">
+      <OptionSetType>picklist</OptionSetType>
+      <IsGlobal>1</IsGlobal>
+      <IntroducedVersion>1.0.0.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="CH - MPPP - Resultado de la regla" languagecode="1033" />
+      </displaynames>
+      <Descriptions>
+        <Description description="Resultado de evaluar una regla sobre una solicitud. La usa la tabla ResultadoRegla." languagecode="1033" />
+      </Descriptions>
+      <options>
+        <option value="159460001" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Cumplida" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460002" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="No cumplida" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460003" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Omitida" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="No se evaluó porque falló una regla de la que depende" languagecode="1033" />
+          </Descriptions>
+        </option>
+      </options>
+    </optionset>
+    

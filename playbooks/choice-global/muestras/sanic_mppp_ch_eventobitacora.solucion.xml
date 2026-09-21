@@ -1,0 +1,175 @@
+<optionset Name="sanic_mppp_ch_eventobitacora" localizedName="CH - MPPP - Evento de bitácora" description="Qué ocurrió en un renglón de la bitácora de una solicitud. La usa la tabla Bitacora.">
+      <OptionSetType>picklist</OptionSetType>
+      <IsGlobal>1</IsGlobal>
+      <IntroducedVersion>1.0.0.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="CH - MPPP - Evento de bitácora" languagecode="1033" />
+      </displaynames>
+      <Descriptions>
+        <Description description="Qué ocurrió en un renglón de la bitácora de una solicitud. La usa la tabla Bitacora." languagecode="1033" />
+      </Descriptions>
+      <options>
+        <option value="159460001" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Ingresada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460002" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Validación terminada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460003" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Acuse iniciado" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460004" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Acuse enviado" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460005" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Fila digitada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460006" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Fila aprobada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460007" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Fila devuelta" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460008" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Fila rechazada en AS400" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460018" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Fila anulada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460009" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Procesada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460010" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Respuesta final iniciada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460011" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Respuesta final enviada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460012" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Cerrada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460013" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="No reconocida atendida" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460014" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Descartada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460015" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Reintento" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460016" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Requiere revisión" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460017" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Error" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460019" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Correo clasificado" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460020" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Vencida" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+      </options>
+    </optionset>
+    

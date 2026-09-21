@@ -1,0 +1,87 @@
+<optionset Name="sanic_mppp_ch_estadosolicitud" localizedName="CH - MPPP - Estado de la solicitud" description="Estado de procesamiento de una solicitud, desde que llega el correo hasta que se cierra. La usa la tabla Solicitud.">
+      <OptionSetType>picklist</OptionSetType>
+      <IsGlobal>1</IsGlobal>
+      <IntroducedVersion>1.0.0.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="CH - MPPP - Estado de la solicitud" languagecode="1033" />
+      </displaynames>
+      <Descriptions>
+        <Description description="Estado de procesamiento de una solicitud, desde que llega el correo hasta que se cierra. La usa la tabla Solicitud." languagecode="1033" />
+      </Descriptions>
+      <options>
+        <option value="159460001" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Ingresada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Llegó; todavía sin clasificar ni validar" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460002" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="No reconocida" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="El remitente no tiene ninguna autorización vigente; va a Por clasificar y no se responde" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460003" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Descartada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Terminal. Un ejecutivo decidió ignorarla" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460004" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Rechazada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="No hay nada que procesar; se le comunica al cliente una única vez" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460005" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="En proceso" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Hay filas válidas; acuse enviado o por enviarse" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460006" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Procesada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Todas las filas terminaron; dispara la respuesta final" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460007" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Cerrada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Terminal. Fin del tiempo de ciclo e inicio del plazo de retención" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460008" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="No es correo nuevo" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Es una respuesta a otro correo, o no se pudo leer; va a Por clasificar y no se responde" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460009" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Vencida" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Terminal. Nadie la clasificó dentro del plazo configurado" languagecode="1033" />
+          </Descriptions>
+        </option>
+      </options>
+    </optionset>
+    

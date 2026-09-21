@@ -44,6 +44,10 @@ Mandamos 7 propiedades del choice (`@odata.type`, `Name`, `IsGlobal`, `OptionSet
 
 ## 3. Comportamiento verificado
 
+- **Una descripción vacía se guarda como elemento con texto vacío**, no se omite: `<Description description="" languagecode="1033" />` (visto en `sanic_mppp_ch_tipoformatoplan`). En el Web API vuelve como una etiqueta con `Label: ""`.
+- **El orden de las opciones es el del envío, no el del valor**: `sanic_mppp_ch_eventobitacora` se mandó con la opción 18 entre la 8 y la 9 y así quedó, en el Web API y en el XML. El orden es parte de lo que se verifica.
+- Comprobación independiente de los 14 choices con `herramientas/construir/muestra_choice.py` (exporta la solución y compara cada playbook contra el XML): 14 de 14 coinciden, y los 14 figuran como `RootComponent type="9"`. El XML real de cada uno está en esta carpeta.
+
 - `POST GlobalOptionSetDefinitions` con la cabecera de solución devuelve **204** sin cuerpo; el componente queda dentro de la solución (una fila en `solutioncomponents`).
 - Segunda ejecución de la herramienta: `ya_existia`, sin escrituras. `--solo-verificar`: `ya_existia`.
 - La validación estricta de forma (`exigir_forma`) pasó contra la respuesta real: ninguna propiedad que la herramienta lee llegó nula o con otro tipo. `Description` llegó como objeto con su etiqueta, no nula.

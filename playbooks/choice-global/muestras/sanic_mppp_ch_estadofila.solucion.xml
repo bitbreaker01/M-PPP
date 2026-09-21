@@ -1,0 +1,71 @@
+<optionset Name="sanic_mppp_ch_estadofila" localizedName="CH - MPPP - Estado de la fila" description="Estado de una fila de la plantilla, desde la validación hasta su resultado en el AS400. La usa la tabla Fila.">
+      <OptionSetType>picklist</OptionSetType>
+      <IsGlobal>1</IsGlobal>
+      <IntroducedVersion>1.0.0.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="CH - MPPP - Estado de la fila" languagecode="1033" />
+      </displaynames>
+      <Descriptions>
+        <Description description="Estado de una fila de la plantilla, desde la validación hasta su resultado en el AS400. La usa la tabla Fila." languagecode="1033" />
+      </Descriptions>
+      <options>
+        <option value="159460001" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Rechazada en validación" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Terminal. No cumplió una regla de registro" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460002" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Sin autorización" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Terminal. El remitente no tiene una autorización vigente sobre el plan" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460003" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Validada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Lista para que el ejecutivo la digite" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460004" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Digitada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Digitada en el AS400; espera la aprobación del supervisor" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460005" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Aprobada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Terminal. Aprobada en el AS400" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460006" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Rechazada en AS400" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Terminal. El AS400 la rechazó" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460007" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="Anulada" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="Terminal. Un ejecutivo la anuló con motivo" languagecode="1033" />
+          </Descriptions>
+        </option>
+      </options>
+    </optionset>
+    

@@ -1,0 +1,39 @@
+<optionset Name="sanic_mppp_ch_tipoformatoplan" localizedName="CH - MPPP - Tipo de formato del plan" description="Formato del plan de pago en el AS400; define cómo se arma la referencia. La usa la tabla Plan.">
+      <OptionSetType>picklist</OptionSetType>
+      <IsGlobal>1</IsGlobal>
+      <IntroducedVersion>1.0.0.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="CH - MPPP - Tipo de formato del plan" languagecode="1033" />
+      </displaynames>
+      <Descriptions>
+        <Description description="Formato del plan de pago en el AS400; define cómo se arma la referencia. La usa la tabla Plan." languagecode="1033" />
+      </Descriptions>
+      <options>
+        <option value="159460001" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="06" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460002" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="10" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="" languagecode="1033" />
+          </Descriptions>
+        </option>
+        <option value="159460003" ExternalValue="" IsHidden="0">
+          <labels>
+            <label description="11" languagecode="1033" />
+          </labels>
+          <Descriptions>
+            <Description description="La referencia se calcula a partir del banco y la cuenta; solo admite clasificación ACH" languagecode="1033" />
+          </Descriptions>
+        </option>
+      </options>
+    </optionset>
+    
