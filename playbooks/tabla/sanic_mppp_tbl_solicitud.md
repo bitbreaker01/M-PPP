@@ -326,7 +326,8 @@ Decisiones que este playbook toma y el diccionario no traía:
 | Rango de las columnas enteras | cantidades de filas: 0 a 100000 (la ventana de lectura es de 100 filas; queda margen); adjuntos y reintentos: 0 a 1000 | El diccionario dice `E` sin rango; se fija uno amplio y sin negativos. Se puede ampliar después |
 | Sí/No de `sanic_requiererevision` | `Sí` / `No`, por defecto `No` | Una solicitud nace sin necesidad de revisión |
 | Tamaño máximo de los archivos | `25600` KB y `10240` KB | 25 MB el correo y 10 MB el Excel (`02` §3.1) |
-| Auditoría nativa, notas y actividades | desactivada · no · no | `02` DD-18: es parte de la unidad histórica, que ya lleva su trazabilidad en columnas propias y en la Bitácora |
+
+Viene del diseño, no lo decide este playbook: **auditoría nativa, notas y actividades** = desactivada · no · no (`02` DD-18: es parte de la unidad histórica, que ya lleva su trazabilidad en columnas propias y en la Bitácora).
 
 ## 3. Precondiciones
 

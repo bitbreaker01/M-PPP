@@ -116,7 +116,8 @@ Decisiones que este playbook toma y el diccionario no traía:
 | Nombres visibles de las columnas | los de la sección 2 | Texto de negocio (`02` DD-19) |
 | La primaria es opcional, como dice el diccionario | `requerida: false` | `02` §3.3 no la marca `S`, a diferencia de las demás tablas. La arma la solución y nadie la digita (`01` §4); el playbook no cambia lo que el diccionario decide. Si fuera una omisión del diccionario, se corrige ahí con el aprobador y se ajusta después: el nivel de requerida se puede cambiar sin costo |
 | Rango de las columnas enteras | `sanic_orden`: 0 a 100000 | El diccionario dice `E` sin rango; se fija uno amplio y sin negativos. Se puede ampliar después |
-| Auditoría nativa, notas y actividades | desactivada · no · no | `02` DD-18: es parte de la unidad histórica, que ya lleva su trazabilidad en columnas propias y en la Bitácora |
+
+Viene del diseño, no lo decide este playbook: **auditoría nativa, notas y actividades** = desactivada · no · no (`02` DD-18: es parte de la unidad histórica, que ya lleva su trazabilidad en columnas propias y en la Bitácora).
 
 ## 3. Precondiciones
 

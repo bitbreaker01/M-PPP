@@ -53,7 +53,8 @@ Decisiones que este playbook toma y el diccionario no traía:
 | Decisión | Valor | Por qué |
 |---|---|---|
 | Nombre visible de la primaria | `Correo` | La primaria **es** el correo (BP-PP-192); "Nombre" confundiría a quien lo carga |
-| Auditoría nativa, notas y actividades | activada · no · no | `02` DD-18: es un catálogo |
+
+Viene del diseño, no lo decide este playbook: **auditoría nativa, notas y actividades** = activada · no · no (`02` DD-18: es un catálogo).
 
 ## 3. Precondiciones
 

@@ -97,7 +97,8 @@ Decisiones que este playbook toma y el diccionario no traía:
 | Nombre visible de la primaria | `Código` | La primaria **es** el código (BP-PP-192) |
 | Nombres visibles de las columnas | `Versión`, `Tipo`, `Valor`, `Descripción` | Texto de negocio (`02` DD-19) |
 | Rango de las columnas enteras | `sanic_version`: 1 a 2147483647 | El diccionario dice `E` sin rango; se fija uno amplio y sin negativos. Se puede ampliar después |
-| Auditoría nativa, notas y actividades | activada · no · no | `02` DD-18: es un catálogo |
+
+Viene del diseño, no lo decide este playbook: **auditoría nativa, notas y actividades** = activada · no · no (`02` DD-18: es un catálogo).
 
 ## 3. Precondiciones
 

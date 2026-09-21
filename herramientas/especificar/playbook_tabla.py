@@ -45,7 +45,11 @@ def generar(esp):
         aud_txt = "ninguna auditada"
     else:
         aud_txt = "auditadas: " + ", ".join(f"`{n}`" for n, v in con_aud if v) + "; las demás, no"
-    decisiones = "\n".join(f"| {a} | {b} | {c} |" for a, b, c in esp["decisiones"])
+    # Lo que el diseño ya decide (auditoría, notas, actividades: `02` DD-18) no es una decisión del playbook.
+    propias = [d for d in esp["decisiones"] if not d[0].startswith("Auditoría nativa")]
+    del_diseno = [d for d in esp["decisiones"] if d[0].startswith("Auditoría nativa")]
+    decisiones = "\n".join(f"| {a} | {b} | {c} |" for a, b, c in propias)
+    viene = "".join(f"\n\nViene del diseño, no lo decide este playbook: **{a.lower()}** = {b} ({c})." for a, b, c in del_diseno)
     fuera = "\n".join(f"- {x}" for x in esp["fuera_de_alcance"])
     columnas = " · ".join(_col_texto(c) for c in [prim] + comp["columnas"])
     si = lambda b: "true" if b else "false"  # noqa: E731
@@ -71,7 +75,7 @@ Decisiones que este playbook toma y el diccionario no traía:
 
 | Decisión | Valor | Por qué |
 |---|---|---|
-{decisiones}
+{decisiones}{viene}
 
 ## 3. Precondiciones
 

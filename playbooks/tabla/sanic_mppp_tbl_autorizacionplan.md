@@ -77,7 +77,8 @@ Decisiones que este playbook toma y el diccionario no traía:
 | La primaria es requerida, como dice el diccionario, aunque sea calculada | `requerida: true` | La calcula la solución y nadie la digita (`01` §4): en el formulario va en solo lectura u oculta (BP-PP-192), y una columna requerida en solo lectura u oculta no bloquea el guardado (Learn, *Troubleshoot form issues*). Eso se resuelve en el playbook del formulario, no bajando el nivel de requerida |
 | La evidencia es obligatoria pero la columna **no** es requerida | `requerida: false` | Un archivo solo se puede cargar con el registro ya creado; la obligatoriedad se cumple cerrando por defecto (`02` §2.4) |
 | Tamaño máximo del documento | `10240` KB | 10 MB (`02` §2.4) |
-| Auditoría nativa, notas y actividades | activada · no · no | `02` DD-18: es un catálogo |
+
+Viene del diseño, no lo decide este playbook: **auditoría nativa, notas y actividades** = activada · no · no (`02` DD-18: es un catálogo).
 
 ## 3. Precondiciones
 

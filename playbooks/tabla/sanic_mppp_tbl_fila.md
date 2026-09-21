@@ -225,7 +225,8 @@ Decisiones que este playbook toma y el diccionario no traía:
 | La primaria es requerida, como dice el diccionario, aunque sea calculada | `requerida: true` | La calcula la solución y nadie la digita (`01` §4): en el formulario va en solo lectura u oculta (BP-PP-192), y una columna requerida en solo lectura u oculta no bloquea el guardado (Learn, *Troubleshoot form issues*). Eso se resuelve en el playbook del formulario, no bajando el nivel de requerida |
 | Rango de las columnas enteras | `sanic_numerofila`: 1 a 100000 | El diccionario dice `E` sin rango; se fija uno amplio y sin negativos. Se puede ampliar después |
 | Columnas con seguridad de columna | `sanic_numeroidentificacion`, `sanic_numerocuenta` | `02` §3.2, columna Seg (RNF-04, BP-PP-004). La herramienta las agrega después de crear la tabla: la plataforma no las admite dentro de la creación |
-| Auditoría nativa, notas y actividades | desactivada · no · no | `02` DD-18: es parte de la unidad histórica, que ya lleva su trazabilidad en columnas propias y en la Bitácora |
+
+Viene del diseño, no lo decide este playbook: **auditoría nativa, notas y actividades** = desactivada · no · no (`02` DD-18: es parte de la unidad histórica, que ya lleva su trazabilidad en columnas propias y en la Bitácora).
 
 ## 3. Precondiciones
 

@@ -116,7 +116,8 @@ Decisiones que este playbook toma y el diccionario no traía:
 |---|---|---|
 | Nombres visibles de las columnas | `Nombre`, `Código`, `Nivel`, `Orden`, `Depende de`, `Efecto`, `Mensaje para el cliente` | Texto de negocio (`02` DD-19) |
 | Rango de las columnas enteras | `sanic_orden`: 0 a 100000 | El diccionario dice `E` sin rango; se fija uno amplio y sin negativos. Se puede ampliar después |
-| Auditoría nativa, notas y actividades | activada · no · no | `02` DD-18: es un catálogo |
+
+Viene del diseño, no lo decide este playbook: **auditoría nativa, notas y actividades** = activada · no · no (`02` DD-18: es un catálogo).
 
 ## 3. Precondiciones
 
