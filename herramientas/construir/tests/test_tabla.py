@@ -184,12 +184,12 @@ def armar(cliente, datos, existe=True, genericas=None, por_tipo=None, tabla=None
 
 
 class Base(unittest.TestCase):
-    def correr(self, fabrica, datos, solo_verificar=False, verificadas=TODO_VERIFICADO, permitir=False, corregir_primaria=False, publicar=False):
+    def correr(self, fabrica, datos, solo_verificar=False, verificadas=TODO_VERIFICADO, permitir=False, corregir_primaria=False, publicar=False, corregir_nombres=False):
         with tempfile.TemporaryDirectory() as d:
             ruta = os.path.join(d, "playbook.md")
             open(ruta, "w", encoding="utf-8").write(playbook_md(IDENT, datos))
             return tb.construir(ruta, solo_verificar, fabrica, verificadas=verificadas, permitir_no_verificadas=permitir,
-                                corregir_primaria=corregir_primaria, publicar=publicar)
+                                corregir_primaria=corregir_primaria, publicar=publicar, corregir_nombres=corregir_nombres)
 
     def con_cliente(self, cliente, datos, **kw):
         return self.correr(lambda: cliente, datos, **kw)

@@ -537,7 +537,73 @@ def _solo_difiere_la_primaria(datos, diffs):
     return bool(diffs) and all(d.startswith(tuple(admitidas)) for d in diffs)
 
 
-def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_primaria=False, publicar=False):
+CAST_DE_TIPO = {"texto": "String", "autonumerico": "String", "memo": "Memo", "entero": "Integer", "choice": "Picklist", "sino": "Boolean",
+                "fecha": "DateTime", "fechahora": "DateTime", "archivo": "File"}
+
+
+def _nombres_que_difieren(datos, diffs):
+    """Si TODAS las diferencias son de nombres visibles, devuelve qué hay que
+    corregir: {"tabla": bool, "columnas": [nombres], "si_no": [(columna, valor, clave)]};
+    si hay cualquier otra diferencia, `None`: no se toca nada."""
+    plan = {"tabla": False, "columnas": [], "si_no": []}
+    columnas = [datos["primaria"]["nombre"]] + [c["nombre"] for c in datos["columnas"]]
+    for d in diffs:
+        que = d.split(": entorno=", 1)[0] if ": entorno=" in d else None
+        if que in ("DisplayName", "DisplayCollectionName"):
+            plan["tabla"] = True
+        elif que and que.endswith(".DisplayName") and que[: -len(".DisplayName")] in columnas:
+            plan["columnas"].append(que[: -len(".DisplayName")])
+        elif que and que.rsplit(".", 1)[-1] in ("etiqueta_si", "etiqueta_no") and que.rsplit(".", 1)[0] in columnas:
+            plan["si_no"].append((que.rsplit(".", 1)[0], 1 if que.endswith("etiqueta_si") else 0, que.rsplit(".", 1)[-1]))
+        else:
+            return None
+    return plan if diffs else None
+
+
+def corregir_nombres(dv, datos, identidad, plan):
+    """Ensayado contra la plataforma el 2026-09-21 con todos los tipos de
+    columna: PUT de la definición completa (con '@odata.type', que el GET no
+    trae) para la tabla y para cada columna; `UpdateOptionValue` para las
+    etiquetas de un sí/no; y publicar. No cambia nada más. Devuelve `None` o el problema."""
+    tabla, solucion, lcid = datos["nombre"], identidad["solucion"], identidad["lcid"]
+    fusion = {"MSCRM.MergeLabels": "true"}
+
+    def leer(ruta, que):
+        est, cuerpo, _ = dv.call("GET", ruta)
+        if est != 200:
+            raise ErrorEntorno(f"la lectura completa de {que} devolvió HTTP {est}: {cuerpo}")
+        return {k: v for k, v in exigir_forma(cuerpo, dict, f"la lectura completa de {que}", "cuerpo").items() if k != "@odata.context"}
+
+    if plan["tabla"]:
+        definicion = leer(f"EntityDefinitions(LogicalName='{tabla}')", f"la tabla {tabla}")
+        definicion["@odata.type"] = "Microsoft.Dynamics.CRM.EntityMetadata"
+        definicion["DisplayName"] = etiqueta_web_api(datos["displayname"], lcid)
+        definicion["DisplayCollectionName"] = etiqueta_web_api(datos["displayname_plural"], lcid)
+        est, resp, _ = escribir_metadatos(dv, "PUT", f"EntityDefinitions(LogicalName='{tabla}')", definicion, solucion=solucion, cabeceras=fusion)
+        if est != 204:
+            return f"falló cambiar el nombre visible de la tabla: HTTP {est} {resp}"
+    por_nombre = {c["nombre"]: c for c in datos["columnas"]}
+    por_nombre[datos["primaria"]["nombre"]] = {**datos["primaria"], "tipo": "texto"}
+    for n in plan["columnas"]:
+        cast = f"Microsoft.Dynamics.CRM.{CAST_DE_TIPO[por_nombre[n]['tipo']]}AttributeMetadata"
+        ruta = f"EntityDefinitions(LogicalName='{tabla}')/Attributes(LogicalName='{n}')"
+        definicion = leer(f"{ruta}/{cast}", f"la columna {n}")
+        definicion["@odata.type"] = cast
+        definicion["DisplayName"] = etiqueta_web_api(por_nombre[n]["displayname"], lcid)
+        est, resp, _ = escribir_metadatos(dv, "PUT", ruta, definicion, solucion=solucion, cabeceras=fusion)
+        if est != 204:
+            return f"falló cambiar el nombre visible de la columna {n}: HTTP {est} {resp}"
+    for n, valor, clave in plan["si_no"]:
+        cuerpo = {"EntityLogicalName": tabla, "AttributeLogicalName": n, "Value": valor, "Label": etiqueta_web_api(por_nombre[n][clave], lcid), "MergeLabels": True, "SolutionUniqueName": solucion}
+        est, resp, _ = escribir_metadatos(dv, "POST", "UpdateOptionValue", cuerpo)
+        if est != 204:
+            return f"falló cambiar {clave} de la columna {n}: HTTP {est} {resp}"
+    xml = f"<importexportxml><entities><entity>{tabla}</entity></entities></importexportxml>"
+    est, resp, _ = escribir_metadatos(dv, "POST", "PublishXml", {"ParameterXml": xml})
+    return None if est == 204 else f"se cambiaron los nombres pero falló publicar la tabla: HTTP {est} {resp}"
+
+
+def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_primaria=False, publicar=False, corregir=False):
     solucion = identidad["solucion"]
     solution_id = comprobar_solucion_e_idioma(dv, identidad)
     choices = comprobar_choices(dv, datos)
@@ -545,6 +611,17 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_p
 
     if solo_verificar and not actual["existe"]:
         return "error", componente, "la tabla no existe en el entorno; --solo-verificar no crea nada, correr la herramienta sin ese flag primero"
+    if actual["existe"] and corregir and not solo_verificar:
+        plan = _nombres_que_difieren(datos, actual["diffs"])
+        if plan:
+            problema = corregir_nombres(dv, datos, identidad, plan)
+            if problema:
+                return "error", componente, problema
+            actual = _verificar(dv, datos, identidad, solution_id)
+            if not actual["diffs"]:
+                cuantos = int(plan["tabla"]) + len(plan["columnas"]) + len(plan["si_no"])
+                return "ya_existia", componente, (f"MetadataId {actual['metadata_id']}; la tabla existía y solo diferían nombres visibles; se corrigieron {cuantos} "
+                                                  f"y ahora coincide en todo; pertenece a '{solucion}'")
     if actual["existe"] and corregir_primaria and not solo_verificar and _solo_difiere_la_primaria(datos, actual["diffs"]):
         problema = ajustar_primaria(dv, datos, identidad)
         if problema:
@@ -592,7 +669,7 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir_p
 
 
 def construir(ruta_playbook, solo_verificar, fabrica_cliente, verificadas=VERIFICADAS_EN_PLATAFORMA, permitir_no_verificadas=False,
-              corregir_primaria=False, publicar=False):
+              corregir_primaria=False, publicar=False, corregir_nombres=False):
     """Nunca lanza: siempre devuelve `(estado, componente, detalle)`."""
     componente = os.path.basename(ruta_playbook)
     paso = "leer el playbook"
@@ -625,7 +702,7 @@ def construir(ruta_playbook, solo_verificar, fabrica_cliente, verificadas=VERIFI
 
     rastro = Rastro(dv)
     try:
-        return _contra_entorno(rastro, datos, identidad, solo_verificar, componente, corregir_primaria, publicar)
+        return _contra_entorno(rastro, datos, identidad, solo_verificar, componente, corregir_primaria, publicar, corregir=corregir_nombres)
     except Bloqueado as e:
         return "bloqueado", componente, str(e)
     except ErrorEntorno as e:
@@ -643,7 +720,8 @@ def main():
 
     estado, componente, detalle = construir(rutas[0], "--solo-verificar" in argv, Dataverse,
                                             permitir_no_verificadas="--permitir-no-verificadas" in argv,
-                                            corregir_primaria="--corregir-primaria" in argv, publicar="--publicar" in argv)
+                                            corregir_primaria="--corregir-primaria" in argv, publicar="--publicar" in argv,
+                                            corregir_nombres="--corregir-nombres" in argv)
     return salida(estado, componente, detalle)
 
 

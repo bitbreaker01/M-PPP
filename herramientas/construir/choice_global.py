@@ -38,6 +38,7 @@ from _comun import (  # noqa: E402
     comprobar_solucion_e_idioma,
     dividir_secciones,
     escribir_metadatos,
+    etiqueta_web_api,
     etiqueta_y_otros_idiomas,
     exigir_etiqueta,
     exigir_forma,
@@ -285,11 +286,66 @@ def _verificar(dv, datos, identidad, solution_id):
 # ---------------------------------------------------------------------------
 # Precondiciones contra el entorno + los tres caminos
 # ---------------------------------------------------------------------------
-def _contra_entorno(dv, datos, identidad, solo_verificar, componente):
+def _nombres_que_difieren(datos, identidad, diffs):
+    """Si TODAS las diferencias son de nombres visibles (el del choice o la
+    etiqueta de una opción), devuelve (cambia el nombre, índices de opciones);
+    si hay cualquier otra, `None`: no se toca nada."""
+    cambia_nombre, opciones = False, []
+    for d in diffs:
+        m = re.match(r"opciones\[(\d+)\]\.etiqueta: ", d)
+        if d.startswith(f"DisplayName[{identidad['lcid']}]: "):
+            cambia_nombre = True
+        elif m:
+            opciones.append(int(m.group(1)))
+        else:
+            return None
+    return (cambia_nombre, opciones) if diffs else None
+
+
+def corregir_nombres(dv, datos, identidad, metadata_id, cambia_nombre, opciones):
+    """Ensayado contra la plataforma el 2026-09-21: el nombre se cambia con un
+    PUT de la definición completa (con '@odata.type', que el GET no trae) y la
+    etiqueta de una opción con `UpdateOptionValue`. Devuelve `None` o el problema."""
+    solucion, lcid = identidad["solucion"], identidad["lcid"]
+    if cambia_nombre:
+        consulta = "la lectura completa del choice (GET GlobalOptionSetDefinitions)"
+        est, actual, _ = dv.call("GET", f"GlobalOptionSetDefinitions(Name='{datos['nombre']}')")
+        if est != 200:
+            return f"{consulta} devolvió HTTP {est}: {actual}"
+        definicion = {k: v for k, v in exigir_forma(actual, dict, consulta, "cuerpo").items() if k != "@odata.context"}
+        definicion["@odata.type"] = "Microsoft.Dynamics.CRM.OptionSetMetadata"
+        definicion["DisplayName"] = etiqueta_web_api(datos["displayname"], lcid)
+        est, resp, _ = escribir_metadatos(dv, "PUT", f"GlobalOptionSetDefinitions({metadata_id})", definicion, solucion=solucion, cabeceras={"MSCRM.MergeLabels": "true"})
+        if est != 204:
+            return f"falló cambiar el nombre visible del choice: HTTP {est} {resp}"
+    for i in opciones:
+        op = datos["opciones"][i]
+        cuerpo = {"OptionSetName": datos["nombre"], "Value": op["valor"], "Label": etiqueta_web_api(op["etiqueta"], lcid), "MergeLabels": True, "SolutionUniqueName": solucion}
+        est, resp, _ = escribir_metadatos(dv, "POST", "UpdateOptionValue", cuerpo)
+        if est != 204:
+            return f"falló cambiar la etiqueta de opciones[{i}] ({op['valor']}): HTTP {est} {resp}"
+    xml = f"<importexportxml><optionsets><optionset>{datos['nombre']}</optionset></optionsets></importexportxml>"
+    est, resp, _ = escribir_metadatos(dv, "POST", "PublishXml", {"ParameterXml": xml})
+    return None if est == 204 else f"se cambiaron los nombres pero falló publicar: HTTP {est} {resp}"
+
+
+def _contra_entorno(dv, datos, identidad, solo_verificar, componente, corregir=False):
     solucion = identidad["solucion"]
     solution_id = comprobar_solucion_e_idioma(dv, identidad)
 
     estado_actual = _verificar(dv, datos, identidad, solution_id)
+
+    if estado_actual["existe"] and corregir and not solo_verificar:
+        nombres = _nombres_que_difieren(datos, identidad, estado_actual["diffs"])
+        if nombres:
+            problema = corregir_nombres(dv, datos, identidad, estado_actual["metadata_id"], *nombres)
+            if problema:
+                return "error", componente, problema
+            estado_actual = _verificar(dv, datos, identidad, solution_id)
+            if not estado_actual["diffs"]:
+                cuantos = int(nombres[0]) + len(nombres[1])
+                return "ya_existia", componente, (f"MetadataId {estado_actual['metadata_id']}; el choice existía y solo diferían nombres visibles; se corrigieron {cuantos} "
+                                                  f"y ahora coincide en todo; pertenece a '{solucion}'")
 
     if solo_verificar:
         if not estado_actual["existe"]:
@@ -324,7 +380,7 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente):
 # ---------------------------------------------------------------------------
 # Punto de entrada, inyectable para las pruebas.
 # ---------------------------------------------------------------------------
-def construir(ruta_playbook, solo_verificar, fabrica_cliente):
+def construir(ruta_playbook, solo_verificar, fabrica_cliente, corregir_nombres=False):
     """Núcleo de la herramienta. `fabrica_cliente` es un callable sin
     argumentos que devuelve un cliente con el mismo `call()` que
     `dataverse_api.Dataverse` (la real en `main()`, un doble de prueba en las
@@ -369,7 +425,7 @@ def construir(ruta_playbook, solo_verificar, fabrica_cliente):
 
     rastro = Rastro(dv)
     try:
-        return _contra_entorno(rastro, datos, identidad, solo_verificar, componente)
+        return _contra_entorno(rastro, datos, identidad, solo_verificar, componente, corregir=corregir_nombres)
     except Bloqueado as e:
         return "bloqueado", componente, str(e)
     except ErrorEntorno as e:
@@ -387,12 +443,12 @@ def main():
     solo_verificar = "--solo-verificar" in argv
     posicionales = [a for a in argv if not a.startswith("--")]
     if len(posicionales) != 1:
-        sys.stderr.write("uso: choice_global.py <ruta playbook> [--solo-verificar]\n")
+        sys.stderr.write("uso: choice_global.py <ruta playbook> [--solo-verificar] [--corregir-nombres]\n")
         return salida("error", "desconocido", "uso incorrecto: falta la ruta del playbook")
 
     from dataverse_api import Dataverse  # import tardío: no hace falta para las pruebas
 
-    estado, componente, detalle = construir(posicionales[0], solo_verificar, Dataverse)
+    estado, componente, detalle = construir(posicionales[0], solo_verificar, Dataverse, corregir_nombres="--corregir-nombres" in argv)
     return salida(estado, componente, detalle)
 
 

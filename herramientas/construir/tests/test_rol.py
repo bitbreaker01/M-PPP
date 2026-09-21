@@ -299,6 +299,61 @@ class Completar(Base):
         self.assertFalse(cliente.hubo_escritura())
 
 
+class RenombrarDesde(Base):
+    """Un rol no tiene nombre lógico: se busca por su nombre visible. Para
+    cambiárselo hay que decir cómo se llamaba. Ensayado el 2026-09-21: PATCH roles(<id>)."""
+    VIEJO = "SR - MPPP - Ejecutivo viéjo"
+
+    def armar(self, viejo_existe=True, nuevo_existe=False, privilegios=None):
+        st = {"renombrado": nuevo_existe}
+        cliente = ClienteSimulado()
+        cliente.responder("GET", lambda r: r.startswith("roles?") and "vi" in r and "jo'" in r,
+                          lambda *_: (200, {"value": [fila_rol(BASE, name=self.VIEJO)] if viejo_existe and not st["renombrado"] else []}, {}))
+        cliente.responder("GET", lambda r: r.startswith("roles?") and f"'{BASE['nombre']}'" in r, lambda *_: (200, {"value": [fila_rol(BASE)] if st["renombrado"] else []}, {}))
+
+        def al_renombrar(ruta, cuerpo, solucion):
+            st["renombrado"] = True
+            return (204, None, {})
+
+        cliente.responder("PATCH", f"roles({ID_ROL})", al_renombrar)
+        return armar(cliente, BASE, privilegios=privilegios)
+
+    def test_renombra_si_el_viejo_coincide_en_todo_lo_demas(self):
+        cliente = self.armar()
+        estado, _, detalle = self.con_cliente(cliente, BASE, renombrar_desde=self.VIEJO)
+        self.assertEqual(estado, "ya_existia", detalle)
+        self.assertIn("se renombró", detalle)
+        escrituras = [l for l in cliente.llamadas if l["metodo"] != "GET"]
+        self.assertEqual([(l["metodo"], l["ruta"], l["cuerpo"], l["solucion"]) for l in escrituras], [("PATCH", f"roles({ID_ROL})", {"name": BASE["nombre"]}, IDENT["solucion"])])
+
+    def test_no_renombra_si_el_viejo_difiere_en_algo_mas(self):
+        sin_uno = [rp(n, x) for n, x in esperados(BASE).items() if n != f"prvWrite{T2}"]
+        cliente = self.armar(privilegios=sin_uno)
+        estado, _, detalle = self.con_cliente(cliente, BASE, renombrar_desde=self.VIEJO)
+        self.assertEqual(estado, "difiere", detalle)
+        self.assertIn(f"falta prvWrite{T2}", detalle)
+        self.assertFalse(cliente.hubo_escritura())
+
+    def test_si_el_nuevo_ya_existe_no_toca_nada(self):
+        cliente = self.armar(nuevo_existe=True)
+        estado, _, detalle = self.con_cliente(cliente, BASE, renombrar_desde=self.VIEJO)
+        self.assertEqual(estado, "ya_existia", detalle)
+        self.assertFalse(cliente.hubo_escritura())
+
+    def test_si_no_existe_ninguno_de_los_dos_es_bloqueado_y_no_crea(self):
+        cliente = self.armar(viejo_existe=False)
+        estado, _, detalle = self.con_cliente(cliente, BASE, renombrar_desde=self.VIEJO)
+        self.assertEqual(estado, "bloqueado", detalle)
+        self.assertIn(self.VIEJO, detalle)
+        self.assertFalse(cliente.hubo_escritura())
+
+    def test_con_solo_verificar_no_renombra(self):
+        cliente = self.armar()
+        estado, _, _ = self.con_cliente(cliente, BASE, renombrar_desde=self.VIEJO, solo_verificar=True)
+        self.assertEqual(estado, "error")
+        self.assertFalse(cliente.hubo_escritura())
+
+
 class FormaYHttpInesperados(Base):
     def test_http_inesperado_es_error_y_nombra_la_consulta(self):
         for matcher, nombre in [(lambda r: r.startswith("businessunits?"), "businessunits"), (lambda r: r.startswith("roles?") and "App Opener" in r, "rol base"),

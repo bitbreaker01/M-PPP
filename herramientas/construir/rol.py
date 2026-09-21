@@ -210,11 +210,26 @@ def _agregar(dv, role_id, esperados, nombres, solucion):
     return None if est == 204 else f"HTTP {est} {resp}"
 
 
-def _contra_entorno(dv, datos, identidad, solo_verificar, componente, completar):
+def _contra_entorno(dv, datos, identidad, solo_verificar, componente, completar, renombrar_desde=None):
     solucion = identidad["solucion"]
     solution_id = comprobar_solucion_e_idioma(dv, identidad)
     bu, esperados = comprobar_precondiciones(dv, datos)
     actual = _verificar(dv, datos, identidad, solution_id, bu, esperados)
+
+    if renombrar_desde and not solo_verificar and not actual["existe"]:
+        # Un rol no tiene nombre lógico: se lo encuentra por el nombre que tenía. Se renombra solo si coincide en TODO lo demás.
+        viejo = _verificar(dv, dict(datos, nombre=renombrar_desde), identidad, solution_id, bu, esperados)
+        if not viejo["existe"]:
+            raise Bloqueado(f"no existe el rol '{datos['nombre']}' ni el rol '{renombrar_desde}' del que había que renombrarlo: no hay nada que renombrar, y --renombrar-desde no crea")
+        if viejo["diffs"]:
+            return "difiere", componente, f"el rol '{renombrar_desde}' no se renombra porque además difiere: " + "; ".join(viejo["diffs"])
+        est, resp, _ = escribir_metadatos(dv, "PATCH", f"roles({viejo['role_id']})", {"name": datos["nombre"]}, solucion=solucion)
+        if est != 204:
+            return "error", componente, f"falló renombrar el rol '{renombrar_desde}': HTTP {est} {resp}"
+        actual = _verificar(dv, datos, identidad, solution_id, bu, esperados)
+        if actual["existe"] and not actual["diffs"]:
+            return "ya_existia", componente, (f"roleid {actual['role_id']}; el rol existía como '{renombrar_desde}' y coincidía en todo lo demás; se renombró "
+                                              f"y ahora coincide en todo; pertenece a '{solucion}'")
 
     if solo_verificar and not actual["existe"]:
         return "error", componente, "el rol no existe en el entorno; --solo-verificar no crea nada, correr la herramienta sin ese flag primero"
@@ -249,7 +264,7 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente, completar)
     return "creado", componente, f"roleid {final['role_id']}, con {len(esperados)} privilegios ({propios} del playbook y el resto de '{datos['base']}'), en la solución '{solucion}'"
 
 
-def construir(ruta_playbook, solo_verificar, fabrica_cliente, completar=False):
+def construir(ruta_playbook, solo_verificar, fabrica_cliente, completar=False, renombrar_desde=None):
     """Nunca lanza: siempre devuelve `(estado, componente, detalle)`."""
     componente = os.path.basename(ruta_playbook)
     paso = "leer el playbook"
@@ -280,7 +295,7 @@ def construir(ruta_playbook, solo_verificar, fabrica_cliente, completar=False):
 
     rastro = Rastro(dv)
     try:
-        return _contra_entorno(rastro, datos, identidad, solo_verificar, componente, completar)
+        return _contra_entorno(rastro, datos, identidad, solo_verificar, componente, completar, renombrar_desde)
     except Bloqueado as e:
         return "bloqueado", componente, str(e)
     except ErrorEntorno as e:
@@ -293,10 +308,11 @@ def main():
     argv = sys.argv[1:]
     rutas = [a for a in argv if not a.startswith("--")]
     if len(rutas) != 1:
-        return salida("error", "desconocido", "uso incorrecto: rol.py <playbook.md> [--solo-verificar] [--completar]")
+        return salida("error", "desconocido", "uso incorrecto: rol.py <playbook.md> [--solo-verificar] [--completar] [--renombrar-desde=<nombre anterior>]")
     from dataverse_api import Dataverse
 
-    estado, componente, detalle = construir(rutas[0], "--solo-verificar" in argv, Dataverse, completar="--completar" in argv)
+    desde = next((a.split("=", 1)[1] for a in argv if a.startswith("--renombrar-desde=")), None)
+    estado, componente, detalle = construir(rutas[0], "--solo-verificar" in argv, Dataverse, completar="--completar" in argv, renombrar_desde=desde)
     return salida(estado, componente, detalle)
 
 
