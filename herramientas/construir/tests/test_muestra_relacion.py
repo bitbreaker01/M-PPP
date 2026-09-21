@@ -33,6 +33,16 @@ class ContraLaMuestraReal(unittest.TestCase):
     def test_coincide(self):
         self.assertEqual(mr.comparar_con_xml(XML, TERCERA, 1033), [])
 
+    def test_una_tabla_del_sistema_viene_con_su_nombre_de_esquema(self):
+        """El XML exportado nombra las tablas por su nombre de esquema (`SystemUser`);
+        el playbook, por el lógico (`systemuser`). No es una diferencia."""
+        ruta = os.path.join(_RAIZ, "playbooks", "relacion", "ensayos", "sanic_mppp_systemuser_zzhija_digitadapor.md")
+        datos = obtener_componente(dividir_secciones(leer_texto(ruta)), "relacion")
+        difs = mr.comparar_con_xml(XML, datos, 1033)
+        self.assertFalse([d for d in difs if d.startswith("tabla_padre")], difs)
+        otra = mr.comparar_con_xml(XML, cambiar(datos, ["tabla_padre"], "team"), 1033)
+        self.assertTrue([d for d in otra if d.startswith("tabla_padre")], otra)
+
     def test_no_esta(self):
         difs = mr.comparar_con_xml(XML, cambiar(TERCERA, ["nombre"], "sanic_mppp_zzotro_zzhija_inexistente"), 1033)
         self.assertEqual(len(difs), 1)

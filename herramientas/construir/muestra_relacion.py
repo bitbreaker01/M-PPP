@@ -46,14 +46,15 @@ def comparar_con_xml(customizations_xml, datos, lcid):
         return [f"{datos['nombre']} no está en la solución exportada"]
     difs, k = [], datos["lookup"]
 
-    def igual(nodo, etiqueta, esperado, que):
+    def igual(nodo, etiqueta, esperado, que, sin_mayusculas=False):
         real = (nodo.findtext(etiqueta) or "").strip()
-        if real != str(esperado):
+        if (real.lower() if sin_mayusculas else real) != str(esperado):
             difs.append(f"{que}: xml={real!r} playbook={str(esperado)!r}")
 
     igual(rel, "EntityRelationshipType", "OneToMany", "tipo de relación")
-    igual(rel, "ReferencedEntityName", datos["tabla_padre"], "tabla_padre")
-    igual(rel, "ReferencingEntityName", datos["tabla_hija"], "tabla_hija")
+    # El XML nombra las tablas por su nombre de esquema (`SystemUser`); el playbook, por el lógico.
+    igual(rel, "ReferencedEntityName", datos["tabla_padre"], "tabla_padre", sin_mayusculas=True)
+    igual(rel, "ReferencingEntityName", datos["tabla_hija"], "tabla_hija", sin_mayusculas=True)
     igual(rel, "ReferencingAttributeName", k["nombre"], "lookup.nombre")
     for accion in ACCIONES_XML:
         igual(rel, f"Cascade{accion}", CASCADAS[datos["comportamiento"]][accion], f"comportamiento ({accion})")
