@@ -65,3 +65,11 @@ POST fieldpermissions           { "entityname": "sanic_mppp_tbl_fila", "attribut
 - App Opener trae **81 privilegios**: 52 `Global` y 29 `Basic`. Incluye `prvReadAppModule`, lectura de metadatos (`prvReadEntity`, `prvReadAttribute`, `prvReadEntityKey`, `prvReadRelationship`, `prvReadOptionSet`, `prvReadSystemForm`, `prvReadQuery`, `prvReadWebResource`…), ajustes de usuario (`…UserEntityUISettings`, `…UserApplicationMetadata`, `prvReadUserSettings`) y procesos (`prvReadWorkflow`, `prvWorkflowExecution`, `prvFlow`).
 - Consecuencia para la herramienta: "copiar App Opener" = leer sus privilegios **en el momento de construir** y sumarlos a los de la matriz `04`. No se guarda una lista fija: cambia con las actualizaciones de plataforma. La verificación compara los privilegios **de las tablas propias** exactamente, y los de base como "al menos los de App Opener".
 
+## Para el rol de ingesta (6.6): nombres reales de lo que `04` §3 describe en prosa (leído de Dev, 2026-09-21)
+
+- "Leer environment variables": `prvReadEnvironmentVariableDefinition` (admite Basic y Global). **No existe un privilegio aparte para el valor** (`…EnvironmentVariableValue` no devuelve nada): el valor va con la definición.
+- "Leer connection references": `prvReadconnectionreference` (Basic y Global). Existe además `prvReadconnector`.
+- "Ejecutar flujos": `prvFlow` y `prvWorkflowExecution`, y los de `Workflow` (crear, leer, escribir, borrar, a nivel usuario). **App Opener ya los trae**, así que el rol de ingesta los hereda de la base.
+- Ninguno de los dos primeros está en App Opener: van en `otros_privilegios`.
+- **A confirmar antes de construir 6.6**: que con eso una cuenta sin rol de administrador puede ser dueña de los cinco flujos de la solución y correrlos (historial de ejecuciones: `prvReadflowrun`, `prvReadflowsession`). Se comprueba con la cuenta de servicio real, cuando existan los flujos.
+
