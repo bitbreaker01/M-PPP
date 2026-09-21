@@ -34,7 +34,11 @@ from _comun import (  # noqa: E402
     Bloqueado,
     ErrorEntorno,
     ErrorPlaybook,
+    Rastro,
+    comprobar_solucion_e_idioma,
     dividir_secciones,
+    etiqueta_y_otros_idiomas,
+    exigir_etiqueta,
     exigir_forma,
     leer_texto,
     obtener_componente,
@@ -157,19 +161,6 @@ def construir_payload(datos, identidad):
 # ---------------------------------------------------------------------------
 # Comparación contra el entorno: una sola función, la usan los tres caminos.
 # ---------------------------------------------------------------------------
-def _etiqueta_y_otros_idiomas(label_obj, lcid):
-    labels = (label_obj or {}).get("LocalizedLabels", []) or []
-    en_lcid = None
-    otros = []
-    for ll in labels:
-        codigo = ll.get("LanguageCode")
-        if codigo == lcid:
-            en_lcid = ll.get("Label")
-        else:
-            otros.append(codigo)
-    return en_lcid, otros
-
-
 def comparar_contra_playbook(cuerpo_choice, datos, identidad):
     """Devuelve la lista de diferencias (vacía si coincide) entre lo que hay
     en el entorno y el playbook, con **todo** lo que `patrones.md` §2.1 lista
@@ -190,13 +181,13 @@ def comparar_contra_playbook(cuerpo_choice, datos, identidad):
     if cuerpo_choice.get("IsManaged") is not False:
         diffs.append(f"IsManaged: entorno={cuerpo_choice.get('IsManaged')!r} esperado=False")
 
-    dn, dn_otros = _etiqueta_y_otros_idiomas(cuerpo_choice.get("DisplayName"), lcid)
+    dn, dn_otros = etiqueta_y_otros_idiomas(cuerpo_choice.get("DisplayName"), lcid)
     if dn != datos["displayname"]:
         diffs.append(f"DisplayName[{lcid}]: entorno={dn!r} playbook={datos['displayname']!r}")
     if dn_otros:
         diffs.append(f"DisplayName tiene etiquetas en otro idioma: {dn_otros}")
 
-    desc, desc_otros = _etiqueta_y_otros_idiomas(cuerpo_choice.get("Description"), lcid)
+    desc, desc_otros = etiqueta_y_otros_idiomas(cuerpo_choice.get("Description"), lcid)
     if (desc or "") != datos["descripcion"]:
         diffs.append(f"Description[{lcid}]: entorno={desc!r} playbook={datos['descripcion']!r}")
     if desc_otros:
@@ -213,12 +204,12 @@ def comparar_contra_playbook(cuerpo_choice, datos, identidad):
         op_e = opciones_entorno[i]
         if op_e.get("Value") != op_p["valor"]:
             diffs.append(f"opciones[{i}].Value: entorno={op_e.get('Value')!r} playbook={op_p['valor']!r}")
-        et, et_otros = _etiqueta_y_otros_idiomas(op_e.get("Label"), lcid)
+        et, et_otros = etiqueta_y_otros_idiomas(op_e.get("Label"), lcid)
         if et != op_p["etiqueta"]:
             diffs.append(f"opciones[{i}].etiqueta: entorno={et!r} playbook={op_p['etiqueta']!r}")
         if et_otros:
             diffs.append(f"opciones[{i}].Label tiene etiquetas en otro idioma: {et_otros}")
-        de, de_otros = _etiqueta_y_otros_idiomas(op_e.get("Description"), lcid)
+        de, de_otros = etiqueta_y_otros_idiomas(op_e.get("Description"), lcid)
         de_esperado = op_p.get("descripcion") or ""
         if (de or "") != de_esperado:
             diffs.append(f"opciones[{i}].descripcion: entorno={de!r} playbook={de_esperado!r}")
@@ -228,22 +219,8 @@ def comparar_contra_playbook(cuerpo_choice, datos, identidad):
     return diffs
 
 
-C_SOLUCION = "la consulta de la solución (GET solutions)"
-C_IDIOMA_BASE = "la consulta del idioma base del entorno (GET organizations)"
-C_IDIOMAS = "la consulta de idiomas provisionados (GET RetrieveProvisionedLanguages)"
 C_CHOICE = "el GET de existencia del choice (GET GlobalOptionSetDefinitions)"
 C_PERTENENCIA = "la consulta de pertenencia a la solución (GET solutioncomponents)"
-
-
-def _exigir_etiqueta(etiqueta, consulta, campo, permite_nulo=False):
-    """Forma de un `Label` del Web API: objeto con `LocalizedLabels`, lista
-    de objetos con `LanguageCode` entero y `Label` texto."""
-    if exigir_forma(etiqueta, dict, consulta, campo, permite_nulo=permite_nulo) is None:
-        return
-    locs = exigir_forma(etiqueta.get("LocalizedLabels"), [dict], consulta, f"{campo}.LocalizedLabels", permite_nulo=True)
-    for i, ll in enumerate(locs or []):
-        exigir_forma(ll.get("LanguageCode"), int, consulta, f"{campo}.LocalizedLabels[{i}].LanguageCode")
-        exigir_forma(ll.get("Label"), str, consulta, f"{campo}.LocalizedLabels[{i}].Label", permite_nulo=True)
 
 
 def _exigir_forma_choice(cuerpo):
@@ -258,13 +235,13 @@ def _exigir_forma_choice(cuerpo):
     exigir_forma(cuerpo.get("IsGlobal"), bool, C_CHOICE, "IsGlobal")
     exigir_forma(cuerpo.get("IsManaged"), bool, C_CHOICE, "IsManaged")
     exigir_forma(cuerpo.get("OptionSetType"), str, C_CHOICE, "OptionSetType")
-    _exigir_etiqueta(cuerpo.get("DisplayName"), C_CHOICE, "DisplayName")
-    _exigir_etiqueta(cuerpo.get("Description"), C_CHOICE, "Description", permite_nulo=True)
+    exigir_etiqueta(cuerpo.get("DisplayName"), C_CHOICE, "DisplayName")
+    exigir_etiqueta(cuerpo.get("Description"), C_CHOICE, "Description", permite_nulo=True)
     opciones = exigir_forma(cuerpo.get("Options"), [dict], C_CHOICE, "Options")
     for i, op in enumerate(opciones):
         exigir_forma(op.get("Value"), int, C_CHOICE, f"Options[{i}].Value")
-        _exigir_etiqueta(op.get("Label"), C_CHOICE, f"Options[{i}].Label")
-        _exigir_etiqueta(op.get("Description"), C_CHOICE, f"Options[{i}].Description", permite_nulo=True)
+        exigir_etiqueta(op.get("Label"), C_CHOICE, f"Options[{i}].Label")
+        exigir_etiqueta(op.get("Description"), C_CHOICE, f"Options[{i}].Description", permite_nulo=True)
 
 
 def _verificar(dv, datos, identidad, solution_id):
@@ -305,67 +282,7 @@ def _verificar(dv, datos, identidad, solution_id):
 # ---------------------------------------------------------------------------
 def _contra_entorno(dv, datos, identidad, solo_verificar, componente):
     solucion = identidad["solucion"]
-
-    ruta_sol = (
-        "solutions?$select=uniquename,solutionid,ismanaged"
-        "&$expand=publisherid($select=uniquename,customizationprefix,customizationoptionvalueprefix)"
-        f"&$filter=uniquename eq '{solucion}'"
-    )
-    est, cuerpo, _ = dv.call("GET", ruta_sol)
-    if est != 200:
-        raise ErrorEntorno(f"{C_SOLUCION} '{solucion}' devolvió HTTP {est} (se esperaba 200): {cuerpo}")
-    exigir_forma(cuerpo, dict, C_SOLUCION, "cuerpo")
-    filas = exigir_forma(cuerpo.get("value"), [dict], C_SOLUCION, "value")
-    if len(filas) != 1:
-        # 'value' con otra cantidad de filas (incluida la lista vacía) SÍ es
-        # una respuesta de negocio legítima: la solución no existe (o hay
-        # más de una con el mismo unique name).
-        raise Bloqueado(f"la solución '{solucion}' no existe o hay más de una fila ({len(filas)})")
-    fila_sol = filas[0]
-    # Primero la forma de TODO lo que se va a usar; recién después se decide.
-    es_managed = exigir_forma(fila_sol.get("ismanaged"), bool, C_SOLUCION, "ismanaged")
-    solution_id = exigir_forma(fila_sol.get("solutionid"), str, C_SOLUCION, "solutionid", no_vacio=True)
-    publisher = exigir_forma(fila_sol.get("publisherid"), dict, C_SOLUCION, "publisherid")
-    pub_nombre = exigir_forma(publisher.get("uniquename"), str, C_SOLUCION, "publisherid.uniquename")
-    pub_prefijo = exigir_forma(publisher.get("customizationprefix"), str, C_SOLUCION, "publisherid.customizationprefix")
-    pub_prefijo_opciones = exigir_forma(
-        publisher.get("customizationoptionvalueprefix"), int, C_SOLUCION, "publisherid.customizationoptionvalueprefix"
-    )
-    if es_managed:
-        raise Bloqueado(f"la solución '{solucion}' está managed; no se construye ahí")
-    if pub_nombre != identidad["publisher"]:
-        raise Bloqueado(f"el publisher de '{solucion}' es {pub_nombre!r}, el playbook espera {identidad['publisher']!r}")
-    if pub_prefijo != identidad["prefijo"]:
-        raise Bloqueado(f"el prefijo del publisher es {pub_prefijo!r}, el playbook espera {identidad['prefijo']!r}")
-    if pub_prefijo_opciones != identidad["prefijo_opciones"]:
-        raise Bloqueado(
-            f"el prefijo de opciones del publisher es {pub_prefijo_opciones!r}, "
-            f"el playbook espera {identidad['prefijo_opciones']!r}"
-        )
-
-    est, cuerpo, _ = dv.call("GET", "organizations?$select=languagecode")
-    if est != 200:
-        raise ErrorEntorno(f"{C_IDIOMA_BASE} devolvió HTTP {est} (se esperaba 200): {cuerpo}")
-    # Todo entorno tiene exactamente una organización con su idioma base: acá
-    # una lista vacía no es una respuesta de negocio, es forma inesperada.
-    exigir_forma(cuerpo, dict, C_IDIOMA_BASE, "cuerpo")
-    filas_org = exigir_forma(cuerpo.get("value"), [dict], C_IDIOMA_BASE, "value", no_vacio=True)
-    lcid_base = exigir_forma(filas_org[0].get("languagecode"), int, C_IDIOMA_BASE, "languagecode")
-
-    est, cuerpo, _ = dv.call("GET", "RetrieveProvisionedLanguages")
-    if est != 200:
-        raise ErrorEntorno(f"{C_IDIOMAS} devolvió HTTP {est} (se esperaba 200): {cuerpo}")
-    # El idioma base siempre está provisionado: una lista vacía tampoco es
-    # una respuesta de negocio.
-    exigir_forma(cuerpo, dict, C_IDIOMAS, "cuerpo")
-    provisionados = exigir_forma(
-        cuerpo.get("RetrieveProvisionedLanguages"), [int], C_IDIOMAS, "RetrieveProvisionedLanguages", no_vacio=True
-    )
-    if identidad["lcid"] != lcid_base or identidad["lcid"] not in provisionados:
-        raise Bloqueado(
-            f"lcid {identidad['lcid']} del playbook no es el idioma base ({lcid_base}) "
-            f"o no está provisionado ({provisionados})"
-        )
+    solution_id = comprobar_solucion_e_idioma(dv, identidad)
 
     estado_actual = _verificar(dv, datos, identidad, solution_id)
 
@@ -402,19 +319,6 @@ def _contra_entorno(dv, datos, identidad, solo_verificar, componente):
 # ---------------------------------------------------------------------------
 # Punto de entrada, inyectable para las pruebas.
 # ---------------------------------------------------------------------------
-class _Rastro:
-    """Envuelve al cliente para recordar qué consulta estaba en curso: la red
-    de último recurso la nombra, así un fallo imprevisto dice dónde saltó."""
-
-    def __init__(self, dv):
-        self._dv = dv
-        self.en_curso = "la preparación de la primera consulta"
-
-    def call(self, metodo, ruta, *args, **kwargs):
-        self.en_curso = f"{metodo} {ruta.split('?')[0]}"
-        return self._dv.call(metodo, ruta, *args, **kwargs)
-
-
 def construir(ruta_playbook, solo_verificar, fabrica_cliente):
     """Núcleo de la herramienta. `fabrica_cliente` es un callable sin
     argumentos que devuelve un cliente con el mismo `call()` que
@@ -458,7 +362,7 @@ def construir(ruta_playbook, solo_verificar, fabrica_cliente):
     except Exception:
         return "error", componente, MENSAJE_FALLO_CLIENTE
 
-    rastro = _Rastro(dv)
+    rastro = Rastro(dv)
     try:
         return _contra_entorno(rastro, datos, identidad, solo_verificar, componente)
     except Bloqueado as e:

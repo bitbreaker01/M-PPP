@@ -194,6 +194,130 @@ def obtener_componente(secciones, tipo_esperado):
     return datos
 
 
+
+def etiqueta_web_api(texto, lcid):
+    """Un `Label` del Web API con una sola etiqueta, en `lcid`."""
+    return {
+        "@odata.type": "Microsoft.Dynamics.CRM.Label",
+        "LocalizedLabels": [
+            {"@odata.type": "Microsoft.Dynamics.CRM.LocalizedLabel", "Label": texto, "LanguageCode": lcid}
+        ],
+    }
+
+
+def etiqueta_y_otros_idiomas(label_obj, lcid):
+    labels = (label_obj or {}).get("LocalizedLabels", []) or []
+    en_lcid = None
+    otros = []
+    for ll in labels:
+        codigo = ll.get("LanguageCode")
+        if codigo == lcid:
+            en_lcid = ll.get("Label")
+        else:
+            otros.append(codigo)
+    return en_lcid, otros
+
+
+def exigir_etiqueta(etiqueta, consulta, campo, permite_nulo=False):
+    """Forma de un `Label` del Web API: objeto con `LocalizedLabels`, lista
+    de objetos con `LanguageCode` entero y `Label` texto."""
+    if exigir_forma(etiqueta, dict, consulta, campo, permite_nulo=permite_nulo) is None:
+        return
+    locs = exigir_forma(etiqueta.get("LocalizedLabels"), [dict], consulta, f"{campo}.LocalizedLabels", permite_nulo=True)
+    for i, ll in enumerate(locs or []):
+        exigir_forma(ll.get("LanguageCode"), int, consulta, f"{campo}.LocalizedLabels[{i}].LanguageCode")
+        exigir_forma(ll.get("Label"), str, consulta, f"{campo}.LocalizedLabels[{i}].Label", permite_nulo=True)
+
+
+class Rastro:
+    """Envuelve al cliente para recordar qué consulta estaba en curso: la red
+    de último recurso la nombra, así un fallo imprevisto dice dónde saltó."""
+
+    def __init__(self, dv):
+        self._dv = dv
+        self.en_curso = "la preparación de la primera consulta"
+
+    def call(self, metodo, ruta, *args, **kwargs):
+        self.en_curso = f"{metodo} {ruta.split('?')[0]}"
+        return self._dv.call(metodo, ruta, *args, **kwargs)
+
+
+C_SOLUCION = "la consulta de la solución (GET solutions)"
+C_IDIOMA_BASE = "la consulta del idioma base del entorno (GET organizations)"
+C_IDIOMAS = "la consulta de idiomas provisionados (GET RetrieveProvisionedLanguages)"
+
+
+def comprobar_solucion_e_idioma(dv, identidad):
+    """Precondiciones comunes a toda herramienta de construcción, contra el
+    entorno: la solución existe, no es managed y su publisher coincide con el
+    de Identidad por unique name, prefijo y prefijo de opciones; y el `lcid`
+    es el idioma base y está provisionado. Devuelve el `solutionid`. Lanza
+    `Bloqueado` si una precondición no se cumple y `ErrorEntorno` si no se
+    pudo averiguar."""
+    solucion = identidad["solucion"]
+    ruta_sol = (
+        "solutions?$select=uniquename,solutionid,ismanaged"
+        "&$expand=publisherid($select=uniquename,customizationprefix,customizationoptionvalueprefix)"
+        f"&$filter=uniquename eq '{solucion}'"
+    )
+    est, cuerpo, _ = dv.call("GET", ruta_sol)
+    if est != 200:
+        raise ErrorEntorno(f"{C_SOLUCION} '{solucion}' devolvió HTTP {est} (se esperaba 200): {cuerpo}")
+    exigir_forma(cuerpo, dict, C_SOLUCION, "cuerpo")
+    filas = exigir_forma(cuerpo.get("value"), [dict], C_SOLUCION, "value")
+    if len(filas) != 1:
+        # 'value' con otra cantidad de filas (incluida la lista vacía) SÍ es
+        # una respuesta de negocio legítima: la solución no existe (o hay
+        # más de una con el mismo unique name).
+        raise Bloqueado(f"la solución '{solucion}' no existe o hay más de una fila ({len(filas)})")
+    fila_sol = filas[0]
+    # Primero la forma de TODO lo que se va a usar; recién después se decide.
+    es_managed = exigir_forma(fila_sol.get("ismanaged"), bool, C_SOLUCION, "ismanaged")
+    solution_id = exigir_forma(fila_sol.get("solutionid"), str, C_SOLUCION, "solutionid", no_vacio=True)
+    publisher = exigir_forma(fila_sol.get("publisherid"), dict, C_SOLUCION, "publisherid")
+    pub_nombre = exigir_forma(publisher.get("uniquename"), str, C_SOLUCION, "publisherid.uniquename")
+    pub_prefijo = exigir_forma(publisher.get("customizationprefix"), str, C_SOLUCION, "publisherid.customizationprefix")
+    pub_prefijo_opciones = exigir_forma(
+        publisher.get("customizationoptionvalueprefix"), int, C_SOLUCION, "publisherid.customizationoptionvalueprefix"
+    )
+    if es_managed:
+        raise Bloqueado(f"la solución '{solucion}' está managed; no se construye ahí")
+    if pub_nombre != identidad["publisher"]:
+        raise Bloqueado(f"el publisher de '{solucion}' es {pub_nombre!r}, el playbook espera {identidad['publisher']!r}")
+    if pub_prefijo != identidad["prefijo"]:
+        raise Bloqueado(f"el prefijo del publisher es {pub_prefijo!r}, el playbook espera {identidad['prefijo']!r}")
+    if pub_prefijo_opciones != identidad["prefijo_opciones"]:
+        raise Bloqueado(
+            f"el prefijo de opciones del publisher es {pub_prefijo_opciones!r}, "
+            f"el playbook espera {identidad['prefijo_opciones']!r}"
+        )
+
+    est, cuerpo, _ = dv.call("GET", "organizations?$select=languagecode")
+    if est != 200:
+        raise ErrorEntorno(f"{C_IDIOMA_BASE} devolvió HTTP {est} (se esperaba 200): {cuerpo}")
+    # Todo entorno tiene exactamente una organización con su idioma base: acá
+    # una lista vacía no es una respuesta de negocio, es forma inesperada.
+    exigir_forma(cuerpo, dict, C_IDIOMA_BASE, "cuerpo")
+    filas_org = exigir_forma(cuerpo.get("value"), [dict], C_IDIOMA_BASE, "value", no_vacio=True)
+    lcid_base = exigir_forma(filas_org[0].get("languagecode"), int, C_IDIOMA_BASE, "languagecode")
+
+    est, cuerpo, _ = dv.call("GET", "RetrieveProvisionedLanguages")
+    if est != 200:
+        raise ErrorEntorno(f"{C_IDIOMAS} devolvió HTTP {est} (se esperaba 200): {cuerpo}")
+    # El idioma base siempre está provisionado: una lista vacía tampoco es
+    # una respuesta de negocio.
+    exigir_forma(cuerpo, dict, C_IDIOMAS, "cuerpo")
+    provisionados = exigir_forma(
+        cuerpo.get("RetrieveProvisionedLanguages"), [int], C_IDIOMAS, "RetrieveProvisionedLanguages", no_vacio=True
+    )
+    if identidad["lcid"] != lcid_base or identidad["lcid"] not in provisionados:
+        raise Bloqueado(
+            f"lcid {identidad['lcid']} del playbook no es el idioma base ({lcid_base}) "
+            f"o no está provisionado ({provisionados})"
+        )
+    return solution_id
+
+
 def salida(estado, componente, detalle):
     """Imprime la última línea del contrato (JSON de una sola línea) y
     devuelve el código de salida: 0 solo para 'creado' y 'ya_existia'."""
