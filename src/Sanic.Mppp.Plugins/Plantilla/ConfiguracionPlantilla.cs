@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.Serialization;
-using System.Text.RegularExpressions;
 
 namespace Sanic.Mppp.Plugins.Plantilla
 {
@@ -139,9 +138,25 @@ namespace Sanic.Mppp.Plugins.Plantilla
             return ultimaFila <= FilaMaximaHojaExcel;
         }
 
-        /// <summary>Letra(s) de columna válida: solo letras (LP-01/LP-08). Interna para que LectorOpenXml.Leer valide la
-        /// misma regla antes de entrar al try del SDK, sin duplicar el patrón.</summary>
-        internal static readonly Regex RegexColumna = new Regex("^[A-Za-z]+$", RegexOptions.Compiled);
+        /// <summary>Letra(s) de columna válida: solo letras ASCII (LP-01/LP-08), una o más. Sin expresión regular
+        /// (revisión de código, 2026-09-21: para un patrón así de corto, `RegexOptions.Compiled` no aporta nada y
+        /// compilarla emite código dinámico al inicializar el tipo — si el sandbox de Dataverse lo rechazara, se
+        /// caería toda la validación con un `TypeInitializationException`). Interna para que LectorOpenXml.Leer
+        /// valide la misma regla antes de entrar al try del SDK, sin duplicar el patrón.</summary>
+        internal static bool RegexColumna(string columna)
+        {
+            if (string.IsNullOrEmpty(columna))
+                return false;
+
+            foreach (char c in columna)
+            {
+                bool esLetraAscii = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+                if (!esLetraAscii)
+                    return false;
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// ÚNICA validación de una <see cref="ConfiguracionPlantilla"/> ya armada, la use quien la use: <see cref="DesdeJson"/>
@@ -178,35 +193,56 @@ namespace Sanic.Mppp.Plugins.Plantilla
             var columnasVistas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var nombresVistos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (CampoPlantilla campo in configuracion.Campos)
+            for (int indice = 0; indice < configuracion.Campos.Count; indice++)
             {
-                if (campo == null)
-                    return "trae un campo nulo.";
+                CampoPlantilla campo = configuracion.Campos[indice];
+                // 1-based (revisión de código, 2026-09-21): todo motivo que se refiera a un campo tiene que decir
+                // cuál es. Un campo nulo no tiene Nombre ni Columna, así que se ubica por su posición en la lista.
+                int posicion = indice + 1;
 
-                if (string.IsNullOrWhiteSpace(campo.Columna) || !RegexColumna.IsMatch(campo.Columna.Trim()))
-                    return $"trae una columna inválida ('{campo.Columna}').";
+                if (campo == null)
+                    return $"trae un campo nulo en la posición {posicion.ToString(CultureInfo.InvariantCulture)}.";
+
+                string identificador = IdentificarCampo(campo, posicion);
+
+                if (string.IsNullOrWhiteSpace(campo.Columna) || !RegexColumna(campo.Columna.Trim()))
+                    return $"trae una columna inválida ('{campo.Columna}') en {identificador}.";
 
                 string columna = campo.Columna.Trim();
                 if (!columnasVistas.Add(columna))
-                    return $"repite la columna '{columna}'.";
+                    return $"repite la columna '{columna}' en {identificador}.";
 
                 if (string.IsNullOrWhiteSpace(campo.EncabezadoEsperado))
-                    return "trae un campo sin encabezado esperado.";
+                    return $"trae un campo sin encabezado esperado en {identificador}.";
 
                 if (!string.IsNullOrWhiteSpace(campo.Nombre) && !nombresVistos.Add(campo.Nombre))
                     return $"repite el nombre de campo '{campo.Nombre}'.";
 
                 if (campo.LargoMinimo.HasValue && campo.LargoMinimo.Value < 0)
-                    return $"trae un largo mínimo inválido ({campo.LargoMinimo.Value}) en el campo '{campo.Nombre}': no puede ser negativo.";
+                    return $"trae un largo mínimo inválido ({campo.LargoMinimo.Value.ToString(CultureInfo.InvariantCulture)}) en {identificador}: no puede ser negativo.";
 
                 if (campo.LargoMaximo.HasValue && campo.LargoMaximo.Value < 1)
-                    return $"trae un largo máximo inválido ({campo.LargoMaximo.Value}) en el campo '{campo.Nombre}': tiene que ser 1 o mayor.";
+                    return $"trae un largo máximo inválido ({campo.LargoMaximo.Value.ToString(CultureInfo.InvariantCulture)}) en {identificador}: tiene que ser 1 o mayor.";
 
                 if (campo.LargoMinimo.HasValue && campo.LargoMaximo.HasValue && campo.LargoMinimo.Value > campo.LargoMaximo.Value)
-                    return $"trae un largo mínimo ({campo.LargoMinimo.Value}) mayor que el máximo ({campo.LargoMaximo.Value}) en el campo '{campo.Nombre}'.";
+                    return $"trae un largo mínimo ({campo.LargoMinimo.Value.ToString(CultureInfo.InvariantCulture)}) mayor que el máximo ({campo.LargoMaximo.Value.ToString(CultureInfo.InvariantCulture)}) en {identificador}.";
             }
 
             return null;
+        }
+
+        /// <summary>Cómo se nombra un campo en un motivo de <see cref="Invalidez"/> (revisión de código, 2026-09-21): su
+        /// <see cref="CampoPlantilla.Nombre"/> si lo tiene; si no, su <see cref="CampoPlantilla.Columna"/>; si tampoco,
+        /// su posición en la lista (1-based).</summary>
+        private static string IdentificarCampo(CampoPlantilla campo, int posicion)
+        {
+            if (!string.IsNullOrWhiteSpace(campo.Nombre))
+                return $"el campo '{campo.Nombre}'";
+
+            if (!string.IsNullOrWhiteSpace(campo.Columna))
+                return $"el campo de la columna '{campo.Columna}'";
+
+            return $"el campo de la posición {posicion.ToString(CultureInfo.InvariantCulture)}";
         }
 
         [DataContract]

@@ -113,9 +113,23 @@ namespace Sanic.Mppp.Plugins.Validacion
             return new ListasPlantilla(porLista);
         }
 
-        /// <summary>Solo dígitos ASCII (D-18a): un dígito de otro alfabeto (ej. el arábigo-índico) no cuenta como dígito acá.</summary>
-        private static readonly System.Text.RegularExpressions.Regex RegexCodigoDeBanco =
-            new System.Text.RegularExpressions.Regex("^[0-9]{3}$", System.Text.RegularExpressions.RegexOptions.Compiled);
+        /// <summary>`^[0-9]{3}$` sin expresión regular (revisión de código, 2026-09-21: para un patrón de tres
+        /// caracteres `RegexOptions.Compiled` no aporta nada y compilarla emite código dinámico al inicializar el
+        /// tipo, un riesgo para el sandbox de Dataverse). Solo dígitos ASCII (D-18a): un dígito de otro alfabeto
+        /// (ej. el arábigo-índico) no cuenta como dígito acá, igual que <see cref="CatalogosDeValidacion.EsCodigoDePlanValido"/>.</summary>
+        private static bool EsCodigoDeBancoValido(string codigo)
+        {
+            if (codigo == null || codigo.Length != 3)
+                return false;
+
+            foreach (char c in codigo)
+            {
+                if (c < '0' || c > '9')
+                    return false;
+            }
+
+            return true;
+        }
 
         private static IDictionary<string, ValorDeLista> ArmarLista(string nombreLista, List<ValorDeListaDto> items, Type tipoDelChoice, bool esBanco)
         {
@@ -143,7 +157,7 @@ namespace Sanic.Mppp.Plugins.Validacion
                 if (esBanco)
                 {
                     codigoDeBanco = item.Codigo;
-                    if (string.IsNullOrEmpty(codigoDeBanco) || !RegexCodigoDeBanco.IsMatch(codigoDeBanco))
+                    if (string.IsNullOrEmpty(codigoDeBanco) || !EsCodigoDeBancoValido(codigoDeBanco))
                         throw new FormatException($"El parámetro de listas de la plantilla: el banco '{valor}' trae un código inválido ('{codigoDeBanco}'), tiene que ser de exactamente 3 dígitos.");
 
                     if (!codigosVistos.Add(codigoDeBanco))

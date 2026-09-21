@@ -100,7 +100,10 @@ namespace Sanic.Mppp.Plugins.Validacion
                     throw new ArgumentException($"La estructura de la plantilla repite el campo '{campo.Nombre}'.", nameof(estructura));
                 }
 
-                camposPorNombre[campo.Nombre] = campo;
+                // Copia, no la referencia (revisión de código, 2026-09-21): "inmutable" de palabra no alcanza cuando
+                // CampoPlantilla tiene setters públicos. Mutar el campo que se pasó, o el que devuelve Campo(), no
+                // puede aflojar la validación de las filas que todavía faltan.
+                camposPorNombre[campo.Nombre] = Copiar(campo);
             }
 
             if (camposPorNombre.Count != nombresEsperados.Count)
@@ -131,7 +134,6 @@ namespace Sanic.Mppp.Plugins.Validacion
                 planesPorCodigo[plan.Codigo] = plan;
             }
 
-            Estructura = estructura;
             Listas = listas;
             Obligatoriedad = obligatoriedad;
             _camposPorNombre = camposPorNombre;
@@ -140,13 +142,13 @@ namespace Sanic.Mppp.Plugins.Validacion
             _autorizaciones = new Dictionary<Guid, bool>(autorizacionesActivasDelRemitente);
         }
 
-        public ConfiguracionPlantilla Estructura { get; }
-
         public ListasPlantilla Listas { get; }
 
         public ObligatoriedadPlantilla Obligatoriedad { get; }
 
-        /// <summary>El campo de la estructura con ese nombre de <see cref="CamposDeFila"/>. Otro nombre: <see cref="ArgumentException"/>.</summary>
+        /// <summary>El campo de la estructura con ese nombre de <see cref="CamposDeFila"/>: una COPIA NUEVA en cada llamada,
+        /// así quien la reciba y la mute no afecta al catálogo ni a otro llamador (revisión de código, 2026-09-21). Otro
+        /// nombre: <see cref="ArgumentException"/>.</summary>
         public CampoPlantilla Campo(string campo)
         {
             if (campo == null || !_camposPorNombre.TryGetValue(campo, out var campoPlantilla))
@@ -154,7 +156,22 @@ namespace Sanic.Mppp.Plugins.Validacion
                 throw new ArgumentException($"'{campo}' no es un campo de la fila ({string.Join(", ", CamposDeFila.Todos())}).", nameof(campo));
             }
 
-            return campoPlantilla;
+            return Copiar(campoPlantilla);
+        }
+
+        /// <summary>Copia todas las propiedades de un <see cref="CampoPlantilla"/> a una instancia nueva (tiene setters
+        /// públicos: la única forma de que "inmutable" sea de verdad, revisión de código, 2026-09-21).</summary>
+        private static CampoPlantilla Copiar(CampoPlantilla campo)
+        {
+            return new CampoPlantilla
+            {
+                Nombre = campo.Nombre,
+                Columna = campo.Columna,
+                EncabezadoEsperado = campo.EncabezadoEsperado,
+                LargoMinimo = campo.LargoMinimo,
+                LargoMaximo = campo.LargoMaximo,
+                Formato = campo.Formato,
+            };
         }
 
         /// <summary>El plan activo con ese código EXACTO (ya normalizado), o nulo. Nunca uno parecido.</summary>
