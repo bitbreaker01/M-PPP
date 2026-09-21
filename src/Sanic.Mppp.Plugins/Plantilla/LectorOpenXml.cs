@@ -28,6 +28,12 @@ namespace Sanic.Mppp.Plugins.Plantilla
     /// </summary>
     public sealed class LectorOpenXml : ILectorPlantilla
     {
+        /// <summary>
+        /// Lo ÚNICO que se le dice al cliente cuando la librería no pudo abrir o recorrer el archivo (LP-01). El mensaje de la excepción
+        /// va a <see cref="ResultadoLecturaPlantilla.DetalleTecnico"/>, no acá.
+        /// </summary>
+        public const string ArchivoIlegible = "El archivo adjunto no se pudo leer como una plantilla de Excel (.xlsx). Puede estar dañado o no ser un archivo de Excel.";
+
         private readonly LimitesLectura _limites;
 
         public LectorOpenXml()

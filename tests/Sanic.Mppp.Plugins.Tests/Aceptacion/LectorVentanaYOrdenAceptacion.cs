@@ -211,6 +211,11 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             yield return new object[] { "datos antes del encabezado", new Action<ConfiguracionPlantilla>(c => c.PrimeraFila = c.FilaEncabezado) };
             yield return new object[] { "sin filas", new Action<ConfiguracionPlantilla>(c => c.CantidadFilas = 0) };
             yield return new object[] { "ventana que desborda", new Action<ConfiguracionPlantilla>(c => c.CantidadFilas = int.MaxValue) };
+            // Paridad con DesdeJson (hallazgo de la re-revisión): lo que el JSON rechaza, una configuración armada a mano también.
+            yield return new object[] { "encabezado esperado nulo", new Action<ConfiguracionPlantilla>(c => c.Campos[0].EncabezadoEsperado = null) };
+            yield return new object[] { "encabezado esperado en blanco", new Action<ConfiguracionPlantilla>(c => c.Campos[1].EncabezadoEsperado = "  ") };
+            yield return new object[] { "columna repetida", new Action<ConfiguracionPlantilla>(c => c.Campos[1].Columna = "c") };
+            yield return new object[] { "nombre de campo repetido", new Action<ConfiguracionPlantilla>(c => c.Campos[1].Nombre = "uno") };
         }
 
         [Theory]
@@ -222,6 +227,65 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             romper(config);
             var ex = Assert.ThrowsAny<ArgumentException>(() => new LectorOpenXml().Leer(ConFilas(Hoja, Encabezado(), Datos(6)), config));
             Assert.False(string.IsNullOrWhiteSpace(ex.Message), caso);
+        }
+
+        [Fact]
+        public void El_nombre_del_campo_es_opcional_en_una_configuracion_armada_a_mano()
+        {
+            var config = Ventana();
+            foreach (var campo in config.Campos)
+            {
+                campo.Nombre = null;
+            }
+
+            var r = new LectorOpenXml().Leer(ConFilas(Hoja, Encabezado(), Datos(6)), config);
+            Assert.True(r.EsValido, string.Join(" | ", r.Errores));
+        }
+
+        [Fact]
+        public void Un_encabezado_esperado_nulo_nunca_hace_pasar_por_valida_una_plantilla_sin_encabezados()
+        {
+            // El caso concreto que encontró el revisor: "" == "" daba el archivo por válido.
+            var config = Ventana();
+            config.Campos[0].EncabezadoEsperado = null;
+            Assert.ThrowsAny<ArgumentException>(() => new LectorOpenXml().Leer(ConFilas(Hoja, Fila(5, Celda("D5", "Campo Dos")), Datos(6)), config));
+        }
+
+        [Fact]
+        public void LP04_una_celda_mas_alla_de_la_ultima_columna_corta_la_fila_aunque_despues_venga_una_de_la_ventana()
+        {
+            // El simétrico de [encabezado, 500, 6] a nivel celda (D-12): Z antes que C corta la fila en Z, y la C que viene después no se mira.
+            // Excel nunca escribe las celdas de una fila fuera de orden; quien lo arme a mano consigue lo mismo que no mandando la C.
+            var r = Leer(Ventana(), Encabezado(), Fila(6, Celda("Z6", "z"), Celda("C6", "c6")), Datos(7));
+            Assert.True(r.EsValido, string.Join(" | ", r.Errores));
+            Assert.Equal(new[] { 7 }, r.Filas.Select(f => f.NumeroFilaExcel));
+            Assert.Equal(new[] { 2 }, r.Filas.Select(f => f.NumeroOrden));
+        }
+
+        // ------------------------------------------------------------------ lo que se le dice al cliente
+        public static IEnumerable<object[]> ArchivosIlegibles()
+        {
+            yield return new object[] { "no es un zip", System.Text.Encoding.UTF8.GetBytes("esto no es un xlsx, es un texto cualquiera") };
+            yield return new object[] { "vacío", new byte[0] };
+            var bueno = ConFilas(Hoja, Encabezado(), Datos(6));
+            yield return new object[] { "zip truncado", bueno.Take(bueno.Length / 2).ToArray() };
+        }
+
+        [Theory]
+        [MemberData(nameof(ArchivosIlegibles))]
+        public void Al_cliente_no_le_llega_la_jerga_de_la_libreria_solo_un_texto_nuestro_y_el_detalle_va_a_la_traza(string caso, byte[] archivo)
+        {
+            var r = new LectorOpenXml().Leer(archivo, Ventana());
+            Assert.False(r.EsValido, caso);
+            Assert.Equal(new[] { LectorOpenXml.ArchivoIlegible }, r.Errores);
+            Assert.False(string.IsNullOrWhiteSpace(r.DetalleTecnico), caso);
+        }
+
+        [Fact]
+        public void Un_resultado_valido_o_un_rechazo_por_una_regla_nuestra_no_traen_detalle_tecnico()
+        {
+            Assert.Null(Leer(Ventana(), Encabezado(), Datos(6)).DetalleTecnico);
+            Assert.Null(Leer(Ventana(), Encabezado(), Datos(7), Datos(6)).DetalleTecnico);
         }
 
         // ------------------------------------------------------------------ LP-07: una celda booleana tampoco se pierde callada
