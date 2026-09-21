@@ -31,7 +31,47 @@ namespace Sanic.Mppp.Plugins.Validacion
         /// </summary>
         public static string Citar(string valorDelCliente)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(valorDelCliente))
+            {
+                return string.Empty;
+            }
+
+            // Todo carácter de control o de espacio (saltos de línea, tabuladores) pasa a ser un espacio; el Excel del
+            // cliente es hostil y puede traer cualquier cosa en una celda de texto.
+            var normalizado = new StringBuilder(valorDelCliente.Length);
+            foreach (char caracter in valorDelCliente)
+            {
+                normalizado.Append(char.IsControl(caracter) || char.IsWhiteSpace(caracter) ? ' ' : caracter);
+            }
+
+            // Espacios seguidos de a uno, recortado a los lados: mismo criterio de "una sola línea" que ListasPlantilla.Normalizar.
+            var compacto = new StringBuilder(normalizado.Length);
+            var huboEspacio = false;
+            foreach (char caracter in normalizado.ToString().Trim())
+            {
+                if (caracter == ' ')
+                {
+                    if (!huboEspacio)
+                    {
+                        compacto.Append(caracter);
+                    }
+
+                    huboEspacio = true;
+                }
+                else
+                {
+                    compacto.Append(caracter);
+                    huboEspacio = false;
+                }
+            }
+
+            string resultado = compacto.ToString();
+            if (resultado.Length > LargoMaximoDeCita)
+            {
+                resultado = resultado.Substring(0, LargoMaximoDeCita) + "…";
+            }
+
+            return resultado;
         }
 
         public static string Componer(string plantilla, Veredicto veredicto, string codigoDeRegla)

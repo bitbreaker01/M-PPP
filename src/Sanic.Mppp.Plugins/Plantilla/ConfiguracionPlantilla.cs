@@ -73,7 +73,15 @@ namespace Sanic.Mppp.Plugins.Plantilla
                     {
                         Nombre = campoDto.Nombre,
                         Columna = columna,
-                        EncabezadoEsperado = campoDto.Encabezado
+                        EncabezadoEsperado = campoDto.Encabezado,
+                        LargoMinimo = campoDto.LargoMinimo,
+                        LargoMaximo = campoDto.LargoMaximo,
+                        // El `formato` es texto en el JSON pero el dominio lo tipa como enum: la conversión ocurre acá,
+                        // al armar el campo (no en Invalidez, que también valida una ConfiguracionPlantilla armada a mano
+                        // por LectorOpenXml, donde el campo ya nace con un FormatoDeCampo? válido o nulo, nunca con un
+                        // texto que interpretar). Un texto que no sea exactamente uno de los tres valores es
+                        // FormatException (D-18b): una expresión mal escrita no puede tumbar ni aflojar la validación.
+                        Formato = ParsearFormato(campoDto.Nombre, campoDto.Formato)
                     });
                 }
             }
@@ -92,6 +100,26 @@ namespace Sanic.Mppp.Plugins.Plantilla
                 throw new FormatException($"El parámetro de estructura de la plantilla {motivo}");
 
             return configuracion;
+        }
+
+        /// <summary>Convierte el `formato` de texto del JSON (D-18b) al enum del dominio. Nulo o ausente → sin formato
+        /// (cualquier texto vale). Cualquier otro texto que no sea exactamente `texto`, `digitos` o `alfanumerico` es un
+        /// parámetro mal cargado.</summary>
+        private static FormatoDeCampo? ParsearFormato(string nombreDelCampo, string formato)
+        {
+            switch (formato)
+            {
+                case null:
+                    return null;
+                case "texto":
+                    return FormatoDeCampo.Texto;
+                case "digitos":
+                    return FormatoDeCampo.Digitos;
+                case "alfanumerico":
+                    return FormatoDeCampo.Alfanumerico;
+                default:
+                    throw new FormatException($"El parámetro de estructura de la plantilla trae un formato inválido ('{formato}') en el campo '{nombreDelCampo}': tiene que ser 'texto', 'digitos' o 'alfanumerico'.");
+            }
         }
 
         /// <summary>Filas máximas de una hoja de Excel (LP-08): la ventana (primeraFila .. primeraFila + cantidadFilas - 1)
@@ -167,6 +195,15 @@ namespace Sanic.Mppp.Plugins.Plantilla
 
                 if (!string.IsNullOrWhiteSpace(campo.Nombre) && !nombresVistos.Add(campo.Nombre))
                     return $"repite el nombre de campo '{campo.Nombre}'.";
+
+                if (campo.LargoMinimo.HasValue && campo.LargoMinimo.Value < 0)
+                    return $"trae un largo mínimo inválido ({campo.LargoMinimo.Value}) en el campo '{campo.Nombre}': no puede ser negativo.";
+
+                if (campo.LargoMaximo.HasValue && campo.LargoMaximo.Value < 1)
+                    return $"trae un largo máximo inválido ({campo.LargoMaximo.Value}) en el campo '{campo.Nombre}': tiene que ser 1 o mayor.";
+
+                if (campo.LargoMinimo.HasValue && campo.LargoMaximo.HasValue && campo.LargoMinimo.Value > campo.LargoMaximo.Value)
+                    return $"trae un largo mínimo ({campo.LargoMinimo.Value}) mayor que el máximo ({campo.LargoMaximo.Value}) en el campo '{campo.Nombre}'.";
             }
 
             return null;
@@ -202,6 +239,15 @@ namespace Sanic.Mppp.Plugins.Plantilla
 
             [DataMember(Name = "encabezado")]
             public string Encabezado { get; set; }
+
+            [DataMember(Name = "largoMinimo")]
+            public int? LargoMinimo { get; set; }
+
+            [DataMember(Name = "largoMaximo")]
+            public int? LargoMaximo { get; set; }
+
+            [DataMember(Name = "formato")]
+            public string Formato { get; set; }
         }
     }
 
