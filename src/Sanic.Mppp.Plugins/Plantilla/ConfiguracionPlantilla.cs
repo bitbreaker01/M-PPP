@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
+using System.Text.RegularExpressions;
 
 namespace Sanic.Mppp.Plugins.Plantilla
 {
@@ -29,7 +31,108 @@ namespace Sanic.Mppp.Plugins.Plantilla
         /// </summary>
         public static ConfiguracionPlantilla DesdeJson(string json)
         {
-            throw new NotImplementedException();
+            // A diferencia de LimitesLectura, acá NO hay "valor por defecto": la ventana de lectura
+            // es obligatoria (LP-08). Un parámetro ausente o vacío es tan inválido como uno mal escrito.
+            if (string.IsNullOrWhiteSpace(json))
+                throw new FormatException("El parámetro de estructura de la plantilla está vacío.");
+
+            ConfiguracionPlantillaDto dto;
+            try
+            {
+                dto = LimitesLectura.DeserializarJson<ConfiguracionPlantillaDto>(json);
+            }
+            catch (Exception ex) when (!(ex is OutOfMemoryException || ex is StackOverflowException || ex is System.Threading.ThreadAbortException))
+            {
+                throw new FormatException($"El parámetro de estructura de la plantilla no es un JSON válido: {ex.Message}", ex);
+            }
+
+            if (dto == null)
+                throw new FormatException("El parámetro de estructura de la plantilla no es un JSON válido.");
+
+            if (string.IsNullOrWhiteSpace(dto.Hoja))
+                throw new FormatException("El parámetro de estructura de la plantilla no indica la hoja.");
+
+            if (dto.FilaEncabezado < 1)
+                throw new FormatException("El parámetro de estructura de la plantilla tiene una fila de encabezado inválida: debe ser 1 o mayor.");
+
+            if (dto.PrimeraFila <= dto.FilaEncabezado)
+                throw new FormatException("El parámetro de estructura de la plantilla tiene una primera fila inválida: tiene que ser posterior a la fila de encabezado.");
+
+            if (dto.CantidadFilas < 1)
+                throw new FormatException("El parámetro de estructura de la plantilla tiene una cantidad de filas inválida: debe ser 1 o mayor.");
+
+            if (dto.Campos == null || dto.Campos.Count == 0)
+                throw new FormatException("El parámetro de estructura de la plantilla no trae ningún campo.");
+
+            var campos = new List<CampoPlantilla>();
+            var nombresVistos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var columnasVistas = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (CampoPlantillaDto campoDto in dto.Campos)
+            {
+                if (string.IsNullOrWhiteSpace(campoDto.Columna) || !RegexColumna.IsMatch(campoDto.Columna.Trim()))
+                    throw new FormatException($"El parámetro de estructura de la plantilla trae una columna inválida ('{campoDto.Columna}').");
+
+                if (string.IsNullOrWhiteSpace(campoDto.Encabezado))
+                    throw new FormatException("El parámetro de estructura de la plantilla trae un campo sin encabezado esperado.");
+
+                string columna = campoDto.Columna.Trim().ToUpperInvariant();
+                if (!columnasVistas.Add(columna))
+                    throw new FormatException($"El parámetro de estructura de la plantilla repite la columna '{columna}'.");
+
+                if (!string.IsNullOrWhiteSpace(campoDto.Nombre) && !nombresVistos.Add(campoDto.Nombre))
+                    throw new FormatException($"El parámetro de estructura de la plantilla repite el nombre de campo '{campoDto.Nombre}'.");
+
+                campos.Add(new CampoPlantilla
+                {
+                    Nombre = campoDto.Nombre,
+                    Columna = columna,
+                    EncabezadoEsperado = campoDto.Encabezado
+                });
+            }
+
+            return new ConfiguracionPlantilla
+            {
+                Hoja = dto.Hoja,
+                FilaEncabezado = dto.FilaEncabezado,
+                PrimeraFila = dto.PrimeraFila,
+                CantidadFilas = dto.CantidadFilas,
+                Campos = campos
+            };
+        }
+
+        private static readonly Regex RegexColumna = new Regex("^[A-Za-z]+$", RegexOptions.Compiled);
+
+        [DataContract]
+        private sealed class ConfiguracionPlantillaDto
+        {
+            [DataMember(Name = "hoja")]
+            public string Hoja { get; set; }
+
+            [DataMember(Name = "filaEncabezado")]
+            public int FilaEncabezado { get; set; }
+
+            [DataMember(Name = "primeraFila")]
+            public int PrimeraFila { get; set; }
+
+            [DataMember(Name = "cantidadFilas")]
+            public int CantidadFilas { get; set; }
+
+            [DataMember(Name = "campos")]
+            public List<CampoPlantillaDto> Campos { get; set; }
+        }
+
+        [DataContract]
+        private sealed class CampoPlantillaDto
+        {
+            [DataMember(Name = "nombre")]
+            public string Nombre { get; set; }
+
+            [DataMember(Name = "columna")]
+            public string Columna { get; set; }
+
+            [DataMember(Name = "encabezado")]
+            public string Encabezado { get; set; }
         }
     }
 

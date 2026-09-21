@@ -69,7 +69,10 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Equal(6, resultado.Filas[0].NumeroFilaExcel);
             Assert.Equal(1, resultado.Filas[0].NumeroOrden);
             Assert.Equal(8, resultado.Filas[1].NumeroFilaExcel);
-            Assert.Equal(2, resultado.Filas[1].NumeroOrden);
+            // Corregida por el arquitecto (2026-09-21): el spike afirmaba 2 (correlativo entre las filas con datos). En el producto el número
+            // de orden es la POSICIÓN en la ventana: es el número que el cliente ve impreso en la columna de numeración de su plantilla, y el que
+            // se guarda en `sanic_numerofila` ("1..N de la plantilla", diseno/02 §3.2) y se le cita en la respuesta.
+            Assert.Equal(3, resultado.Filas[1].NumeroOrden);
         }
 
         [Fact]
