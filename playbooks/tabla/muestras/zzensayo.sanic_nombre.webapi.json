@@ -1,0 +1,132 @@
+{
+ "@odata.context": "https://org36e60d9d.crm.dynamics.com/api/data/v9.2/$metadata#EntityDefinitions('sanic_mppp_tbl_zzensayo')/Attributes/Microsoft.Dynamics.CRM.StringAttributeMetadata/$entity",
+ "@odata.type": "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+ "MetadataId": "34a4e34e-5ab5-f111-aaad-000d3a350099",
+ "HasChanged": null,
+ "AttributeOf": null,
+ "AttributeType": "String",
+ "ColumnNumber": 34,
+ "DeprecatedVersion": null,
+ "IntroducedVersion": "0.0.0.1",
+ "EntityLogicalName": "sanic_mppp_tbl_zzensayo",
+ "IsCustomAttribute": true,
+ "IsPrimaryId": false,
+ "IsValidODataAttribute": true,
+ "IsPrimaryName": true,
+ "IsValidForCreate": true,
+ "IsValidForRead": true,
+ "IsValidForUpdate": true,
+ "CanBeSecuredForRead": false,
+ "CanBeSecuredForCreate": false,
+ "CanBeSecuredForUpdate": false,
+ "IsSecured": false,
+ "IsRetrievable": true,
+ "IsFilterable": false,
+ "IsSearchable": true,
+ "IsManaged": false,
+ "LinkedAttributeId": null,
+ "LogicalName": "sanic_nombre",
+ "IsValidForForm": true,
+ "IsRequiredForForm": true,
+ "IsValidForGrid": true,
+ "SchemaName": "sanic_nombre",
+ "ExternalName": null,
+ "IsLogical": false,
+ "IsDataSourceSecret": false,
+ "InheritsFrom": null,
+ "CreatedOn": "2026-09-21T01:18:16Z",
+ "ModifiedOn": "2026-09-21T01:18:16Z",
+ "SourceType": 0,
+ "AutoNumberFormat": "ZZ-{SEQNUM:8}",
+ "Format": "Text",
+ "ImeMode": "Auto",
+ "MaxLength": 100,
+ "YomiOf": null,
+ "IsLocalizable": false,
+ "DatabaseLength": 200,
+ "FormulaDefinition": "",
+ "SourceTypeMask": 0,
+ "AttributeTypeName": {
+  "Value": "StringType"
+ },
+ "Description": {
+  "LocalizedLabels": [
+   {
+    "Label": "Primaria autonumérica de ensayo.",
+    "LanguageCode": 1033,
+    "IsManaged": false,
+    "MetadataId": "a4359083-8058-4987-8996-310b2c1434e8",
+    "HasChanged": null
+   }
+  ],
+  "UserLocalizedLabel": {
+   "Label": "Primaria autonumérica de ensayo.",
+   "LanguageCode": 1033,
+   "IsManaged": false,
+   "MetadataId": "a4359083-8058-4987-8996-310b2c1434e8",
+   "HasChanged": null
+  }
+ },
+ "DisplayName": {
+  "LocalizedLabels": [
+   {
+    "Label": "Número",
+    "LanguageCode": 1033,
+    "IsManaged": false,
+    "MetadataId": "d064222d-5daa-46fc-8d11-01a02f8ff33a",
+    "HasChanged": null
+   }
+  ],
+  "UserLocalizedLabel": {
+   "Label": "Número",
+   "LanguageCode": 1033,
+   "IsManaged": false,
+   "MetadataId": "d064222d-5daa-46fc-8d11-01a02f8ff33a",
+   "HasChanged": null
+  }
+ },
+ "IsAuditEnabled": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyauditsettings"
+ },
+ "IsGlobalFilterEnabled": {
+  "Value": false,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyglobalfiltersettings"
+ },
+ "IsSortableEnabled": {
+  "Value": false,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyissortablesettings"
+ },
+ "IsCustomizable": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "iscustomizable"
+ },
+ "IsRenameable": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "isrenameable"
+ },
+ "IsValidForAdvancedFind": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifysearchsettings"
+ },
+ "RequiredLevel": {
+  "Value": "ApplicationRequired",
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyrequirementlevelsettings"
+ },
+ "CanModifyAdditionalSettings": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyadditionalsettings"
+ },
+ "Settings": [],
+ "FormatName": {
+  "Value": "Text"
+ }
+}

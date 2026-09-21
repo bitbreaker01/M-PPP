@@ -1,0 +1,132 @@
+{
+ "@odata.context": "https://org36e60d9d.crm.dynamics.com/api/data/v9.2/$metadata#EntityDefinitions('sanic_mppp_tbl_zzensayo')/Attributes/Microsoft.Dynamics.CRM.StringAttributeMetadata/$entity",
+ "@odata.type": "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+ "MetadataId": "f09b8c55-5ab5-f111-aaad-000d3a350099",
+ "HasChanged": null,
+ "AttributeOf": null,
+ "AttributeType": "String",
+ "ColumnNumber": 47,
+ "DeprecatedVersion": null,
+ "IntroducedVersion": "0.0.0.1",
+ "EntityLogicalName": "sanic_mppp_tbl_zzensayo",
+ "IsCustomAttribute": true,
+ "IsPrimaryId": false,
+ "IsValidODataAttribute": true,
+ "IsPrimaryName": false,
+ "IsValidForCreate": true,
+ "IsValidForRead": true,
+ "IsValidForUpdate": true,
+ "CanBeSecuredForRead": true,
+ "CanBeSecuredForCreate": true,
+ "CanBeSecuredForUpdate": true,
+ "IsSecured": true,
+ "IsRetrievable": false,
+ "IsFilterable": false,
+ "IsSearchable": false,
+ "IsManaged": false,
+ "LinkedAttributeId": null,
+ "LogicalName": "sanic_cuenta",
+ "IsValidForForm": true,
+ "IsRequiredForForm": false,
+ "IsValidForGrid": true,
+ "SchemaName": "sanic_cuenta",
+ "ExternalName": null,
+ "IsLogical": false,
+ "IsDataSourceSecret": false,
+ "InheritsFrom": null,
+ "CreatedOn": "2026-09-21T01:18:30Z",
+ "ModifiedOn": "2026-09-21T01:18:30Z",
+ "SourceType": 0,
+ "AutoNumberFormat": null,
+ "Format": "Text",
+ "ImeMode": "Auto",
+ "MaxLength": 20,
+ "YomiOf": null,
+ "IsLocalizable": false,
+ "DatabaseLength": 40,
+ "FormulaDefinition": "",
+ "SourceTypeMask": 0,
+ "AttributeTypeName": {
+  "Value": "StringType"
+ },
+ "Description": {
+  "LocalizedLabels": [
+   {
+    "Label": "Columna de ensayo: Cuenta.",
+    "LanguageCode": 1033,
+    "IsManaged": false,
+    "MetadataId": "78400f31-d18a-4883-9f6e-f7907bcdaa27",
+    "HasChanged": null
+   }
+  ],
+  "UserLocalizedLabel": {
+   "Label": "Columna de ensayo: Cuenta.",
+   "LanguageCode": 1033,
+   "IsManaged": false,
+   "MetadataId": "78400f31-d18a-4883-9f6e-f7907bcdaa27",
+   "HasChanged": null
+  }
+ },
+ "DisplayName": {
+  "LocalizedLabels": [
+   {
+    "Label": "Cuenta",
+    "LanguageCode": 1033,
+    "IsManaged": false,
+    "MetadataId": "f1c1b94b-aea9-462a-8280-ca9205a205a6",
+    "HasChanged": null
+   }
+  ],
+  "UserLocalizedLabel": {
+   "Label": "Cuenta",
+   "LanguageCode": 1033,
+   "IsManaged": false,
+   "MetadataId": "f1c1b94b-aea9-462a-8280-ca9205a205a6",
+   "HasChanged": null
+  }
+ },
+ "IsAuditEnabled": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyauditsettings"
+ },
+ "IsGlobalFilterEnabled": {
+  "Value": false,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyglobalfiltersettings"
+ },
+ "IsSortableEnabled": {
+  "Value": false,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyissortablesettings"
+ },
+ "IsCustomizable": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "iscustomizable"
+ },
+ "IsRenameable": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "isrenameable"
+ },
+ "IsValidForAdvancedFind": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifysearchsettings"
+ },
+ "RequiredLevel": {
+  "Value": "None",
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyrequirementlevelsettings"
+ },
+ "CanModifyAdditionalSettings": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyadditionalsettings"
+ },
+ "Settings": [],
+ "FormatName": {
+  "Value": "Text"
+ }
+}

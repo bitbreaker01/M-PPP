@@ -1,0 +1,122 @@
+{
+ "@odata.context": "https://org36e60d9d.crm.dynamics.com/api/data/v9.2/$metadata#EntityDefinitions('sanic_mppp_tbl_zzensayo')/Attributes/Microsoft.Dynamics.CRM.FileAttributeMetadata/$entity",
+ "@odata.type": "#Microsoft.Dynamics.CRM.FileAttributeMetadata",
+ "MetadataId": "c97c9246-620a-43ae-a74c-0a7f59fca551",
+ "HasChanged": null,
+ "AttributeOf": null,
+ "AttributeType": "Virtual",
+ "ColumnNumber": 44,
+ "DeprecatedVersion": null,
+ "IntroducedVersion": "0.0.0.1",
+ "EntityLogicalName": "sanic_mppp_tbl_zzensayo",
+ "IsCustomAttribute": true,
+ "IsPrimaryId": false,
+ "IsValidODataAttribute": true,
+ "IsPrimaryName": false,
+ "IsValidForCreate": false,
+ "IsValidForRead": true,
+ "IsValidForUpdate": false,
+ "CanBeSecuredForRead": true,
+ "CanBeSecuredForCreate": true,
+ "CanBeSecuredForUpdate": true,
+ "IsSecured": false,
+ "IsRetrievable": false,
+ "IsFilterable": false,
+ "IsSearchable": false,
+ "IsManaged": false,
+ "LinkedAttributeId": null,
+ "LogicalName": "sanic_documento",
+ "IsValidForForm": true,
+ "IsRequiredForForm": false,
+ "IsValidForGrid": true,
+ "SchemaName": "sanic_documento",
+ "ExternalName": null,
+ "IsLogical": false,
+ "IsDataSourceSecret": false,
+ "InheritsFrom": null,
+ "CreatedOn": "2026-09-21T01:18:16Z",
+ "ModifiedOn": "2026-09-21T01:18:16Z",
+ "SourceType": null,
+ "AutoNumberFormat": null,
+ "MaxSizeInKB": 10240,
+ "AttributeTypeName": {
+  "Value": "FileType"
+ },
+ "Description": {
+  "LocalizedLabels": [
+   {
+    "Label": "Columna de ensayo: Documento.",
+    "LanguageCode": 1033,
+    "IsManaged": false,
+    "MetadataId": "d89ff8fd-1325-4ce9-91fb-6a94b8028a2c",
+    "HasChanged": null
+   }
+  ],
+  "UserLocalizedLabel": {
+   "Label": "Columna de ensayo: Documento.",
+   "LanguageCode": 1033,
+   "IsManaged": false,
+   "MetadataId": "d89ff8fd-1325-4ce9-91fb-6a94b8028a2c",
+   "HasChanged": null
+  }
+ },
+ "DisplayName": {
+  "LocalizedLabels": [
+   {
+    "Label": "Documento",
+    "LanguageCode": 1033,
+    "IsManaged": false,
+    "MetadataId": "166d7617-d1f7-48c1-a704-3c097e5c0249",
+    "HasChanged": null
+   }
+  ],
+  "UserLocalizedLabel": {
+   "Label": "Documento",
+   "LanguageCode": 1033,
+   "IsManaged": false,
+   "MetadataId": "166d7617-d1f7-48c1-a704-3c097e5c0249",
+   "HasChanged": null
+  }
+ },
+ "IsAuditEnabled": {
+  "Value": false,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyauditsettings"
+ },
+ "IsGlobalFilterEnabled": {
+  "Value": false,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyglobalfiltersettings"
+ },
+ "IsSortableEnabled": {
+  "Value": false,
+  "CanBeChanged": false,
+  "ManagedPropertyLogicalName": "canmodifyissortablesettings"
+ },
+ "IsCustomizable": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "iscustomizable"
+ },
+ "IsRenameable": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "isrenameable"
+ },
+ "IsValidForAdvancedFind": {
+  "Value": false,
+  "CanBeChanged": false,
+  "ManagedPropertyLogicalName": "canmodifysearchsettings"
+ },
+ "RequiredLevel": {
+  "Value": "None",
+  "CanBeChanged": false,
+  "ManagedPropertyLogicalName": "canmodifyrequirementlevelsettings"
+ },
+ "CanModifyAdditionalSettings": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyadditionalsettings"
+ },
+ "Settings": []
+}

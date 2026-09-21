@@ -1,0 +1,135 @@
+{
+ "@odata.context": "https://org36e60d9d.crm.dynamics.com/api/data/v9.2/$metadata#EntityDefinitions('sanic_mppp_tbl_zzensayo')/Attributes/Microsoft.Dynamics.CRM.DateTimeAttributeMetadata/$entity",
+ "@odata.type": "#Microsoft.Dynamics.CRM.DateTimeAttributeMetadata",
+ "MetadataId": "181ac238-8dfc-4d8d-bcab-8ccc1a014206",
+ "HasChanged": null,
+ "AttributeOf": null,
+ "AttributeType": "DateTime",
+ "ColumnNumber": 42,
+ "DeprecatedVersion": null,
+ "IntroducedVersion": "0.0.0.1",
+ "EntityLogicalName": "sanic_mppp_tbl_zzensayo",
+ "IsCustomAttribute": true,
+ "IsPrimaryId": false,
+ "IsValidODataAttribute": true,
+ "IsPrimaryName": false,
+ "IsValidForCreate": true,
+ "IsValidForRead": true,
+ "IsValidForUpdate": true,
+ "CanBeSecuredForRead": true,
+ "CanBeSecuredForCreate": true,
+ "CanBeSecuredForUpdate": true,
+ "IsSecured": false,
+ "IsRetrievable": false,
+ "IsFilterable": false,
+ "IsSearchable": false,
+ "IsManaged": false,
+ "LinkedAttributeId": null,
+ "LogicalName": "sanic_fechadocumento",
+ "IsValidForForm": true,
+ "IsRequiredForForm": false,
+ "IsValidForGrid": true,
+ "SchemaName": "sanic_fechadocumento",
+ "ExternalName": null,
+ "IsLogical": false,
+ "IsDataSourceSecret": false,
+ "InheritsFrom": null,
+ "CreatedOn": "2026-09-21T01:18:16Z",
+ "ModifiedOn": "2026-09-21T01:18:16Z",
+ "SourceType": 0,
+ "AutoNumberFormat": null,
+ "MinSupportedValue": "1753-01-01T00:00:00Z",
+ "MaxSupportedValue": "9999-12-30T23:59:59Z",
+ "Format": "DateOnly",
+ "ImeMode": "Inactive",
+ "SourceTypeMask": 0,
+ "FormulaDefinition": "",
+ "AttributeTypeName": {
+  "Value": "DateTimeType"
+ },
+ "Description": {
+  "LocalizedLabels": [
+   {
+    "Label": "Columna de ensayo: Fecha del documento.",
+    "LanguageCode": 1033,
+    "IsManaged": false,
+    "MetadataId": "754f3d28-92ad-46c4-8a8a-7abbcc7e8904",
+    "HasChanged": null
+   }
+  ],
+  "UserLocalizedLabel": {
+   "Label": "Columna de ensayo: Fecha del documento.",
+   "LanguageCode": 1033,
+   "IsManaged": false,
+   "MetadataId": "754f3d28-92ad-46c4-8a8a-7abbcc7e8904",
+   "HasChanged": null
+  }
+ },
+ "DisplayName": {
+  "LocalizedLabels": [
+   {
+    "Label": "Fecha del documento",
+    "LanguageCode": 1033,
+    "IsManaged": false,
+    "MetadataId": "777358a6-4074-4aaf-b1e0-ff5b46201c3b",
+    "HasChanged": null
+   }
+  ],
+  "UserLocalizedLabel": {
+   "Label": "Fecha del documento",
+   "LanguageCode": 1033,
+   "IsManaged": false,
+   "MetadataId": "777358a6-4074-4aaf-b1e0-ff5b46201c3b",
+   "HasChanged": null
+  }
+ },
+ "IsAuditEnabled": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyauditsettings"
+ },
+ "IsGlobalFilterEnabled": {
+  "Value": false,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyglobalfiltersettings"
+ },
+ "IsSortableEnabled": {
+  "Value": false,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyissortablesettings"
+ },
+ "IsCustomizable": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "iscustomizable"
+ },
+ "IsRenameable": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "isrenameable"
+ },
+ "IsValidForAdvancedFind": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifysearchsettings"
+ },
+ "RequiredLevel": {
+  "Value": "None",
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyrequirementlevelsettings"
+ },
+ "CanModifyAdditionalSettings": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifyadditionalsettings"
+ },
+ "Settings": [],
+ "DateTimeBehavior": {
+  "Value": "DateOnly"
+ },
+ "CanChangeDateTimeBehavior": {
+  "Value": true,
+  "CanBeChanged": true,
+  "ManagedPropertyLogicalName": "canmodifybehavior"
+ }
+}
