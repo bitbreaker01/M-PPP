@@ -194,6 +194,41 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         }
 
         [Fact]
+        public void Si_el_codigo_de_servidor_ya_trae_el_nombre_de_la_fila_no_se_vuelve_a_leer_la_solicitud()
+        {
+            // Revisión de código, 2026-09-21: este step corre en el Create de CADA fila; leer la Solicitud por fila es el N+1
+            // que el diseño prohíbe (03 §1 paso 6).
+            var svc = new OrganizationServiceEnMemoria();
+            var solicitudId = svc.Sembrar(new Entity(TablasHistorico.Solicitud) { ["sanic_nombre"] = "MPPP-00000123" });
+            var fila = new Entity(TablasHistorico.Fila, Guid.NewGuid())
+            {
+                ["sanic_nombre"] = "MPPP-00000123-F07", ["sanic_numerofila"] = 7,
+                ["sanic_solicitudid"] = new EntityReference(TablasHistorico.Solicitud, solicitudId),
+            };
+            var ctx = new ContextoDePluginSimulado(svc, Ahora);
+            ctx.Contexto.MessageName = "Create";
+            ctx.Contexto.Depth = 2; // código de servidor
+            ctx.Contexto.InputParameters["Target"] = fila;
+            var llamadasAntes = svc.Llamadas.Count;
+
+            new NombreCalculadoStep().Execute(ctx);
+
+            Assert.Equal("MPPP-00000123-F07", fila["sanic_nombre"]);
+            Assert.Equal(llamadasAntes, svc.Llamadas.Count);
+
+            // A una persona se le pisa igual, y ahí sí se lee la Solicitud.
+            var dePersona = new Entity(TablasHistorico.Fila, Guid.NewGuid())
+            {
+                ["sanic_nombre"] = "LO QUE YO QUIERA", ["sanic_numerofila"] = 7,
+                ["sanic_solicitudid"] = new EntityReference(TablasHistorico.Solicitud, solicitudId),
+            };
+            var (ctxPersona, svcPersona) = Armar("Create", dePersona);
+            svcPersona.Sembrar(new Entity(TablasHistorico.Solicitud, solicitudId) { ["sanic_nombre"] = "MPPP-00000123" });
+            new NombreCalculadoStep().Execute(ctxPersona);
+            Assert.Equal("MPPP-00000123-F07", dePersona["sanic_nombre"]);
+        }
+
+        [Fact]
         public void Sin_el_lookup_que_hace_falta_no_se_inventa_un_nombre()
         {
             var (ctx, _) = Armar("Create", new Entity(Tablas.Plan, Guid.NewGuid()) { ["sanic_codigo"] = "0042" });

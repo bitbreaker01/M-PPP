@@ -104,7 +104,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             {
                 NumeroFila = n, Gestion = Gestion.Inclusion, Clasificacion = Clasificacion.ACH, Moneda = Moneda.USD, TipoIdentificacion = TipoDeIdentificacion.CNA, Banco = Banco.BAC,
                 NumeroPlan = "0042", PlanId = plan, NombreBeneficiario = "Juan Perez", NumeroIdentificacion = "001", NumeroCuenta = "123", Referencia = "10200000000000000123",
-                ReferenciaRecibida = "  x ", Estado = estado, Mensaje = null, FechaValidada = Fecha,
+                ReferenciaRecibida = "  x ", Estado = estado, Mensaje = null, FechaValidada = Fecha, Nombre = null,
             };
         }
 
@@ -140,7 +140,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Equal((int)EstadoDeLaFila.Validada, f1.GetAttributeValue<OptionSetValue>("sanic_estado").Value);
             Assert.Equal(Fecha, f1["sanic_fechavalidada"]);
             Assert.False(f1.Contains("sanic_mensaje"));
-            Assert.False(f1.Contains("sanic_nombre")); // calculado por la plataforma
+            Assert.False(f1.Contains("sanic_nombre")); // sin Nombre no se manda: lo calcula el step
 
             var f2 = filas[1];
             Assert.False(f2.Contains("sanic_moneda"));

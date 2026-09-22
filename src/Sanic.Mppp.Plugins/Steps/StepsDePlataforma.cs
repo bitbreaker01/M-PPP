@@ -164,7 +164,10 @@ namespace Sanic.Mppp.Plugins.Steps
     /// que venga. Lo que necesita y no está en el `Target` lo lee del registro relacionado, con una consulta por lookup y solo
     /// si hace falta: el nombre del Cliente para el Plan; el correo del Autorizado y el código del Plan para la AutorizacionPlan;
     /// el `sanic_nombre` de la Solicitud para la Fila. Si falta el dato imprescindible (el lookup no viene), no se inventa un
-    /// nombre: se rechaza el guardado con el motivo.
+    /// nombre: se rechaza el guardado con el motivo. EXCEPCIÓN (revisión de código, 2026-09-21): si el `Target` de una Fila ya
+    /// trae `sanic_nombre` y quien escribe es código de servidor, se respeta y NO se lee la Solicitud; así la Custom API de
+    /// validación, que ya tiene el número en memoria, no provoca una lectura por fila (03 §1 paso 6). A una persona se le pisa
+    /// siempre, en las tres tablas.
     /// </summary>
     public sealed class NombreCalculadoStep : IPlugin
     {

@@ -88,6 +88,13 @@ namespace Sanic.Mppp.Plugins.Datos
     {
         public int NumeroFila { get; set; }
 
+        /// <summary>
+        /// `sanic_nombre` ya calculado por quien crea las filas (revisión de código, 2026-09-21). Si viene, se manda en el alta y
+        /// el step de nombre calculado no vuelve a leer la Solicitud: son 100 lecturas menos dentro de la transacción (03 §1
+        /// paso 6, "nunca una consulta por fila"). Nulo: lo calcula el step.
+        /// </summary>
+        public string Nombre { get; set; }
+
         public Gestion? Gestion { get; set; }
 
         public Clasificacion? Clasificacion { get; set; }
@@ -213,7 +220,7 @@ namespace Sanic.Mppp.Plugins.Datos
         }
 
         /// <summary>
-        /// Alta de las filas, un `Create` por fila. `sanic_nombre` NO se manda (es calculado). Los choices van como `OptionSetValue`; un
+        /// Alta de las filas, un `Create` por fila. `sanic_nombre` se manda solo si <see cref="FilaParaGuardar.Nombre"/> viene. Los choices van como `OptionSetValue`; un
         /// valor nulo del dominio NO se manda (la columna queda vacía, DD-01). `sanic_planid` como `EntityReference` a Plan.
         /// Vacío → sin llamadas.
         /// </summary>

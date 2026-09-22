@@ -238,6 +238,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Equal((int)EstadoDeLaFila.Validada, filas[0].GetAttributeValue<OptionSetValue>("sanic_estado").Value);
             Assert.Equal(m.PlanId, filas[0].GetAttributeValue<EntityReference>("sanic_planid").Id);
             Assert.Equal("10200000000123456789", filas[0]["sanic_referencia"]); // D-17: la construida
+            Assert.Equal("MPPP-00000123-F01", filas[0]["sanic_nombre"]); // ya calculado: el step no vuelve a leer la Solicitud
             Assert.All(filas.Skip(1), f => Assert.Equal((int)EstadoDeLaFila.RechazadaEnValidacion, f.GetAttributeValue<OptionSetValue>("sanic_estado").Value));
             Assert.All(filas.Skip(1), f => Assert.False(string.IsNullOrWhiteSpace((string)f["sanic_mensaje"])));
             Assert.False(filas[0].Contains("sanic_mensaje"));
@@ -262,6 +263,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             var consultas = m.Svc.Llamadas.Count(l => l.Operacion == "RetrieveMultiple");
             Assert.InRange(consultas, 1, 12); // 4 parámetros + 2 niveles de reglas + planes + autorizaciones (hasta 4)
             Assert.Equal(30, m.Svc.Llamadas.Count(l => l.Operacion == "Create" && l.Entidad == TablasHistorico.Fila));
+            Assert.All(m.Filas(), f => Assert.StartsWith("MPPP-00000123-F", (string)f["sanic_nombre"]));
         }
 
         // ------------------------------------------------------------------ el sobre corta antes de leer filas
