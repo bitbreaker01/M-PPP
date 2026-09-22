@@ -179,7 +179,7 @@ namespace Sanic.Mppp.Plugins.Datos
             entidad["sanic_filasvalidas"] = cierre.FilasValidas;
             entidad["sanic_filasrechazadas"] = cierre.FilasRechazadas;
             entidad["sanic_acusecontenido"] = cierre.AcuseContenido;
-            AgregarSiNoEsNulo(entidad, "sanic_versionparametros", cierre.VersionParametros);
+            AgregarSiNoEsNulo(entidad, "sanic_versionparametros", Recortar(cierre.VersionParametros, TablasHistorico.LargoVersionParametros));
 
             _servicio.Update(entidad);
         }
@@ -304,7 +304,7 @@ namespace Sanic.Mppp.Plugins.Datos
         {
             var entidad = new Entity(TablasHistorico.ResultadoRegla);
             entidad["sanic_solicitudid"] = new EntityReference(TablasHistorico.Solicitud, solicitudId);
-            entidad["sanic_reglacodigo"] = resultado.Codigo;
+            entidad["sanic_reglacodigo"] = Recortar(resultado.Codigo, TablasHistorico.LargoReglaCodigo);
             if (idsDeReglaPorCodigo.TryGetValue(resultado.Codigo, out var reglaId))
             {
                 entidad["sanic_reglaid"] = new EntityReference(Tablas.Regla, reglaId);
