@@ -97,10 +97,15 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         {
             var m = new Mundo();
             m.Usuario("Ana");
-            m.Avisar(new string('t', 500), new string('c', 5000));
+            m.Avisar(new string('t', 1000), new string('c', 5000));
             var aviso = m.Svc.Registros(TablasNativas.Notificacion).Single();
-            Assert.Equal(TablasNativas.LargoTitulo, ((string)aviso["title"]).Length);
-            Assert.Equal(TablasNativas.LargoCuerpo, ((string)aviso["body"]).Length);
+
+            // Los largos REALES de `appnotification` (Microsoft Learn), escritos acá como literales a propósito: comparar el
+            // recorte contra la misma constante que se está probando no puede detectar que la constante esté mal (lo estuvo:
+            // `body` decía 2000 y son 500; revisión de código, 2026-09-21).
+            Assert.Equal(256, ((string)aviso["title"]).Length);
+            Assert.Equal(500, ((string)aviso["body"]).Length);
+            Assert.Equal((256, 500), (TablasNativas.LargoTitulo, TablasNativas.LargoCuerpo));
         }
 
         [Fact]

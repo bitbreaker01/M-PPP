@@ -18,11 +18,14 @@ namespace Sanic.Mppp.Plugins.Datos
         /// <summary>El rol de Ejecutivo (playbooks/rol/sr_mppp_ejecutivo.md; diseno/04 §2).</summary>
         public const string RolEjecutivo = "sr_mppp_ejecutivo";
 
-        /// <summary>`title` de `appnotification`: 200 caracteres.</summary>
-        public const int LargoTitulo = 200;
+        /// <summary>`title` de `appnotification`: 256 caracteres (Microsoft Learn, tabla `appnotification`).</summary>
+        public const int LargoTitulo = 256;
 
-        /// <summary>`body` de `appnotification`: 2000 caracteres.</summary>
-        public const int LargoCuerpo = 2000;
+        /// <summary>
+        /// `body` de `appnotification`: 500 caracteres (Microsoft Learn, tabla `appnotification`). Revisión de código,
+        /// 2026-09-21: acá decía 2000, así que un cuerpo largo no se recortaba y el `Create` habría fallado en Dataverse.
+        /// </summary>
+        public const int LargoCuerpo = 500;
     }
 
     /// <summary>
