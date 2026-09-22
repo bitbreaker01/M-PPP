@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.ServiceModel;
 using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Messages;
+using Microsoft.Xrm.Sdk.Query;
 using Sanic.Mppp.Plugins.Dominio;
 using Sanic.Mppp.Plugins.Validacion;
 
@@ -122,27 +126,69 @@ namespace Sanic.Mppp.Plugins.Datos
     /// </summary>
     public sealed class SolicitudesDataverse
     {
+        private readonly IOrganizationService _servicio;
+
         public SolicitudesDataverse(IOrganizationService servicio)
         {
-            throw new NotImplementedException();
+            _servicio = servicio ?? throw new ArgumentNullException(nameof(servicio));
         }
 
         /// <summary>Una lectura. Inexistente: se propaga la falla del servicio. Estado fuera del enum o `sanic_nombre`/`sanic_remitente`/`sanic_fecharecibido` nulos: <see cref="InvalidOperationException"/>.</summary>
         public SolicitudLeida Leer(Guid solicitudId)
         {
-            throw new NotImplementedException();
+            var columnas = new ColumnSet(
+                "sanic_nombre", "sanic_estadoprocesamiento", "sanic_remitente", "sanic_asunto",
+                "sanic_fecharecibido", "sanic_cantidadadjuntos", "sanic_cantidadexcel", "sanic_versionparametros");
+
+            var registro = _servicio.Retrieve(TablasHistorico.Solicitud, solicitudId, columnas);
+
+            return new SolicitudLeida
+            {
+                Id = registro.Id,
+                Numero = RequeridoTexto(registro, "sanic_nombre"),
+                Estado = RequeridoChoice<EstadoDeLaSolicitud>(registro, "sanic_estadoprocesamiento"),
+                Remitente = RequeridoTexto(registro, "sanic_remitente"),
+                Asunto = TextoOpcional(registro, "sanic_asunto"),
+                FechaRecibido = RequeridaFecha(registro, "sanic_fecharecibido"),
+                CantidadAdjuntos = EnteroOCero(registro, "sanic_cantidadadjuntos"),
+                CantidadExcel = EnteroOCero(registro, "sanic_cantidadexcel"),
+                VersionParametros = TextoOpcional(registro, "sanic_versionparametros"),
+            };
         }
 
         /// <summary>UN `Update` con exactamente estas columnas: estado, `sanic_fechavalidada`, los tres contadores, `sanic_acusecontenido` y `sanic_versionparametros` (esta última solo si no es nula).</summary>
         public void CerrarValidacion(Guid solicitudId, CierreDeValidacion cierre)
         {
-            throw new NotImplementedException();
+            if (cierre == null)
+            {
+                throw new ArgumentNullException(nameof(cierre));
+            }
+
+            var entidad = new Entity(TablasHistorico.Solicitud, solicitudId);
+            entidad["sanic_estadoprocesamiento"] = new OptionSetValue((int)cierre.Estado);
+            entidad["sanic_fechavalidada"] = cierre.FechaValidada;
+            entidad["sanic_filastotales"] = cierre.FilasTotales;
+            entidad["sanic_filasvalidas"] = cierre.FilasValidas;
+            entidad["sanic_filasrechazadas"] = cierre.FilasRechazadas;
+            entidad["sanic_acusecontenido"] = cierre.AcuseContenido;
+            AgregarSiNoEsNulo(entidad, "sanic_versionparametros", cierre.VersionParametros);
+
+            _servicio.Update(entidad);
         }
 
         /// <summary>UN `Update` con estado y `sanic_motivoclasificacion` (recortado a 300).</summary>
         public void Clasificar(Guid solicitudId, ClasificacionDelCorreo clasificacion)
         {
-            throw new NotImplementedException();
+            if (clasificacion == null)
+            {
+                throw new ArgumentNullException(nameof(clasificacion));
+            }
+
+            var entidad = new Entity(TablasHistorico.Solicitud, solicitudId);
+            entidad["sanic_estadoprocesamiento"] = new OptionSetValue((int)clasificacion.Estado);
+            entidad["sanic_motivoclasificacion"] = Recortar(clasificacion.Motivo, 300);
+
+            _servicio.Update(entidad);
         }
 
         /// <summary>
@@ -152,7 +198,17 @@ namespace Sanic.Mppp.Plugins.Datos
         /// </summary>
         public void GuardarFilas(Guid solicitudId, IEnumerable<FilaParaGuardar> filas)
         {
-            throw new NotImplementedException();
+            if (filas == null)
+            {
+                throw new ArgumentNullException(nameof(filas));
+            }
+
+            if (solicitudId == Guid.Empty)
+            {
+                throw new ArgumentException("El id de la solicitud no puede estar vacío.", nameof(solicitudId));
+            }
+
+            EjecutarEnLotes(filas.Select(fila => ArmarEntidadFila(solicitudId, fila)));
         }
 
         /// <summary>
@@ -162,13 +218,196 @@ namespace Sanic.Mppp.Plugins.Datos
         /// </summary>
         public void GuardarResultados(Guid solicitudId, IEnumerable<ResultadoDeRegla> resultados, IDictionary<string, Guid> idsDeReglaPorCodigo, DateTime fechaEvaluacion)
         {
-            throw new NotImplementedException();
+            if (resultados == null)
+            {
+                throw new ArgumentNullException(nameof(resultados));
+            }
+
+            if (idsDeReglaPorCodigo == null)
+            {
+                throw new ArgumentNullException(nameof(idsDeReglaPorCodigo));
+            }
+
+            EjecutarEnLotes(resultados.Select(resultado => ArmarEntidadResultado(solicitudId, resultado, idsDeReglaPorCodigo, fechaEvaluacion)));
         }
 
         /// <summary>UN `Create` en Bitácora: fecha, evento, origen, `sanic_numerofila` (0 = de la solicitud), `sanic_actortexto` (recortado a 200, puede ser nulo), `sanic_detalle` (recortado a 10000).</summary>
         public Guid RegistrarEvento(Guid solicitudId, DateTime fecha, EventoDeBitacora evento, OrigenDelEvento origen, int numeroFila, string actor, string detalle)
         {
-            throw new NotImplementedException();
+            var entidad = new Entity(TablasHistorico.Bitacora);
+            entidad["sanic_solicitudid"] = new EntityReference(TablasHistorico.Solicitud, solicitudId);
+            entidad["sanic_fechaevento"] = fecha;
+            entidad["sanic_evento"] = new OptionSetValue((int)evento);
+            entidad["sanic_origen"] = new OptionSetValue((int)origen);
+            entidad["sanic_numerofila"] = numeroFila;
+            AgregarSiNoEsNulo(entidad, "sanic_actortexto", Recortar(actor, 200));
+            AgregarSiNoEsNulo(entidad, "sanic_detalle", Recortar(detalle, 10000));
+
+            return _servicio.Create(entidad);
+        }
+
+        // ------------------------------------------------------------------ armado de entidades
+
+        private static Entity ArmarEntidadFila(Guid solicitudId, FilaParaGuardar fila)
+        {
+            var entidad = new Entity(TablasHistorico.Fila);
+            entidad["sanic_solicitudid"] = new EntityReference(TablasHistorico.Solicitud, solicitudId);
+            entidad["sanic_numerofila"] = fila.NumeroFila;
+            AgregarChoiceSiNoEsNulo(entidad, "sanic_gestion", fila.Gestion);
+            AgregarChoiceSiNoEsNulo(entidad, "sanic_clasificacion", fila.Clasificacion);
+            AgregarChoiceSiNoEsNulo(entidad, "sanic_moneda", fila.Moneda);
+            AgregarChoiceSiNoEsNulo(entidad, "sanic_tipoidentificacion", fila.TipoIdentificacion);
+            AgregarChoiceSiNoEsNulo(entidad, "sanic_banco", fila.Banco);
+            AgregarSiNoEsNulo(entidad, "sanic_numeroplan", fila.NumeroPlan);
+            if (fila.PlanId.HasValue)
+            {
+                entidad["sanic_planid"] = new EntityReference(Tablas.Plan, fila.PlanId.Value);
+            }
+
+            AgregarSiNoEsNulo(entidad, "sanic_nombrebeneficiario", fila.NombreBeneficiario);
+            AgregarSiNoEsNulo(entidad, "sanic_numeroidentificacion", fila.NumeroIdentificacion);
+            AgregarSiNoEsNulo(entidad, "sanic_numerocuenta", fila.NumeroCuenta);
+            AgregarSiNoEsNulo(entidad, "sanic_referencia", fila.Referencia);
+            AgregarSiNoEsNulo(entidad, "sanic_referenciarecibida", fila.ReferenciaRecibida);
+            entidad["sanic_estado"] = new OptionSetValue((int)fila.Estado);
+            AgregarSiNoEsNulo(entidad, "sanic_mensaje", Recortar(fila.Mensaje, 4000));
+            entidad["sanic_fechavalidada"] = fila.FechaValidada;
+            return entidad;
+        }
+
+        private static Entity ArmarEntidadResultado(Guid solicitudId, ResultadoDeRegla resultado, IDictionary<string, Guid> idsDeReglaPorCodigo, DateTime fechaEvaluacion)
+        {
+            var entidad = new Entity(TablasHistorico.ResultadoRegla);
+            entidad["sanic_solicitudid"] = new EntityReference(TablasHistorico.Solicitud, solicitudId);
+            entidad["sanic_reglacodigo"] = resultado.Codigo;
+            if (idsDeReglaPorCodigo.TryGetValue(resultado.Codigo, out var reglaId))
+            {
+                entidad["sanic_reglaid"] = new EntityReference(Tablas.Regla, reglaId);
+            }
+
+            entidad["sanic_resultado"] = new OptionSetValue((int)resultado.Resultado);
+            AgregarSiNoEsNulo(entidad, "sanic_razon", Recortar(resultado.Razon, 2000));
+            entidad["sanic_efectoaplicado"] = new OptionSetValue((int)resultado.EfectoAplicado);
+            entidad["sanic_orden"] = resultado.Orden;
+            entidad["sanic_fechaevaluacion"] = fechaEvaluacion;
+            return entidad;
+        }
+
+        // ------------------------------------------------------------------ lotes (`ExecuteMultiple`)
+
+        /// <summary>Altas en lotes de <see cref="TablasHistorico.TamanoDeLote"/>. Un ítem que falla propaga la falla del servicio (diseno/03 §1 paso 6).</summary>
+        private void EjecutarEnLotes(IEnumerable<Entity> entidades)
+        {
+            var lista = entidades.ToList();
+            for (var inicio = 0; inicio < lista.Count; inicio += TablasHistorico.TamanoDeLote)
+            {
+                var trozo = lista.Skip(inicio).Take(TablasHistorico.TamanoDeLote);
+                EjecutarLote(trozo);
+            }
+        }
+
+        private void EjecutarLote(IEnumerable<Entity> entidades)
+        {
+            var lote = new ExecuteMultipleRequest
+            {
+                Settings = new ExecuteMultipleSettings { ContinueOnError = false, ReturnResponses = true },
+                Requests = new OrganizationRequestCollection(),
+            };
+
+            foreach (var entidad in entidades)
+            {
+                lote.Requests.Add(new CreateRequest { Target = entidad });
+            }
+
+            if (lote.Requests.Count == 0)
+            {
+                return;
+            }
+
+            var respuesta = (ExecuteMultipleResponse)_servicio.Execute(lote);
+            if (respuesta.IsFaulted)
+            {
+                var itemFallado = respuesta.Responses.First(item => item.Fault != null);
+                throw new FaultException<OrganizationServiceFault>(itemFallado.Fault, new FaultReason(itemFallado.Fault.Message));
+            }
+        }
+
+        // ------------------------------------------------------------------ traducción Entity -> tipos del dominio (mismo estilo que Catalogos.cs)
+
+        private static InvalidOperationException ErrorColumna(Entity registro, string columna)
+        {
+            return new InvalidOperationException(
+                $"La tabla '{registro.LogicalName}' tiene el registro {registro.Id} con la columna '{columna}' vacía o con un valor que no se puede traducir.");
+        }
+
+        private static string RequeridoTexto(Entity registro, string columna)
+        {
+            if (registro.Contains(columna) && registro[columna] is string valor && valor.Length > 0)
+            {
+                return valor;
+            }
+
+            throw ErrorColumna(registro, columna);
+        }
+
+        private static string TextoOpcional(Entity registro, string columna)
+        {
+            return registro.Contains(columna) ? registro[columna] as string : null;
+        }
+
+        private static DateTime RequeridaFecha(Entity registro, string columna)
+        {
+            if (registro.Contains(columna) && registro[columna] is DateTime valor)
+            {
+                return valor;
+            }
+
+            throw ErrorColumna(registro, columna);
+        }
+
+        private static int EnteroOCero(Entity registro, string columna)
+        {
+            return registro.Contains(columna) && registro[columna] is int valor ? valor : 0;
+        }
+
+        private static TEnum RequeridoChoice<TEnum>(Entity registro, string columna) where TEnum : struct, Enum
+        {
+            if (registro.Contains(columna) && registro[columna] is OptionSetValue opcion && Enum.IsDefined(typeof(TEnum), opcion.Value))
+            {
+                return (TEnum)(object)opcion.Value;
+            }
+
+            throw ErrorColumna(registro, columna);
+        }
+
+        // ------------------------------------------------------------------ recorte y omisión de nulos al escribir
+
+        /// <summary>Recorta al largo de la columna (diseno/02); un texto nulo sigue nulo.</summary>
+        private static string Recortar(string texto, int largoMaximo)
+        {
+            if (texto == null)
+            {
+                return null;
+            }
+
+            return texto.Length > largoMaximo ? texto.Substring(0, largoMaximo) : texto;
+        }
+
+        /// <summary>Un valor nulo del dominio NO se manda: la columna queda vacía (DD-01).</summary>
+        private static void AgregarSiNoEsNulo(Entity entidad, string columna, object valor)
+        {
+            if (valor != null)
+            {
+                entidad[columna] = valor;
+            }
+        }
+
+        private static void AgregarChoiceSiNoEsNulo<TEnum>(Entity entidad, string columna, TEnum? valor) where TEnum : struct, Enum
+        {
+            if (valor.HasValue)
+            {
+                entidad[columna] = new OptionSetValue((int)(object)valor.Value);
+            }
         }
     }
 }
