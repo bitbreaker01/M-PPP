@@ -467,7 +467,7 @@
    "grupo": "P-08",
    "nombre": "Steps/ transición de Fila (Pre) y post-transición (Post)",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "7.10",
@@ -488,7 +488,7 @@
    "grupo": "P-08",
    "nombre": "Steps/ atender no reconocida",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "8.0",
