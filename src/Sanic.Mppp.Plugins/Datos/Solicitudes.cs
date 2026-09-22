@@ -45,6 +45,13 @@ namespace Sanic.Mppp.Plugins.Datos
 
         /// <summary>`sanic_versionparametros`, puede ser nulo.</summary>
         public string VersionParametros { get; set; }
+
+        /// <summary>Los contadores ya guardados; 0 si la columna viene vacía. Los devuelve la Custom API cuando ya estaba procesada.</summary>
+        public int FilasTotales { get; set; }
+
+        public int FilasValidas { get; set; }
+
+        public int FilasRechazadas { get; set; }
     }
 
     /// <summary>Lo que el plugin de validación escribe en la Solicitud al terminar (diseno/03 §1 pasos 4 y 7). Solo se escribe lo que no es nulo.</summary>
@@ -142,7 +149,8 @@ namespace Sanic.Mppp.Plugins.Datos
 
             var columnas = new ColumnSet(
                 "sanic_nombre", "sanic_estadoprocesamiento", "sanic_remitente", "sanic_asunto",
-                "sanic_fecharecibido", "sanic_cantidadadjuntos", "sanic_cantidadexcel", "sanic_versionparametros");
+                "sanic_fecharecibido", "sanic_cantidadadjuntos", "sanic_cantidadexcel", "sanic_versionparametros",
+                "sanic_filastotales", "sanic_filasvalidas", "sanic_filasrechazadas");
 
             var registro = _servicio.Retrieve(TablasHistorico.Solicitud, solicitudId, columnas);
 
@@ -157,6 +165,9 @@ namespace Sanic.Mppp.Plugins.Datos
                 CantidadAdjuntos = EnteroOCero(registro, "sanic_cantidadadjuntos"),
                 CantidadExcel = EnteroOCero(registro, "sanic_cantidadexcel"),
                 VersionParametros = TextoOpcional(registro, "sanic_versionparametros"),
+                FilasTotales = EnteroOCero(registro, "sanic_filastotales"),
+                FilasValidas = EnteroOCero(registro, "sanic_filasvalidas"),
+                FilasRechazadas = EnteroOCero(registro, "sanic_filasrechazadas"),
             };
         }
 

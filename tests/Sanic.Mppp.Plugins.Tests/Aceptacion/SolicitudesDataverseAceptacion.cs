@@ -24,6 +24,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
                 ["sanic_nombre"] = "MPPP-00000123", ["sanic_estadoprocesamiento"] = new OptionSetValue((int)EstadoDeLaSolicitud.Ingresada),
                 ["sanic_remitente"] = "ana@acme.com", ["sanic_asunto"] = "Inclusiones", ["sanic_fecharecibido"] = Fecha,
                 ["sanic_cantidadadjuntos"] = 2, ["sanic_cantidadexcel"] = 1, ["sanic_messageid"] = "<x@y>",
+                ["sanic_filastotales"] = 7, ["sanic_filasvalidas"] = 5, ["sanic_filasrechazadas"] = 2,
             };
             cambio?.Invoke(s);
             return svc.Sembrar(s);
@@ -41,6 +42,8 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Single(svc.Llamadas);
             Assert.Equal((id, "MPPP-00000123", EstadoDeLaSolicitud.Ingresada, "ana@acme.com", "Inclusiones", Fecha, 2, 1), (s.Id, s.Numero, s.Estado, s.Remitente, s.Asunto, s.FechaRecibido, s.CantidadAdjuntos, s.CantidadExcel));
             Assert.Null(s.VersionParametros);
+            // Los contadores ya guardados: la Custom API los devuelve cuando la solicitud ya estaba procesada, en la misma lectura.
+            Assert.Equal((7, 5, 2), (s.FilasTotales, s.FilasValidas, s.FilasRechazadas));
         }
 
         [Fact]
