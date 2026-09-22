@@ -62,7 +62,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
 
         [Theory]
         [InlineData("abc123xy9012", "ABC123XY9012")]
-        [InlineData("  ABC12 XY9 012  ", "ABC12 XY9 012")] // 9 con espacio + 3 dígitos
+        [InlineData("  ABC12 XY9012  ", "ABC12 XY9012")] // los 9 primeros admiten espacio, los 3 últimos son dígitos
         public void El_cif_com_va_en_mayuscula_y_con_su_formato(string recibido, string esperado)
         {
             Assert.Equal(esperado, Normalizacion.CifCom(recibido));
