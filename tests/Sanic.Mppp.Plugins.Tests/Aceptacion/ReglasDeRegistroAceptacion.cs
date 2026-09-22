@@ -76,7 +76,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             };
         }
 
-        /// <summary>El remitente: vigente sobre 0042; activa pero SIN evidencia sobre 0006; nada sobre 00A1.</summary>
+        /// <summary>El remitente: autorizado sobre 0042 y 0006 (la evidencia NO cuenta: D-42); nada sobre 00A1.</summary>
         private static CatalogosDeValidacion Catalogos(string obligatoriedad = ParametrosDePlantillaAceptacion.ObligatoriedadInicial)
         {
             return new CatalogosDeValidacion(
@@ -84,7 +84,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
                 ListasPlantilla.DesdeJson(ParametrosDePlantillaAceptacion.ListasValidas),
                 ObligatoriedadPlantilla.DesdeJson(obligatoriedad),
                 Planes(),
-                new Dictionary<Guid, bool> { [Plan42] = true, [Plan06] = false });
+                new[] { Plan42, Plan06 });
         }
 
         /// <summary>Una fila buena (Inclusion · ACH · plan 0042, formato 11, USD) con los cambios que pida cada prueba. Un valor nulo = la celda no vino.</summary>
@@ -194,7 +194,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
 
         // ------------------------------------------------------------------ LISTAS_VALIDAS
         [Fact]
-        public void Un_valor_que_no_esta_en_su_lista_falla_cita_lo_recibido_deja_la_columna_vacia_y_omite_a_las_que_dependen()
+        public void Un_valor_que_no_esta_en_su_lista_falla_nombra_el_campo_sin_citar_el_valor_deja_la_columna_vacia_y_omite_a_las_que_dependen()
         {
             var fila = Fila(("moneda", "Dolarez"), ("banco", "BAK"));
 
@@ -206,11 +206,8 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Null(fila.CodigoDeBanco);
             Assert.Equal(Gestion.Inclusion, fila.Gestion); // las demás listas no se tocan
             var razon = Razon(rs, ReglasDeRegistro.ListasValidas);
-            Assert.Contains("Moneda", razon);
-            Assert.Contains("Dolarez", razon);
-            Assert.Contains("Banco", razon);
-            Assert.Contains("BAK", razon);
-            Assert.DoesNotContain("Gestion", razon);
+            // D-41 (aprobador, 2026-09-21): menos detalle. Se nombra el campo; el valor NO se cita (el mensaje es por fila).
+            Assert.Equal("Uno o más valores no son válidos: Moneda, Banco.", razon);
             Assert.Equal(EstadoDeLaFila.RechazadaEnValidacion, EstadosPorReglas.DeLaFila(rs));
         }
 
@@ -225,10 +222,13 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         }
 
         [Fact]
-        public void Un_valor_hostil_en_una_lista_se_cita_acotado_y_en_una_linea()
+        public void Un_valor_hostil_en_una_lista_no_llega_al_mensaje_por_defecto_y_si_el_negocio_lo_cita_va_acotado_y_en_una_linea()
         {
             var hostil = "{regla}\r\n" + new string('Z', 3000);
-            var razon = Razon(Correr(Fila(("gestion", hostil))), ReglasDeRegistro.ListasValidas);
+            Assert.Equal("Uno o más valores no son válidos: Gestion.", Razon(Correr(Fila(("gestion", hostil))), ReglasDeRegistro.ListasValidas));
+
+            var mensajes = new Dictionary<string, string> { [ReglasDeRegistro.ListasValidas] = "Revise {campo}: {valor}." };
+            var razon = Razon(Correr(Fila(("gestion", hostil)), mensajes), ReglasDeRegistro.ListasValidas);
             Assert.True(razon.Length <= MensajeAlCliente.LargoMaximo);
             Assert.Contains(MensajeAlCliente.Citar(hostil), razon);
             Assert.DoesNotContain("\n", razon);
@@ -240,7 +240,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         {
             var mensajes = new Dictionary<string, string> { [ReglasDeRegistro.ListasValidas] = "Revise {campo}: no aceptamos {valor}." };
             var razon = Razon(Correr(Fila(("moneda", "Dolarez")), mensajes), ReglasDeRegistro.ListasValidas);
-            Assert.StartsWith("Revise Moneda: no aceptamos Dolarez.", razon);
+            Assert.Equal("Revise Moneda: no aceptamos Dolarez.", razon); // el marcador {valor} queda para quien lo quiera usar; por defecto no se cita
         }
 
         // ------------------------------------------------------------------ LARGOS_Y_FORMATO
@@ -340,11 +340,11 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         }
 
         [Fact]
-        public void Sin_plan_se_omite_todo_lo_que_depende_de_el_y_el_mensaje_cita_lo_que_escribio_el_cliente()
+        public void Sin_plan_se_omite_todo_lo_que_depende_de_el_y_el_mensaje_no_cita_lo_que_escribio_el_cliente()
         {
             var rs = Correr(Fila(("numeroPlan", "9999")));
             Assert.Equal("CCNOOOOO", Letras(rs));
-            Assert.Contains("9999", Razon(rs, ReglasDeRegistro.PlanExiste));
+            Assert.Equal("El plan no existe o no está activo.", Razon(rs, ReglasDeRegistro.PlanExiste));
             Assert.Equal(EstadoDeLaFila.RechazadaEnValidacion, EstadosPorReglas.DeLaFila(rs)); // la autorización quedó Omitida: no es Sin autorización
         }
 
@@ -485,30 +485,29 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
 
         // ------------------------------------------------------------------ AUTORIZACION_CORREO_PLAN
         [Fact]
-        public void Sin_autorizacion_sobre_el_plan_la_fila_queda_sin_autorizacion_y_el_mensaje_dice_cual_de_los_dos_casos_es()
+        public void Sin_autorizacion_sobre_el_plan_la_fila_queda_sin_autorizacion_y_el_mensaje_nombra_el_plan()
         {
-            var sinNada = Correr(Fila(("numeroPlan", "A1")));
-            Assert.Equal("CCCCCCCN", Letras(sinNada));
-            Assert.Equal(EstadoDeLaFila.SinAutorizacion, EstadosPorReglas.DeLaFila(sinNada));
-            var razonSinNada = Razon(sinNada, ReglasDeRegistro.AutorizacionCorreoPlan);
-            Assert.Contains("00A1", razonSinNada);
-            Assert.DoesNotContain("evidencia", razonSinNada);
-
-            var sinEvidencia = Correr(Fila(("numeroPlan", "6"), ("moneda", "COR"), ("clasificacion", "CK")));
-            Assert.Equal("CCCCCCCN", Letras(sinEvidencia));
-            Assert.Equal(EstadoDeLaFila.SinAutorizacion, EstadosPorReglas.DeLaFila(sinEvidencia));
-            var razonSinEvidencia = Razon(sinEvidencia, ReglasDeRegistro.AutorizacionCorreoPlan);
-            Assert.Contains("0006", razonSinEvidencia);
-            Assert.Contains("evidencia", razonSinEvidencia);
+            var rs = Correr(Fila(("numeroPlan", "A1")));
+            Assert.Equal("CCCCCCCN", Letras(rs));
+            Assert.Equal(EstadoDeLaFila.SinAutorizacion, EstadosPorReglas.DeLaFila(rs));
+            Assert.Equal("Su correo no está autorizado sobre el plan 00A1.", Razon(rs, ReglasDeRegistro.AutorizacionCorreoPlan));
         }
 
         [Fact]
-        public void El_caso_de_la_autorizacion_va_en_la_precision_asi_no_se_pierde_cuando_el_negocio_redacta_el_texto_general()
+        public void D42_la_evidencia_no_cuenta_una_autorizacion_activa_vale_tenga_o_no_documento()
+        {
+            // Aprobador, 2026-09-21: no se afecta al cliente porque alguien del banco no cargó el documento. La evidencia es
+            // informativa (vista "Sin evidencia" para el administrador); quien arma los catálogos NO la mira para decidir qué planes van.
+            var rs = Correr(Fila(("numeroPlan", "6"), ("moneda", "COR"), ("clasificacion", "CK")));
+            Assert.Equal("CCCCCCCC", Letras(rs));
+            Assert.Equal(EstadoDeLaFila.Validada, EstadosPorReglas.DeLaFila(rs));
+        }
+
+        [Fact]
+        public void El_negocio_puede_redactar_la_autorizacion_con_el_plan()
         {
             var mensajes = new Dictionary<string, string> { [ReglasDeRegistro.AutorizacionCorreoPlan] = "Su correo no puede gestionar el plan {plan}." };
-            var razon = Razon(Correr(Fila(("numeroPlan", "6"), ("moneda", "COR"), ("clasificacion", "CK")), mensajes), ReglasDeRegistro.AutorizacionCorreoPlan);
-            Assert.StartsWith("Su correo no puede gestionar el plan 0006.", razon);
-            Assert.Contains("evidencia", razon);
+            Assert.Equal("Su correo no puede gestionar el plan 00A1.", Razon(Correr(Fila(("numeroPlan", "A1")), mensajes), ReglasDeRegistro.AutorizacionCorreoPlan));
         }
 
         [Fact]
@@ -525,6 +524,23 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Equal("CNCCCCCN", Letras(rs));
             Assert.Equal(EstadoDeLaFila.SinAutorizacion, EstadosPorReglas.DeLaFila(rs));
             Assert.Equal(2, EstadosPorReglas.MotivosDeLaFila(rs).Count);
+        }
+
+        // ------------------------------------------------------------------ los textos por defecto (aprobador, 2026-09-21)
+        [Fact]
+        public void Los_textos_por_defecto_son_los_que_aprobo_el_negocio_cortos_directos_y_sin_citar_valores()
+        {
+            var catalogos = Catalogos(ParametrosDePlantillaAceptacion.ObligatoriedadInicial);
+            string Texto(string codigo, FilaEnValidacion fila) => MensajeAlCliente.Componer(null, Suelta(codigo, fila), codigo);
+
+            Assert.Equal("Uno o más valores no son válidos: Banco, Moneda.", Texto(ReglasDeRegistro.ListasValidas, Fila(catalogos, ("banco", "BAK"), ("moneda", "Dolarez"))));
+            Assert.Equal("Revise el largo o el formato de: No. Cuenta, Nombre del beneficiario.", Texto(ReglasDeRegistro.LargosYFormato, Fila(catalogos, ("numeroCuenta", "12A"), ("nombreBeneficiario", new string('n', 45)))));
+            Assert.Equal("El plan no existe o no está activo.", Texto(ReglasDeRegistro.PlanExiste, Fila(catalogos, ("numeroPlan", "9999"))));
+            Assert.Equal("El plan 0042 solo admite la clasificación ACH.", Texto(ReglasDeRegistro.Formato11SoloAch, Fila(catalogos, ("clasificacion", "CK"))));
+            Assert.Equal("Faltan datos obligatorios: No. Cuenta, Moneda.", Texto(ReglasDeRegistro.Obligatoriedad, Fila(catalogos, ("numeroCuenta", null), ("moneda", null))));
+            Assert.Equal("Para el plan 0042, la cuenta debe tener solo dígitos y el banco debe ser válido.", Texto(ReglasDeRegistro.ReferenciaFormato11, Fila(catalogos, ("numeroCuenta", "12A"))));
+            Assert.Equal("La moneda no es la del plan 0042.", Texto(ReglasDeRegistro.MonedaDelPlan, Fila(catalogos, ("moneda", "COR"))));
+            Assert.Equal("Su correo no está autorizado sobre el plan 00A1.", Texto(ReglasDeRegistro.AutorizacionCorreoPlan, Fila(catalogos, ("numeroPlan", "A1"))));
         }
 
         // ------------------------------------------------------------------ todos los mensajes
@@ -567,7 +583,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         {
             var listas = ListasPlantilla.DesdeJson(ParametrosDePlantillaAceptacion.ListasValidas);
             var obligatoriedad = ObligatoriedadPlantilla.DesdeJson(ParametrosDePlantillaAceptacion.ObligatoriedadInicial);
-            var autorizaciones = new Dictionary<Guid, bool>();
+            var autorizaciones = new Guid[0];
             CatalogosDeValidacion Con(ConfiguracionPlantilla e, IEnumerable<PlanDelCatalogo> p) => new CatalogosDeValidacion(e, listas, obligatoriedad, p, autorizaciones);
 
             Assert.Throws<ArgumentNullException>(() => new CatalogosDeValidacion(null, listas, obligatoriedad, Planes(), autorizaciones));
@@ -594,21 +610,21 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         public void Los_catalogos_no_cambian_aunque_cambie_lo_que_se_les_paso()
         {
             var planes = Planes();
-            var autorizaciones = new Dictionary<Guid, bool> { [Plan42] = true };
+            var autorizaciones = new List<Guid> { Plan42 };
             var estructura = Estructura();
             var catalogos = new CatalogosDeValidacion(
                 estructura, ListasPlantilla.DesdeJson(ParametrosDePlantillaAceptacion.ListasValidas),
                 ObligatoriedadPlantilla.DesdeJson(ParametrosDePlantillaAceptacion.ObligatoriedadInicial), planes, autorizaciones);
 
             planes.Clear();
-            autorizaciones[Plan42] = false;
-            autorizaciones[PlanA1] = true;
+            autorizaciones.Clear();
+            autorizaciones.Add(PlanA1);
 
             Assert.Equal(Plan42, catalogos.PlanPorCodigo("0042").Id);
             Assert.Null(catalogos.PlanPorCodigo("42")); // se busca el código exacto, ya normalizado
             Assert.Null(catalogos.PlanPorCodigo(null));
-            Assert.True(catalogos.AutorizacionSobre(Plan42));
-            Assert.Null(catalogos.AutorizacionSobre(PlanA1));
+            Assert.True(catalogos.EstaAutorizado(Plan42));
+            Assert.False(catalogos.EstaAutorizado(PlanA1));
             Assert.Equal("No. Cuenta", catalogos.Campo("numeroCuenta").EncabezadoEsperado);
 
             // Revisión de código, 2026-09-21: "inmutable" de verdad, no de palabra. La estructura tiene setters públicos:

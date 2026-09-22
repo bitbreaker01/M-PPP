@@ -42,17 +42,16 @@ namespace Sanic.Mppp.Plugins.Validacion
         private readonly IDictionary<string, PlanDelCatalogo> _planesPorCodigo;
         private readonly IDictionary<Guid, bool> _autorizaciones;
 
-        /// <param name="autorizacionesActivasDelRemitente">
-        /// Por id de plan: las autorizaciones del remitente donde TODO está activo (Autorizado, Plan, Cliente y la propia
-        /// AutorizacionPlan; diseno/02 §2.4). El valor dice si tiene la evidencia cargada: sin evidencia NO es vigente, pero el
-        /// mensaje al cliente es otro. Se copia: cambiar el diccionario después no cambia el catálogo.
+        /// <param name="planesAutorizadosDelRemitente">
+        /// Los ids de plan sobre los que el remitente tiene una autorización ACTIVA (Autorizado, Plan, Cliente y la propia
+        /// AutorizacionPlan activos; diseno/02 §2.4). La evidencia NO cuenta (D-42, aprobador 2026-09-21): es informativa. Se copia.
         /// </param>
         public CatalogosDeValidacion(
             ConfiguracionPlantilla estructura,
             ListasPlantilla listas,
             ObligatoriedadPlantilla obligatoriedad,
             IEnumerable<PlanDelCatalogo> planesActivos,
-            IDictionary<Guid, bool> autorizacionesActivasDelRemitente)
+            IEnumerable<Guid> planesAutorizadosDelRemitente)
         {
             if (estructura == null)
             {
@@ -185,8 +184,8 @@ namespace Sanic.Mppp.Plugins.Validacion
             return _planesPorCodigo.TryGetValue(codigoNormalizado, out var plan) ? plan : null;
         }
 
-        /// <summary>Nulo: el remitente no tiene autorización activa sobre ese plan. False: la tiene, sin evidencia. True: vigente.</summary>
-        public bool? AutorizacionSobre(Guid planId)
+        /// <summary>True si el remitente tiene una autorización activa sobre ese plan.</summary>
+        public bool EstaAutorizado(Guid planId)
         {
             return _autorizaciones.TryGetValue(planId, out var vigente) ? (bool?)vigente : null;
         }
