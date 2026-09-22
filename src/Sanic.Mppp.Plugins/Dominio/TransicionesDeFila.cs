@@ -175,6 +175,16 @@ namespace Sanic.Mppp.Plugins.Dominio
                 },
             };
 
+        /// <summary>
+        /// El evento de Bitácora de esa transición, o nulo si no existe. Es un dato fijo del par (Desde, Hacia): no depende del
+        /// actor ni de ningún parámetro, así que quien solo necesita el evento no tiene que resolver roles (revisión de código,
+        /// 2026-09-21: el step PostOperation gastaba tres consultas para averiguarlo).
+        /// </summary>
+        public static EventoDeBitacora? EventoPara(EstadoDeLaFila desde, EstadoDeLaFila hacia)
+        {
+            throw new NotImplementedException();
+        }
+
         public static ResultadoDeTransicion Evaluar(PedidoDeTransicion pedido)
         {
             if (pedido == null)

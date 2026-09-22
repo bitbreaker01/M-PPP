@@ -197,6 +197,71 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Equal(si.Rpa, target.GetAttributeValue<EntityReference>("sanic_aprobadapor").Id);
         }
 
+        // ------------------------------------------------------------------ revisión de código, 2026-09-21
+        [Fact]
+        public void Cuando_la_custom_api_del_rpa_escribe_como_system_los_roles_salen_del_target_no_de_system()
+        {
+            // 03 §4 y spike C-05 parte B: en un Update anidado con SYSTEM, `InitiatingUserId` vale SYSTEM en todos los niveles.
+            // Si los roles se leyeran de ahí, el RPA no podría digitar nada: es su ÚNICO camino (04 §3, no tiene W sobre Fila).
+            var m = new Mundo();
+            m.Ctx.Contexto.Depth = 2;
+            var system = m.Svc.Sembrar(new Entity(TablasNativas.Usuario) { ["fullname"] = "SYSTEM" }); // sin ningún rol
+
+            var target = m.Correr(new TransicionDeFilaStep(), system, EstadoDeLaFila.Digitada, ajustarTarget: t =>
+            {
+                t["sanic_digitadapor"] = new EntityReference(TablasNativas.Usuario, m.Rpa);
+                t["sanic_fechadigitada"] = Ahora;
+            });
+
+            Assert.Equal(m.Rpa, target.GetAttributeValue<EntityReference>("sanic_digitadapor").Id); // se respeta lo que puso la API
+            Assert.Equal(Ahora, target["sanic_fechadigitada"]);
+        }
+
+        [Fact]
+        public void Aprobando_como_system_el_rol_sale_de_quien_aprueba_y_la_segregacion_se_sigue_exigiendo()
+        {
+            var m = new Mundo(EstadoDeLaFila.Digitada, digitadaPor: Guid.NewGuid(), rpaPuedeAprobar: "si");
+            m.Ctx.Contexto.Depth = 2;
+            var system = m.Svc.Sembrar(new Entity(TablasNativas.Usuario) { ["fullname"] = "SYSTEM" });
+
+            var target = m.Correr(new TransicionDeFilaStep(), system, EstadoDeLaFila.Aprobada, ajustarTarget: t => t["sanic_aprobadapor"] = new EntityReference(TablasNativas.Usuario, m.Rpa));
+            Assert.Equal(m.Rpa, target.GetAttributeValue<EntityReference>("sanic_aprobadapor").Id);
+
+            // Sin nadie en el Target no se asume ningún rol: la transición se rechaza.
+            var sinIdentidad = new Mundo(EstadoDeLaFila.Digitada, digitadaPor: Guid.NewGuid());
+            sinIdentidad.Ctx.Contexto.Depth = 2;
+            var otroSystem = sinIdentidad.Svc.Sembrar(new Entity(TablasNativas.Usuario) { ["fullname"] = "SYSTEM" });
+            Assert.Throws<InvalidPluginExecutionException>(() => sinIdentidad.Correr(new TransicionDeFilaStep(), otroSystem, EstadoDeLaFila.Aprobada));
+        }
+
+        [Fact]
+        public void El_rpa_no_puede_aprobar_lo_que_digito_el_si_el_parametro_no_lo_habilita_aunque_escriba_como_system()
+        {
+            var m = new Mundo(EstadoDeLaFila.Digitada, rpaPuedeAprobar: "no");
+            m.Ctx.Contexto.Depth = 2;
+            var system = m.Svc.Sembrar(new Entity(TablasNativas.Usuario) { ["fullname"] = "SYSTEM" });
+            Assert.Throws<InvalidPluginExecutionException>(() => m.Correr(new TransicionDeFilaStep(), system, EstadoDeLaFila.Aprobada,
+                ajustarTarget: t => t["sanic_aprobadapor"] = new EntityReference(TablasNativas.Usuario, m.Rpa), digitadaPor: m.Rpa));
+        }
+
+        [Fact]
+        public void El_evento_de_bitacora_sale_de_una_consulta_pura_sin_preguntar_roles()
+        {
+            Assert.Equal(EventoDeBitacora.FilaDigitada, TransicionesDeFila.EventoPara(EstadoDeLaFila.Validada, EstadoDeLaFila.Digitada));
+            Assert.Equal(EventoDeBitacora.FilaAprobada, TransicionesDeFila.EventoPara(EstadoDeLaFila.Digitada, EstadoDeLaFila.Aprobada));
+            Assert.Equal(EventoDeBitacora.FilaDevuelta, TransicionesDeFila.EventoPara(EstadoDeLaFila.Digitada, EstadoDeLaFila.Validada));
+            Assert.Equal(EventoDeBitacora.FilaAnulada, TransicionesDeFila.EventoPara(EstadoDeLaFila.Validada, EstadoDeLaFila.Anulada));
+            Assert.Equal(EventoDeBitacora.FilaRechazadaEnAS400, TransicionesDeFila.EventoPara(EstadoDeLaFila.Digitada, EstadoDeLaFila.RechazadaEnAS400));
+            Assert.Null(TransicionesDeFila.EventoPara(EstadoDeLaFila.Validada, EstadoDeLaFila.Aprobada));
+
+            // Y el Post no gasta consultas de roles ni del parámetro para saber qué evento escribir.
+            var m = new Mundo(EstadoDeLaFila.Digitada, digitadaPor: Guid.NewGuid());
+            m.Svc.Sembrar(m.Fila(2, EstadoDeLaFila.Validada));
+            var antes = m.Svc.Llamadas.Count;
+            m.Correr(new PostTransicionDeFilaStep(), m.Supervisor, EstadoDeLaFila.Aprobada);
+            Assert.InRange(m.Svc.Llamadas.Count - antes, 1, 5);
+        }
+
         [Fact]
         public void Un_update_que_no_cambia_el_estado_no_hace_nada()
         {

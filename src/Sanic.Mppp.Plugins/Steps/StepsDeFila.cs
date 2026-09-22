@@ -110,7 +110,13 @@ namespace Sanic.Mppp.Plugins.Steps
     ///  - **quién actúa**: si escribe una persona, `sanic_digitadapor`, `sanic_aprobadapor` y sus fechas que vengan en el `Target`
     ///    se IGNORAN y se pisan con `InitiatingUserId` y la fecha del contexto; si escribe código de servidor, se confía en el
     ///    `Target` (es la Custom API del RPA, que ya puso al usuario del bot; `03` §4);
-    ///  - los roles del actor se leen de sus security roles (Ejecutivo, Supervisor, RPA), con un número fijo de consultas;
+    ///  - **de quién se leen los roles** (revisión de código, 2026-09-21): si escribe una persona, de `InitiatingUserId`. Si
+    ///    escribe código de servidor ANIDADO (profundidad mayor que 1, o sea la Custom API del RPA escribiendo como SYSTEM), de
+    ///    `InitiatingUserId` NO se puede: el spike C-05 parte B probó que ahí vale SYSTEM en todos los niveles. Se leen de la
+    ///    identidad que la Custom API ya grabó en el `Target`: `sanic_aprobadapor` para Aprobada, `sanic_digitadapor` para
+    ///    Digitada, y para el resto el `sanic_digitadapor` de la pre-image (quien venía trabajando la fila). Si ahí tampoco hay
+    ///    nadie, el actor queda sin roles y la transición se rechaza: nunca se asume un rol;
+    ///  - los roles salen de los security roles de ese usuario, con un número fijo de consultas;
     ///  - la transición se evalúa SIEMPRE con <see cref="Dominio.TransicionesDeFila"/>, venga de quien venga, y si no está
     ///    permitida el guardado se rechaza con su motivo;
     ///  - `rpa.puedeaprobar` se lee del parámetro (`si` habilita la excepción; ausente o cualquier otra cosa = no);
