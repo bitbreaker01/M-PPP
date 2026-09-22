@@ -193,7 +193,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         public void Todo_lo_que_viene_del_cliente_se_escapa_y_nunca_sale_una_etiqueta_ni_un_script()
         {
             var hostil = "<script>alert(1)</script><img src=x onerror=alert(2)>\"'&";
-            var solicitud = Solicitud(EstadoDeLaSolicitud.EnProceso, Fila(1, EstadoDeLaFila.Validada, nombre: hostil, plan: "<b>42</b>"), Fila(2, EstadoDeLaFila.RechazadaEnValidacion, "Motivo con <i>etiqueta</i> & ampersand."));
+            var solicitud = Solicitud(EstadoDeLaSolicitud.EnProceso, Fila(1, EstadoDeLaFila.Validada, nombre: hostil, plan: "<b>42</b>"), Fila(2, EstadoDeLaFila.RechazadaEnValidacion, "Motivo con <i>etiqueta</i> & ampersand, está y ñandú."));
             solicitud.Numero = "MPPP-<u>1</u>";
             solicitud.FechaRecibidoTexto = "<hoy>";
 
@@ -208,8 +208,10 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
                 Assert.DoesNotContain("<hoy>", html);
                 Assert.Contains("&lt;script&gt;", html);
                 Assert.Contains("&amp; ampersand", html);
-                Assert.Contains("Motivo con", html); // las tildes y la ñ del español NO se convierten en entidades numéricas
-                Assert.DoesNotContain("&#", html);
+                Assert.Contains("está y ñandú", html); // las tildes y la ñ del español salen tal cual, nunca como entidades numéricas
+                Assert.DoesNotContain("&#225;", html);
+                Assert.DoesNotContain("&apos;", html); // Outlook de escritorio (motor de Word) no la conoce: el apóstrofo va como &#39;
+                Assert.Contains("&#39;", html);
                 Assert.DoesNotContain("{", html); // ningún marcador sin completar
             }
         }
@@ -244,6 +246,49 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Throws<ArgumentException>(() => ArmadorRespuesta.Acuse(sinNumero));
             var rechazadaSinNada = Solicitud(EstadoDeLaSolicitud.Rechazada);
             Assert.Throws<ArgumentException>(() => ArmadorRespuesta.Acuse(rechazadaSinNada)); // ni motivos del sobre ni filas: no hay qué decir
+        }
+
+        [Theory]
+        [InlineData(1, 0, 1, "Recibimos 1 fila: ninguna quedó validada y 1 quedó rechazada.")]
+        [InlineData(2, 1, 1, "Recibimos 2 filas: 1 quedó validada y 1 quedó rechazada.")]
+        [InlineData(3, 1, 2, "Recibimos 3 filas: 1 quedó validada y 2 quedaron rechazadas.")]
+        [InlineData(2, 2, 0, "Recibimos 2 filas: 2 quedaron validadas y ninguna quedó rechazada.")]
+        public void Los_contadores_del_acuse_concuerdan_en_numero(int total, int validas, int rechazadas, string esperado)
+        {
+            // Revisión de código, 2026-09-21: "1 quedaron validadas" no es español de un banco.
+            var filas = Enumerable.Range(1, total).Select(i => Fila(i, i <= validas ? EstadoDeLaFila.Validada : EstadoDeLaFila.RechazadaEnValidacion, i <= validas ? null : "Motivo.")).ToArray();
+            var estado = validas == 0 ? EstadoDeLaSolicitud.Rechazada : EstadoDeLaSolicitud.EnProceso;
+            Assert.Contains(esperado, SinEtiquetas(ArmadorRespuesta.Acuse(Solicitud(estado, filas))));
+        }
+
+        [Fact]
+        public void Si_un_mensaje_trae_la_cuenta_o_la_identificacion_completas_el_armador_las_enmascara_igual_ultima_linea_de_defensa()
+        {
+            // Revisión de código, 2026-09-21: `sanic_mensaje` lo redacta el catálogo (D-19, marcador {valor}); si un día cita la cuenta, acá no pasa.
+            var fila = Fila(1, EstadoDeLaFila.RechazadaEnValidacion, $"La cuenta {Cuenta} y la identificación {Identificacion} no son válidas.");
+            foreach (var html in new[] { ArmadorRespuesta.Acuse(Solicitud(EstadoDeLaSolicitud.Rechazada, fila)), ArmadorRespuesta.RespuestaFinal(Solicitud(EstadoDeLaSolicitud.Procesada, fila)) })
+            {
+                NuncaSaleLoSensible(html);
+                Assert.Contains("La cuenta ********9012 y la identificación **********890A no son válidas.", SinEtiquetas(html));
+            }
+        }
+
+        [Theory]
+        [InlineData(EstadoDeLaSolicitud.Ingresada)]
+        [InlineData(EstadoDeLaSolicitud.NoReconocida)]
+        [InlineData(EstadoDeLaSolicitud.Descartada)]
+        [InlineData(EstadoDeLaSolicitud.Procesada)]
+        [InlineData(EstadoDeLaSolicitud.Cerrada)]
+        public void El_acuse_no_se_arma_para_ningun_otro_estado(EstadoDeLaSolicitud estado)
+        {
+            Assert.Throws<ArgumentException>(() => ArmadorRespuesta.Acuse(Solicitud(estado, Mixtas)));
+        }
+
+        [Fact]
+        public void La_respuesta_final_sin_filas_es_un_error_de_programacion_y_muestra_la_cuenta_enmascarada()
+        {
+            Assert.Throws<ArgumentException>(() => ArmadorRespuesta.RespuestaFinal(Solicitud(EstadoDeLaSolicitud.Procesada)));
+            Assert.Contains("********9012", SinEtiquetas(ArmadorRespuesta.RespuestaFinal(Solicitud(EstadoDeLaSolicitud.Procesada, Fila(1, EstadoDeLaFila.Aprobada)))));
         }
 
         [Fact]
