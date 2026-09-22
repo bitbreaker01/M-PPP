@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.ServiceModel;
 using Microsoft.Xrm.Sdk;
-using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Query;
 using Sanic.Mppp.Plugins.Dominio;
 using Sanic.Mppp.Plugins.Validacion;
@@ -140,6 +138,8 @@ namespace Sanic.Mppp.Plugins.Datos
         /// <summary>Una lectura. Inexistente: se propaga la falla del servicio. Estado fuera del enum o `sanic_nombre`/`sanic_remitente`/`sanic_fecharecibido` nulos: <see cref="InvalidOperationException"/>.</summary>
         public SolicitudLeida Leer(Guid solicitudId)
         {
+            ValidarSolicitudId(solicitudId);
+
             var columnas = new ColumnSet(
                 "sanic_nombre", "sanic_estadoprocesamiento", "sanic_remitente", "sanic_asunto",
                 "sanic_fecharecibido", "sanic_cantidadadjuntos", "sanic_cantidadexcel", "sanic_versionparametros");
@@ -163,10 +163,14 @@ namespace Sanic.Mppp.Plugins.Datos
         /// <summary>UN `Update` con exactamente estas columnas: estado, `sanic_fechavalidada`, los tres contadores, `sanic_acusecontenido` y `sanic_versionparametros` (esta última solo si no es nula).</summary>
         public void CerrarValidacion(Guid solicitudId, CierreDeValidacion cierre)
         {
+            ValidarSolicitudId(solicitudId);
+
             if (cierre == null)
             {
                 throw new ArgumentNullException(nameof(cierre));
             }
+
+            ValidarUtc(cierre.FechaValidada, nameof(cierre));
 
             var entidad = new Entity(TablasHistorico.Solicitud, solicitudId);
             entidad["sanic_estadoprocesamiento"] = new OptionSetValue((int)cierre.Estado);
@@ -183,6 +187,8 @@ namespace Sanic.Mppp.Plugins.Datos
         /// <summary>UN `Update` con estado y `sanic_motivoclasificacion` (recortado a 300).</summary>
         public void Clasificar(Guid solicitudId, ClasificacionDelCorreo clasificacion)
         {
+            ValidarSolicitudId(solicitudId);
+
             if (clasificacion == null)
             {
                 throw new ArgumentNullException(nameof(clasificacion));
@@ -190,7 +196,7 @@ namespace Sanic.Mppp.Plugins.Datos
 
             var entidad = new Entity(TablasHistorico.Solicitud, solicitudId);
             entidad["sanic_estadoprocesamiento"] = new OptionSetValue((int)clasificacion.Estado);
-            entidad["sanic_motivoclasificacion"] = Recortar(clasificacion.Motivo, 300);
+            entidad["sanic_motivoclasificacion"] = Recortar(clasificacion.Motivo, TablasHistorico.LargoMotivoClasificacion);
 
             _servicio.Update(entidad);
         }
@@ -207,12 +213,18 @@ namespace Sanic.Mppp.Plugins.Datos
                 throw new ArgumentNullException(nameof(filas));
             }
 
-            if (solicitudId == Guid.Empty)
+            ValidarSolicitudId(solicitudId);
+
+            var lista = filas.ToList();
+            foreach (var fila in lista)
             {
-                throw new ArgumentException("El id de la solicitud no puede estar vacío.", nameof(solicitudId));
+                ValidarUtc(fila.FechaValidada, nameof(fila));
             }
 
-            EjecutarEnLotes(filas.Select(fila => ArmarEntidadFila(solicitudId, fila)));
+            foreach (var fila in lista)
+            {
+                _servicio.Create(ArmarEntidadFila(solicitudId, fila));
+            }
         }
 
         /// <summary>
@@ -232,20 +244,29 @@ namespace Sanic.Mppp.Plugins.Datos
                 throw new ArgumentNullException(nameof(idsDeReglaPorCodigo));
             }
 
-            EjecutarEnLotes(resultados.Select(resultado => ArmarEntidadResultado(solicitudId, resultado, idsDeReglaPorCodigo, fechaEvaluacion)));
+            ValidarSolicitudId(solicitudId);
+            ValidarUtc(fechaEvaluacion, nameof(fechaEvaluacion));
+
+            foreach (var resultado in resultados)
+            {
+                _servicio.Create(ArmarEntidadResultado(solicitudId, resultado, idsDeReglaPorCodigo, fechaEvaluacion));
+            }
         }
 
         /// <summary>UN `Create` en Bitácora: fecha, evento, origen, `sanic_numerofila` (0 = de la solicitud), `sanic_actortexto` (recortado a 200, puede ser nulo), `sanic_detalle` (recortado a 10000).</summary>
         public Guid RegistrarEvento(Guid solicitudId, DateTime fecha, EventoDeBitacora evento, OrigenDelEvento origen, int numeroFila, string actor, string detalle)
         {
+            ValidarSolicitudId(solicitudId);
+            ValidarUtc(fecha, nameof(fecha));
+
             var entidad = new Entity(TablasHistorico.Bitacora);
             entidad["sanic_solicitudid"] = new EntityReference(TablasHistorico.Solicitud, solicitudId);
             entidad["sanic_fechaevento"] = fecha;
             entidad["sanic_evento"] = new OptionSetValue((int)evento);
             entidad["sanic_origen"] = new OptionSetValue((int)origen);
             entidad["sanic_numerofila"] = numeroFila;
-            AgregarSiNoEsNulo(entidad, "sanic_actortexto", Recortar(actor, 200));
-            AgregarSiNoEsNulo(entidad, "sanic_detalle", Recortar(detalle, 10000));
+            AgregarSiNoEsNulo(entidad, "sanic_actortexto", Recortar(actor, TablasHistorico.LargoActor));
+            AgregarSiNoEsNulo(entidad, "sanic_detalle", Recortar(detalle, TablasHistorico.LargoDetalle));
 
             return _servicio.Create(entidad);
         }
@@ -262,19 +283,19 @@ namespace Sanic.Mppp.Plugins.Datos
             AgregarChoiceSiNoEsNulo(entidad, "sanic_moneda", fila.Moneda);
             AgregarChoiceSiNoEsNulo(entidad, "sanic_tipoidentificacion", fila.TipoIdentificacion);
             AgregarChoiceSiNoEsNulo(entidad, "sanic_banco", fila.Banco);
-            AgregarSiNoEsNulo(entidad, "sanic_numeroplan", fila.NumeroPlan);
+            AgregarSiNoEsNulo(entidad, "sanic_numeroplan", Recortar(fila.NumeroPlan, TablasHistorico.LargoNumeroPlan));
             if (fila.PlanId.HasValue)
             {
                 entidad["sanic_planid"] = new EntityReference(Tablas.Plan, fila.PlanId.Value);
             }
 
-            AgregarSiNoEsNulo(entidad, "sanic_nombrebeneficiario", fila.NombreBeneficiario);
-            AgregarSiNoEsNulo(entidad, "sanic_numeroidentificacion", fila.NumeroIdentificacion);
-            AgregarSiNoEsNulo(entidad, "sanic_numerocuenta", fila.NumeroCuenta);
-            AgregarSiNoEsNulo(entidad, "sanic_referencia", fila.Referencia);
-            AgregarSiNoEsNulo(entidad, "sanic_referenciarecibida", fila.ReferenciaRecibida);
+            AgregarSiNoEsNulo(entidad, "sanic_nombrebeneficiario", Recortar(fila.NombreBeneficiario, TablasHistorico.LargoNombreBeneficiario));
+            AgregarSiNoEsNulo(entidad, "sanic_numeroidentificacion", Recortar(fila.NumeroIdentificacion, TablasHistorico.LargoNumeroIdentificacion));
+            AgregarSiNoEsNulo(entidad, "sanic_numerocuenta", Recortar(fila.NumeroCuenta, TablasHistorico.LargoNumeroCuenta));
+            AgregarSiNoEsNulo(entidad, "sanic_referencia", Recortar(fila.Referencia, TablasHistorico.LargoReferencia));
+            AgregarSiNoEsNulo(entidad, "sanic_referenciarecibida", Recortar(fila.ReferenciaRecibida, TablasHistorico.LargoReferencia));
             entidad["sanic_estado"] = new OptionSetValue((int)fila.Estado);
-            AgregarSiNoEsNulo(entidad, "sanic_mensaje", Recortar(fila.Mensaje, 4000));
+            AgregarSiNoEsNulo(entidad, "sanic_mensaje", Recortar(fila.Mensaje, TablasHistorico.LargoMensaje));
             entidad["sanic_fechavalidada"] = fila.FechaValidada;
             return entidad;
         }
@@ -290,49 +311,30 @@ namespace Sanic.Mppp.Plugins.Datos
             }
 
             entidad["sanic_resultado"] = new OptionSetValue((int)resultado.Resultado);
-            AgregarSiNoEsNulo(entidad, "sanic_razon", Recortar(resultado.Razon, 2000));
+            AgregarSiNoEsNulo(entidad, "sanic_razon", Recortar(resultado.Razon, TablasHistorico.LargoRazon));
             entidad["sanic_efectoaplicado"] = new OptionSetValue((int)resultado.EfectoAplicado);
             entidad["sanic_orden"] = resultado.Orden;
             entidad["sanic_fechaevaluacion"] = fechaEvaluacion;
             return entidad;
         }
 
-        // ------------------------------------------------------------------ lotes (`ExecuteMultiple`)
+        // ------------------------------------------------------------------ validación de entrada
 
-        /// <summary>Altas en lotes de <see cref="TablasHistorico.TamanoDeLote"/>. Un ítem que falla propaga la falla del servicio (diseno/03 §1 paso 6).</summary>
-        private void EjecutarEnLotes(IEnumerable<Entity> entidades)
+        /// <summary>Un `solicitudId` vacío es un error de programación en TODOS los métodos (revisión de código, 2026-09-21).</summary>
+        private static void ValidarSolicitudId(Guid solicitudId)
         {
-            var lista = entidades.ToList();
-            for (var inicio = 0; inicio < lista.Count; inicio += TablasHistorico.TamanoDeLote)
+            if (solicitudId == Guid.Empty)
             {
-                var trozo = lista.Skip(inicio).Take(TablasHistorico.TamanoDeLote);
-                EjecutarLote(trozo);
+                throw new ArgumentException("El id de la solicitud no puede estar vacío.", nameof(solicitudId));
             }
         }
 
-        private void EjecutarLote(IEnumerable<Entity> entidades)
+        /// <summary>Toda fecha que entra EXIGE UTC: otro `Kind` se guardaría corrido en silencio en una columna "usuario local" (revisión de código, 2026-09-21). Se valida ANTES de tocar el servicio.</summary>
+        private static void ValidarUtc(DateTime fecha, string nombreParametro)
         {
-            var lote = new ExecuteMultipleRequest
+            if (fecha.Kind != DateTimeKind.Utc)
             {
-                Settings = new ExecuteMultipleSettings { ContinueOnError = false, ReturnResponses = true },
-                Requests = new OrganizationRequestCollection(),
-            };
-
-            foreach (var entidad in entidades)
-            {
-                lote.Requests.Add(new CreateRequest { Target = entidad });
-            }
-
-            if (lote.Requests.Count == 0)
-            {
-                return;
-            }
-
-            var respuesta = (ExecuteMultipleResponse)_servicio.Execute(lote);
-            if (respuesta.IsFaulted)
-            {
-                var itemFallado = respuesta.Responses.First(item => item.Fault != null);
-                throw new FaultException<OrganizationServiceFault>(itemFallado.Fault, new FaultReason(itemFallado.Fault.Message));
+                throw new ArgumentException("La fecha tiene que venir en UTC (Kind = DateTimeKind.Utc); otro Kind se guardaría corrido en una columna de hora local.", nombreParametro);
             }
         }
 
@@ -386,15 +388,22 @@ namespace Sanic.Mppp.Plugins.Datos
 
         // ------------------------------------------------------------------ recorte y omisión de nulos al escribir
 
-        /// <summary>Recorta al largo de la columna (diseno/02); un texto nulo sigue nulo.</summary>
+        /// <summary>Recorta al largo de la columna (diseno/02); un texto nulo sigue nulo. Nunca parte un par subrogado: si el carácter
+        /// que quedaría último es la mitad alta de un par, se descarta el par entero (revisión de código, 2026-09-21).</summary>
         private static string Recortar(string texto, int largoMaximo)
         {
-            if (texto == null)
+            if (texto == null || texto.Length <= largoMaximo)
             {
-                return null;
+                return texto;
             }
 
-            return texto.Length > largoMaximo ? texto.Substring(0, largoMaximo) : texto;
+            var largo = largoMaximo;
+            if (largo > 0 && char.IsHighSurrogate(texto[largo - 1]))
+            {
+                largo--;
+            }
+
+            return texto.Substring(0, largo);
         }
 
         /// <summary>Un valor nulo del dominio NO se manda: la columna queda vacía (DD-01).</summary>
