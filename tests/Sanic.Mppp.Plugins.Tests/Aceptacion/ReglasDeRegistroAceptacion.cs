@@ -293,7 +293,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Contains("No. Cuenta", razon);
             Assert.Contains("No. Identificacion", razon);
             Assert.Contains("Nombre del beneficiario", razon);
-            Assert.Contains("44", razon); // le dice el límite que pasó
+            Assert.DoesNotContain("44", razon); // D-41: menos detalle, sin el límite; el negocio lo redacta en el catálogo si lo quiere
             Assert.DoesNotContain("numeroCuenta", razon); // al cliente se le habla con SUS nombres
             Assert.All(rs.Where(r => r.Razon != null), r =>
             {
