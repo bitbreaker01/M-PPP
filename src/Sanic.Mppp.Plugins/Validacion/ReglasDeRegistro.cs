@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 using Sanic.Mppp.Plugins.Dominio;
@@ -40,7 +39,7 @@ namespace Sanic.Mppp.Plugins.Validacion
     {
         private readonly IDictionary<string, CampoPlantilla> _camposPorNombre;
         private readonly IDictionary<string, PlanDelCatalogo> _planesPorCodigo;
-        private readonly IDictionary<Guid, bool> _autorizaciones;
+        private readonly HashSet<Guid> _planesAutorizados;
 
         /// <param name="planesAutorizadosDelRemitente">
         /// Los ids de plan sobre los que el remitente tiene una autorización ACTIVA (Autorizado, Plan, Cliente y la propia
@@ -73,9 +72,9 @@ namespace Sanic.Mppp.Plugins.Validacion
                 throw new ArgumentNullException(nameof(planesActivos));
             }
 
-            if (autorizacionesActivasDelRemitente == null)
+            if (planesAutorizadosDelRemitente == null)
             {
-                throw new ArgumentNullException(nameof(autorizacionesActivasDelRemitente));
+                throw new ArgumentNullException(nameof(planesAutorizadosDelRemitente));
             }
 
             // La estructura tiene que traer EXACTAMENTE los diez campos de CamposDeFila.Todos(), por su Nombre: ni uno
@@ -137,8 +136,10 @@ namespace Sanic.Mppp.Plugins.Validacion
             Obligatoriedad = obligatoriedad;
             _camposPorNombre = camposPorNombre;
             _planesPorCodigo = planesPorCodigo;
-            // Copia: cambiar el diccionario después de construir el catálogo no lo cambia (revisión de código, 2026-09-21).
-            _autorizaciones = new Dictionary<Guid, bool>(autorizacionesActivasDelRemitente);
+            // Copia: cambiar la colección después de construir el catálogo no lo cambia (revisión de código, 2026-09-21).
+            // D-42 (aprobador, 2026-09-21): la evidencia no cuenta, así que basta con el SET de planes autorizados (sin el
+            // tercer estado "sin evidencia" que tenía la versión anterior).
+            _planesAutorizados = new HashSet<Guid>(planesAutorizadosDelRemitente);
         }
 
         public ListasPlantilla Listas { get; }
@@ -184,10 +185,11 @@ namespace Sanic.Mppp.Plugins.Validacion
             return _planesPorCodigo.TryGetValue(codigoNormalizado, out var plan) ? plan : null;
         }
 
-        /// <summary>True si el remitente tiene una autorización activa sobre ese plan.</summary>
+        /// <summary>True si el remitente tiene una autorización ACTIVA sobre ese plan (D-42: la evidencia no cuenta,
+        /// así que esto es un simple "está o no está" en el set que se copió en el constructor).</summary>
         public bool EstaAutorizado(Guid planId)
         {
-            return _autorizaciones.TryGetValue(planId, out var vigente) ? (bool?)vigente : null;
+            return _planesAutorizados.Contains(planId);
         }
 
         /// <summary>
@@ -458,18 +460,18 @@ namespace Sanic.Mppp.Plugins.Validacion
                 var valoresCitados = string.Join(", ", camposInvalidos.Select(c => MensajeAlCliente.Citar(fila.Recibido(c))));
                 var marcadores = new Dictionary<string, string> { ["campo"] = encabezados, ["valor"] = valoresCitados };
 
-                // DD-01: el valor recibido se cita SIEMPRE en la precisión, así el catálogo redacte lo que redacte.
-                var precision = string.Join(" ", camposInvalidos.Select(c => $"{fila.Encabezado(c)} '{MensajeAlCliente.Citar(fila.Recibido(c))}'."));
-
-                return Veredicto.NoCumplida($"Uno o más valores no son válidos: {encabezados}.", marcadores, precision);
+                // D-41 (aprobador, 2026-09-21): menos detalle. El texto por defecto nombra el campo y NO cita lo que
+                // escribió el cliente (sin precisión); el marcador {valor} sigue disponible para quien redacte el catálogo.
+                return Veredicto.NoCumplida($"Uno o más valores no son válidos: {encabezados}.", marcadores, null);
             }
         }
 
         /// <summary>
         /// Largo mínimo, máximo y formato de cada campo de la estructura (diseno/03 §1 paso 5). El largo se mide sobre lo
         /// recibido sin espacios a los lados; un campo vacío no falla por mínimo (eso es de OBLIGATORIEDAD), y uno sin ningún
-        /// límite en la estructura no se mira. La precisión nombra el límite (el número), nunca el valor: el de cuenta y el de
-        /// identificación son datos sensibles (DD-08).
+        /// límite en la estructura no se mira. D-41 (aprobador, 2026-09-21): menos detalle, el texto por defecto solo nombra
+        /// los campos, SIN precisión (ni el límite ni el valor): el de cuenta y el de identificación son datos sensibles
+        /// (DD-08), y para los demás tampoco hace falta el número para que el cliente revise la celda.
         /// </summary>
         private sealed class EvaluadorLargosYFormato : IEvaluador<FilaEnValidacion>
         {
@@ -483,7 +485,6 @@ namespace Sanic.Mppp.Plugins.Validacion
                 }
 
                 var encabezadosQueFallan = new List<string>();
-                var precisiones = new List<string>();
 
                 foreach (var campo in CamposDeFila.Todos())
                 {
@@ -499,25 +500,13 @@ namespace Sanic.Mppp.Plugins.Validacion
                         continue;
                     }
 
-                    var encabezado = fila.Encabezado(campo);
-                    string motivo = null;
-                    if (campoPlantilla.LargoMinimo.HasValue && recibido.Length < campoPlantilla.LargoMinimo.Value)
-                    {
-                        motivo = $"{encabezado} tiene que traer al menos {campoPlantilla.LargoMinimo.Value.ToString(CultureInfo.InvariantCulture)} caracteres.";
-                    }
-                    else if (campoPlantilla.LargoMaximo.HasValue && recibido.Length > campoPlantilla.LargoMaximo.Value)
-                    {
-                        motivo = $"{encabezado} no puede pasar de {campoPlantilla.LargoMaximo.Value.ToString(CultureInfo.InvariantCulture)} caracteres.";
-                    }
-                    else if (campoPlantilla.Formato.HasValue && !CumpleFormato(recibido, campoPlantilla.Formato.Value))
-                    {
-                        motivo = $"{encabezado} trae un formato que no se acepta.";
-                    }
+                    bool falla = (campoPlantilla.LargoMinimo.HasValue && recibido.Length < campoPlantilla.LargoMinimo.Value)
+                        || (campoPlantilla.LargoMaximo.HasValue && recibido.Length > campoPlantilla.LargoMaximo.Value)
+                        || (campoPlantilla.Formato.HasValue && !CumpleFormato(recibido, campoPlantilla.Formato.Value));
 
-                    if (motivo != null)
+                    if (falla)
                     {
-                        encabezadosQueFallan.Add(encabezado);
-                        precisiones.Add(motivo);
+                        encabezadosQueFallan.Add(fila.Encabezado(campo));
                     }
                 }
 
@@ -526,8 +515,9 @@ namespace Sanic.Mppp.Plugins.Validacion
                     return Veredicto.Cumplida();
                 }
 
-                var marcadores = new Dictionary<string, string> { ["campo"] = string.Join(", ", encabezadosQueFallan) };
-                return Veredicto.NoCumplida("Uno o más campos no cumplen su largo o formato permitido.", marcadores, string.Join(" ", precisiones));
+                var encabezados = string.Join(", ", encabezadosQueFallan);
+                var marcadores = new Dictionary<string, string> { ["campo"] = encabezados };
+                return Veredicto.NoCumplida($"Revise el largo o el formato de: {encabezados}.", marcadores, null);
             }
 
             /// <summary>`FormatoDeCampo` es una lista cerrada y ASCII (D-18b): dígito y letra se comparan por rango de <see cref="char"/>,
@@ -582,9 +572,11 @@ namespace Sanic.Mppp.Plugins.Validacion
                     return Veredicto.Cumplida();
                 }
 
+                // D-41 (aprobador, 2026-09-21): menos detalle. El texto por defecto ya NO cita lo que escribió el cliente
+                // (nunca se adivina un plan parecido, así que citarlo no ayuda); el marcador queda para quien redacte el catálogo.
                 var citado = MensajeAlCliente.Citar(fila.Recibido(CamposDeFila.NumeroPlan));
                 var marcadores = new Dictionary<string, string> { ["plan"] = citado, ["valor"] = citado };
-                return Veredicto.NoCumplida($"El plan '{citado}' no existe o no está activo.", marcadores, null);
+                return Veredicto.NoCumplida("El plan no existe o no está activo.", marcadores, null);
             }
         }
 
@@ -707,7 +699,9 @@ namespace Sanic.Mppp.Plugins.Validacion
                     return Veredicto.Cumplida();
                 }
 
-                return Veredicto.NoCumplida("No se pudo armar la referencia: hace falta un banco válido y una cuenta de hasta 17 dígitos.");
+                // D-42 (aprobador, 2026-09-21): el texto por defecto ya no menciona el largo ("hasta 17").
+                var marcadores = new Dictionary<string, string> { ["plan"] = plan.Codigo };
+                return Veredicto.NoCumplida($"Para el plan {plan.Codigo}, la cuenta debe tener solo dígitos y el banco debe ser válido.", marcadores, null);
             }
         }
 
@@ -736,25 +730,23 @@ namespace Sanic.Mppp.Plugins.Validacion
                 }
 
                 var moneda = fila.Moneda;
-                if (moneda == null)
-                {
-                    return Veredicto.NoCumplida($"El plan {plan.Codigo} no admite esa moneda.");
-                }
-
-                if (moneda.Value == plan.Moneda)
+                if (moneda != null && moneda.Value == plan.Moneda)
                 {
                     return Veredicto.Cumplida();
                 }
 
-                var marcadores = new Dictionary<string, string> { ["plan"] = plan.Codigo, ["valor"] = moneda.Value.ToString() };
-                return Veredicto.NoCumplida($"La moneda no coincide con la del plan {plan.Codigo}.", marcadores, null);
+                // D-41 (aprobador, 2026-09-21): menos detalle, un solo texto tanto si la moneda no es válida como si no
+                // coincide con la del plan; el marcador {valor} cita lo recibido para quien redacte el catálogo.
+                var valorCitado = moneda != null ? moneda.Value.ToString() : MensajeAlCliente.Citar(fila.Recibido(CamposDeFila.Moneda));
+                var marcadores = new Dictionary<string, string> { ["plan"] = plan.Codigo, ["valor"] = valorCitado };
+                return Veredicto.NoCumplida($"La moneda no es la del plan {plan.Codigo}.", marcadores, null);
             }
         }
 
         /// <summary>
-        /// `AUTORIZACION_CORREO_PLAN` (RF-02, D-14): el remitente tiene que tener una autorización vigente sobre el plan. El
-        /// texto GENERAL por defecto nombra el plan y no usa la palabra "evidencia" (la usa solo la precisión, y solo en el
-        /// caso en que la autorización existe pero le falta el documento).
+        /// `AUTORIZACION_CORREO_PLAN` (RF-02, D-14, D-42): el remitente tiene que tener una autorización ACTIVA sobre el
+        /// plan. D-42 (aprobador, 2026-09-21): la evidencia no cuenta para la vigencia, así que hay un SOLO caso de falla,
+        /// sin precisión ni mención de "evidencia" en el texto al cliente (eso queda para la vista del administrador).
         /// </summary>
         private sealed class EvaluadorAutorizacionCorreoPlan : IEvaluador<FilaEnValidacion>
         {
@@ -773,18 +765,13 @@ namespace Sanic.Mppp.Plugins.Validacion
                     return Veredicto.NoCumplida("No se puede comprobar la autorización porque el plan no existe.");
                 }
 
-                if (fila.Catalogos.AutorizacionSobre(plan.Id) == true)
+                if (fila.Catalogos.EstaAutorizado(plan.Id))
                 {
                     return Veredicto.Cumplida();
                 }
 
                 var marcadores = new Dictionary<string, string> { ["plan"] = plan.Codigo };
-                var texto = $"Su correo no está habilitado para operar sobre el plan {plan.Codigo}.";
-                var precision = fila.Catalogos.AutorizacionSobre(plan.Id) == null
-                    ? "Ese correo no está autorizado sobre ese plan."
-                    : "La autorización sobre ese plan no tiene la evidencia cargada.";
-
-                return Veredicto.NoCumplida(texto, marcadores, precision);
+                return Veredicto.NoCumplida($"Su correo no está autorizado sobre el plan {plan.Codigo}.", marcadores, null);
             }
         }
     }
