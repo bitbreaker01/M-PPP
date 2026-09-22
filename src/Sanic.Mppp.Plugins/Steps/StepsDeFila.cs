@@ -1,8 +1,107 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Query;
+using Sanic.Mppp.Plugins.Datos;
+using Sanic.Mppp.Plugins.Dominio;
+using Sanic.Mppp.Plugins.Respuesta;
 
 namespace Sanic.Mppp.Plugins.Steps
 {
+    /// <summary>
+    /// Plomería común a los tres steps de esta pieza (diseno/03 §4 y §5): leer la imagen previa que trae la columna que
+    /// hace falta, resolver los roles de negocio del actor con un número FIJO de consultas, leer `rpa.puedeaprobar` y el
+    /// nombre de quien actuó para la Bitácora (D-21, `sanic_actortexto`).
+    /// </summary>
+    internal static class PlomeriaDeFila
+    {
+        private const string RolSupervisor = "sr_mppp_supervisor";
+        private const string RolServicioDeIngesta = "sr_mppp_servicio_de_ingesta";
+
+        /// <summary>La primera pre-image que trae `columna` (03 §4: "el estado de origen sale de la PRE-IMAGE, nunca del Target", sea cual sea la clave con la que la registraron).</summary>
+        internal static Entity ImagenQueTrae(IPluginExecutionContext contexto, string columna)
+        {
+            foreach (var imagen in contexto.PreEntityImages.Values)
+            {
+                if (imagen != null && imagen.Contains(columna))
+                {
+                    return imagen;
+                }
+            }
+
+            throw new InvalidPluginExecutionException($"Falta la imagen previa con la columna '{columna}'.");
+        }
+
+        /// <summary>
+        /// Los roles de negocio del actor (Ejecutivo, Supervisor, RPA), con dos consultas fijas: los tres roles por
+        /// `name`, y las asignaciones de ESE usuario entre esos tres (diseno/04 §2 y §3; orden del constructor).
+        /// </summary>
+        internal static RolDeActor DeterminarRoles(IOrganizationService servicio, Guid actorId)
+        {
+            var consultaRoles = new QueryExpression(TablasNativas.Rol) { ColumnSet = new ColumnSet("name") };
+            consultaRoles.Criteria.AddCondition("name", ConditionOperator.In, TablasNativas.RolEjecutivo, RolSupervisor, RolServicioDeIngesta);
+            var roles = servicio.RetrieveMultiple(consultaRoles).Entities;
+            if (roles.Count == 0)
+            {
+                return RolDeActor.Ninguno;
+            }
+
+            var nombrePorRoleId = roles.ToDictionary(r => r.Id, r => r.GetAttributeValue<string>("name"));
+
+            var consultaAsignaciones = new QueryExpression(TablasNativas.UsuarioRol) { ColumnSet = new ColumnSet("roleid") };
+            consultaAsignaciones.Criteria.AddCondition("systemuserid", ConditionOperator.Equal, actorId);
+            consultaAsignaciones.Criteria.AddCondition("roleid", ConditionOperator.In, nombrePorRoleId.Keys.Cast<object>().ToArray());
+            var asignaciones = servicio.RetrieveMultiple(consultaAsignaciones).Entities;
+
+            var resultado = RolDeActor.Ninguno;
+            foreach (var asignacion in asignaciones)
+            {
+                var roleId = asignacion.GetAttributeValue<EntityReference>("roleid")?.Id;
+                if (roleId.HasValue && nombrePorRoleId.TryGetValue(roleId.Value, out var nombre))
+                {
+                    resultado |= NombreARol(nombre);
+                }
+            }
+
+            return resultado;
+        }
+
+        private static RolDeActor NombreARol(string nombre)
+        {
+            if (string.Equals(nombre, TablasNativas.RolEjecutivo, StringComparison.OrdinalIgnoreCase))
+            {
+                return RolDeActor.Ejecutivo;
+            }
+
+            if (string.Equals(nombre, RolSupervisor, StringComparison.OrdinalIgnoreCase))
+            {
+                return RolDeActor.Supervisor;
+            }
+
+            if (string.Equals(nombre, RolServicioDeIngesta, StringComparison.OrdinalIgnoreCase))
+            {
+                return RolDeActor.Rpa;
+            }
+
+            return RolDeActor.Ninguno;
+        }
+
+        /// <summary>`rpa.puedeaprobar` vale `si` (sin distinguir mayúsculas) para habilitar la excepción; ausente o cualquier otro valor, no (diseno/03 §4).</summary>
+        internal static bool LeerRpaPuedeAprobar(IOrganizationService servicio)
+        {
+            var parametro = new CatalogosDataverse(servicio).Parametro(TransicionDeFilaStep.ParametroRpaPuedeAprobar);
+            return parametro != null && string.Equals(parametro.Valor, "si", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>`sanic_actortexto` (D-21): el `fullname` de quien inicia, con una consulta.</summary>
+        internal static string NombreDeQuienActua(IOrganizationService servicio, Guid usuarioId)
+        {
+            var usuario = servicio.Retrieve(TablasNativas.Usuario, usuarioId, new ColumnSet("fullname"));
+            return usuario.GetAttributeValue<string>("fullname");
+        }
+    }
+
     /// <summary>
     /// 7.9, transición de estado de Fila: `Update` de Fila, PreOperation, síncrono, filtro `sanic_estado`, con pre-image
     /// (`sanic_estado`, `sanic_digitadapor`, `sanic_solicitudid`), orden 1 (diseno/03 §4, D-25). Contrato (lo fijan las pruebas
@@ -25,7 +124,85 @@ namespace Sanic.Mppp.Plugins.Steps
 
         public void Execute(IServiceProvider serviceProvider)
         {
-            throw new NotImplementedException();
+            if (!PlomeriaDePlataforma.Preparar(serviceProvider, out var contexto, out var servicio, out var target))
+            {
+                return;
+            }
+
+            if (!string.Equals(target.LogicalName, TablasHistorico.Fila, StringComparison.Ordinal) || !target.Contains("sanic_estado"))
+            {
+                // Filtering attributes = sanic_estado (03 §4): un Update que no cambia el estado no hace nada.
+                return;
+            }
+
+            var preImagen = PlomeriaDeFila.ImagenQueTrae(contexto, "sanic_estado");
+            var desde = (EstadoDeLaFila)preImagen.GetAttributeValue<OptionSetValue>("sanic_estado").Value;
+            var hacia = (EstadoDeLaFila)target.GetAttributeValue<OptionSetValue>("sanic_estado").Value;
+            var digitadaPorPrevio = preImagen.GetAttributeValue<EntityReference>("sanic_digitadapor")?.Id;
+
+            var esCodigoDeServidor = BaseDeStep.EsCodigoDeServidor(contexto, servicio);
+            var roles = PlomeriaDeFila.DeterminarRoles(servicio, contexto.InitiatingUserId);
+            var rpaPuedeAprobar = PlomeriaDeFila.LeerRpaPuedeAprobar(servicio);
+
+            var pedido = new PedidoDeTransicion
+            {
+                Desde = desde,
+                Hacia = hacia,
+                Actor = new Actor(contexto.InitiatingUserId, roles),
+                Mensaje = target.Contains("sanic_mensaje") ? target["sanic_mensaje"] as string : null,
+                DigitadaPor = digitadaPorPrevio,
+                RpaPuedeAprobar = rpaPuedeAprobar,
+            };
+
+            var resultado = TransicionesDeFila.Evaluar(pedido);
+            if (!resultado.Permitida)
+            {
+                throw new InvalidPluginExecutionException(resultado.Motivo);
+            }
+
+            AplicarEfecto(target, resultado.Efecto, contexto, esCodigoDeServidor);
+        }
+
+        /// <summary>Escribe quién y cuándo según el efecto (03 §4). A una persona nunca se le cree lo que mandó; al código de servidor se le confía lo que ya trae, y se completa solo lo que falte.</summary>
+        private static void AplicarEfecto(Entity target, EfectoDeTransicion efecto, IPluginExecutionContext contexto, bool esCodigoDeServidor)
+        {
+            switch (efecto)
+            {
+                case EfectoDeTransicion.RegistrarDigitacion:
+                    EscribirQuienYCuando(target, "sanic_digitadapor", "sanic_fechadigitada", contexto, esCodigoDeServidor);
+                    break;
+                case EfectoDeTransicion.RegistrarAprobacion:
+                    EscribirQuienYCuando(target, "sanic_aprobadapor", "sanic_fechaaprobada", contexto, esCodigoDeServidor);
+                    break;
+                case EfectoDeTransicion.LimpiarDigitacion:
+                    // Devolver: limpia explícitamente en el Target, poniendo null (no omitiendo la columna).
+                    target["sanic_digitadapor"] = null;
+                    target["sanic_fechadigitada"] = null;
+                    break;
+            }
+        }
+
+        private static void EscribirQuienYCuando(Entity target, string columnaUsuario, string columnaFecha, IPluginExecutionContext contexto, bool esCodigoDeServidor)
+        {
+            if (esCodigoDeServidor)
+            {
+                // 03 §4: "si quien llama ES SYSTEM ... el step confía en ese Target"; solo se completa lo que no vino.
+                if (!target.Contains(columnaUsuario))
+                {
+                    target[columnaUsuario] = new EntityReference(TablasNativas.Usuario, contexto.InitiatingUserId);
+                }
+
+                if (!target.Contains(columnaFecha))
+                {
+                    target[columnaFecha] = contexto.OperationCreatedOn;
+                }
+
+                return;
+            }
+
+            // "Si quien llama NO es SYSTEM ... se ignoran y se pisan con InitiatingUserId y la hora actual" (03 §4).
+            target[columnaUsuario] = new EntityReference(TablasNativas.Usuario, contexto.InitiatingUserId);
+            target[columnaFecha] = contexto.OperationCreatedOn;
         }
     }
 
@@ -45,7 +222,128 @@ namespace Sanic.Mppp.Plugins.Steps
     {
         public void Execute(IServiceProvider serviceProvider)
         {
-            throw new NotImplementedException();
+            if (!PlomeriaDePlataforma.Preparar(serviceProvider, out var contexto, out var servicio, out var target))
+            {
+                return;
+            }
+
+            if (!string.Equals(target.LogicalName, TablasHistorico.Fila, StringComparison.Ordinal) || !target.Contains("sanic_estado"))
+            {
+                return;
+            }
+
+            var preImagen = PlomeriaDeFila.ImagenQueTrae(contexto, "sanic_estado");
+            var desde = (EstadoDeLaFila)preImagen.GetAttributeValue<OptionSetValue>("sanic_estado").Value;
+            var hacia = (EstadoDeLaFila)target.GetAttributeValue<OptionSetValue>("sanic_estado").Value;
+            var solicitudId = preImagen.GetAttributeValue<EntityReference>("sanic_solicitudid").Id;
+            var numeroFila = preImagen.GetAttributeValue<int>("sanic_numerofila");
+            var digitadaPorPrevio = preImagen.GetAttributeValue<EntityReference>("sanic_digitadapor")?.Id;
+
+            // El evento de Bitácora sale de la MISMA máquina de estados que ya autorizó la transición en la pre-operación
+            // (Dominio.TransicionesDeFila.Evaluar es la única fuente de verdad; orden del constructor).
+            var roles = PlomeriaDeFila.DeterminarRoles(servicio, contexto.InitiatingUserId);
+            var rpaPuedeAprobar = PlomeriaDeFila.LeerRpaPuedeAprobar(servicio);
+            var pedido = new PedidoDeTransicion
+            {
+                Desde = desde,
+                Hacia = hacia,
+                Actor = new Actor(contexto.InitiatingUserId, roles),
+                Mensaje = target.Contains("sanic_mensaje") ? target["sanic_mensaje"] as string : null,
+                DigitadaPor = digitadaPorPrevio,
+                RpaPuedeAprobar = rpaPuedeAprobar,
+            };
+
+            var resultado = TransicionesDeFila.Evaluar(pedido);
+            if (!resultado.Permitida || resultado.Evento == null)
+            {
+                // La pre-operación ya validó esta misma transición: llegar acá sin evento es un error de programación.
+                throw new InvalidPluginExecutionException("No se pudo determinar el evento de Bitácora de la transición.");
+            }
+
+            var solicitudes = new SolicitudesDataverse(servicio);
+            var actorTexto = PlomeriaDeFila.NombreDeQuienActua(servicio, contexto.InitiatingUserId);
+            solicitudes.RegistrarEvento(solicitudId, contexto.OperationCreatedOn, resultado.Evento.Value, OrigenDelEvento.Plugin, numeroFila, actorTexto, null);
+
+            // Consulta 1 (filas de la Solicitud): la fila que se acaba de transicionar todavía figura en la base con su
+            // estado ANTERIOR en el doble de pruebas (no vuelve a aplicar el Update); se refleja el nuevo estado acá,
+            // como ya lo tiene la plataforma real en PostOperation (diseno/03 §8).
+            var filas = LeerFilasDeLaSolicitud(servicio, solicitudId, target.Id, hacia);
+
+            var solicitud = solicitudes.Leer(solicitudId); // Consulta 2 (la Solicitud).
+            if (!CierreDeSolicitud.CorrespondeProcesar(solicitud.Estado, filas.Select(f => f.Estado)))
+            {
+                return;
+            }
+
+            var respuesta = ArmadorRespuesta.RespuestaFinal(new SolicitudParaRespuesta
+            {
+                Numero = solicitud.Numero,
+                Estado = EstadoDeLaSolicitud.Procesada,
+                FechaRecibidoTexto = null,
+                MotivosDelSobre = new List<string>(),
+                Filas = filas.Select(ConvertirParaRespuesta).ToList(),
+            });
+
+            var entidadSolicitud = new Entity(TablasHistorico.Solicitud, solicitudId);
+            entidadSolicitud["sanic_estadoprocesamiento"] = new OptionSetValue((int)EstadoDeLaSolicitud.Procesada);
+            entidadSolicitud["sanic_fechaprocesada"] = contexto.OperationCreatedOn;
+            entidadSolicitud["sanic_respuestafinalcontenido"] = respuesta;
+            servicio.Update(entidadSolicitud);
+
+            solicitudes.RegistrarEvento(solicitudId, contexto.OperationCreatedOn, EventoDeBitacora.Procesada, OrigenDelEvento.Plugin, 0, null, null);
+        }
+
+        private static IList<FilaParaCierre> LeerFilasDeLaSolicitud(IOrganizationService servicio, Guid solicitudId, Guid filaQueTransiciono, EstadoDeLaFila haciaLaFilaQueTransiciono)
+        {
+            var consulta = new QueryExpression(TablasHistorico.Fila)
+            {
+                ColumnSet = new ColumnSet("sanic_numerofila", "sanic_numeroplan", "sanic_nombrebeneficiario", "sanic_numerocuenta", "sanic_numeroidentificacion", "sanic_estado", "sanic_mensaje"),
+            };
+            consulta.Criteria.AddCondition("sanic_solicitudid", ConditionOperator.Equal, solicitudId);
+
+            return servicio.RetrieveMultiple(consulta).Entities
+                .Select(fila => new FilaParaCierre
+                {
+                    NumeroFila = fila.GetAttributeValue<int>("sanic_numerofila"),
+                    NumeroPlan = fila.GetAttributeValue<string>("sanic_numeroplan"),
+                    NombreBeneficiario = fila.GetAttributeValue<string>("sanic_nombrebeneficiario"),
+                    NumeroCuenta = fila.GetAttributeValue<string>("sanic_numerocuenta"),
+                    NumeroIdentificacion = fila.GetAttributeValue<string>("sanic_numeroidentificacion"),
+                    // La plataforma ya escribió este cambio en la base cuando el step corre en PostOperation (diseno/03 §8: el
+                    // doble de pruebas no vuelve a aplicar el Update, así que acá se refleja igual que en Dev).
+                    Estado = fila.Id == filaQueTransiciono ? haciaLaFilaQueTransiciono : (EstadoDeLaFila)fila.GetAttributeValue<OptionSetValue>("sanic_estado").Value,
+                    Mensaje = fila.GetAttributeValue<string>("sanic_mensaje"),
+                })
+                .ToList();
+        }
+
+        private static FilaParaRespuesta ConvertirParaRespuesta(FilaParaCierre fila) => new FilaParaRespuesta
+        {
+            NumeroFila = fila.NumeroFila,
+            NumeroPlan = fila.NumeroPlan,
+            NombreBeneficiario = fila.NombreBeneficiario,
+            NumeroCuenta = fila.NumeroCuenta,
+            NumeroIdentificacion = fila.NumeroIdentificacion,
+            Estado = fila.Estado,
+            Mensaje = fila.Mensaje,
+        };
+
+        /// <summary>Lo mínimo de una Fila para decidir el cierre y armar la respuesta final. Sin SDK hacia afuera.</summary>
+        private sealed class FilaParaCierre
+        {
+            public int NumeroFila { get; set; }
+
+            public string NumeroPlan { get; set; }
+
+            public string NombreBeneficiario { get; set; }
+
+            public string NumeroCuenta { get; set; }
+
+            public string NumeroIdentificacion { get; set; }
+
+            public EstadoDeLaFila Estado { get; set; }
+
+            public string Mensaje { get; set; }
         }
     }
 
@@ -59,9 +357,51 @@ namespace Sanic.Mppp.Plugins.Steps
     /// </summary>
     public sealed class AtenderPorClasificarStep : IPlugin
     {
+        private static readonly HashSet<EstadoDeLaSolicitud> DesdeValidos = new HashSet<EstadoDeLaSolicitud>
+        {
+            EstadoDeLaSolicitud.NoReconocida,
+            EstadoDeLaSolicitud.NoEsCorreoNuevo,
+        };
+
+        private static readonly HashSet<EstadoDeLaSolicitud> HaciaValidos = new HashSet<EstadoDeLaSolicitud>
+        {
+            EstadoDeLaSolicitud.Cerrada,
+            EstadoDeLaSolicitud.Descartada,
+        };
+
         public void Execute(IServiceProvider serviceProvider)
         {
-            throw new NotImplementedException();
+            if (!PlomeriaDePlataforma.Preparar(serviceProvider, out var contexto, out var servicio, out var target))
+            {
+                return;
+            }
+
+            if (!string.Equals(target.LogicalName, TablasHistorico.Solicitud, StringComparison.Ordinal) || !target.Contains("sanic_estadoprocesamiento"))
+            {
+                return;
+            }
+
+            if (BaseDeStep.EsCodigoDeServidor(contexto, servicio))
+            {
+                // 03 §5: la Custom API y MPPP-VIG mueven los estados que les tocan; este control no es asunto suyo.
+                return;
+            }
+
+            var preImagen = PlomeriaDeFila.ImagenQueTrae(contexto, "sanic_estadoprocesamiento");
+            var desde = (EstadoDeLaSolicitud)preImagen.GetAttributeValue<OptionSetValue>("sanic_estadoprocesamiento").Value;
+            var hacia = (EstadoDeLaSolicitud)target.GetAttributeValue<OptionSetValue>("sanic_estadoprocesamiento").Value;
+
+            if (!DesdeValidos.Contains(desde) || !HaciaValidos.Contains(hacia))
+            {
+                throw new InvalidPluginExecutionException(
+                    $"No se puede cambiar el estado de '{desde}' a '{hacia}': solo se puede cerrar o descartar lo que está por clasificar.");
+            }
+
+            // "No reconocida atendida" cubre el cierre de los dos estados de origen (07 §6: "No reconocida → Cerrada (atendida)");
+            // Descartada es el evento propio de esa transición.
+            var evento = hacia == EstadoDeLaSolicitud.Cerrada ? EventoDeBitacora.NoReconocidaAtendida : EventoDeBitacora.Descartada;
+            var actorTexto = PlomeriaDeFila.NombreDeQuienActua(servicio, contexto.InitiatingUserId);
+            new SolicitudesDataverse(servicio).RegistrarEvento(target.Id, contexto.OperationCreatedOn, evento, OrigenDelEvento.Plugin, 0, actorTexto, null);
         }
     }
 }
