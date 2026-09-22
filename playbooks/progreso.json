@@ -453,14 +453,14 @@
    "grupo": "P-08",
    "nombre": "Api/ValidarSolicitudApi",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "7.8",
    "grupo": "P-08",
    "nombre": "Steps/ lista blanca de columnas (Fila y Solicitud)",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "7.9",
@@ -474,14 +474,14 @@
    "grupo": "P-08",
    "nombre": "Steps/ normalizar y validar (Cliente, Plan, Autorizado, Parametro, Regla)",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "7.11",
    "grupo": "P-08",
    "nombre": "Steps/ nombre calculado (Plan, AutorizacionPlan) e integridad de AutorizacionPlan",
    "total": 1,
-   "hechos": 0
+   "hechos": 1
   },
   {
    "id": "7.12",
