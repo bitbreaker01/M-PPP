@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.ServiceModel;
+using Microsoft.Crm.Sdk.Messages;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Query;
@@ -66,6 +67,10 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
         private readonly Dictionary<string, List<Guid>> _ordenPorEntidad = new Dictionary<string, List<Guid>>(StringComparer.Ordinal);
         private readonly List<LlamadaRegistrada> _llamadas = new List<LlamadaRegistrada>();
         private readonly ReadOnlyCollection<LlamadaRegistrada> _llamadasSoloLectura;
+
+        // Columnas de archivo: cada InitializeFileBlocksDownload guarda una COPIA de los bytes bajo un token nuevo,
+        // para que DownloadBlock lea de ahí sin volver a tocar el registro (diseno/03 §8, contrato del doble).
+        private readonly Dictionary<string, byte[]> _archivosPorToken = new Dictionary<string, byte[]>(StringComparer.Ordinal);
 
         public OrganizationServiceEnMemoria()
         {
@@ -306,9 +311,53 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
                         return resp;
                     }
 
+                case InitializeFileBlocksDownloadRequest r:
+                    return IniciarDescargaDeArchivo(r);
+
+                case DownloadBlockRequest r:
+                    return DescargarBloqueDeArchivo(r);
+
                 default:
                     throw new NotSupportedException($"El doble no simula el request '{request.RequestName}': no está entre los pocos mensajes que el código de M-PPP usa (diseno/03 §8).");
             }
+        }
+
+        /// <summary>Registro y columna sin `byte[]`: falla del servicio, no un archivo vacío (diseno/03 §8, PENDIENTES §B).</summary>
+        private InitializeFileBlocksDownloadResponse IniciarDescargaDeArchivo(InitializeFileBlocksDownloadRequest pedido)
+        {
+            var registro = BuscarObligatorio(pedido.Target.LogicalName, pedido.Target.Id);
+            if (!registro.Contains(pedido.FileAttributeName) || !(registro[pedido.FileAttributeName] is byte[] bytes))
+            {
+                throw Falla($"La columna '{pedido.FileAttributeName}' de '{pedido.Target.LogicalName}' no tiene un archivo.");
+            }
+
+            var copia = new byte[bytes.Length];
+            Array.Copy(bytes, copia, bytes.Length);
+            var token = Guid.NewGuid().ToString("N");
+            _archivosPorToken[token] = copia;
+
+            var respuesta = new InitializeFileBlocksDownloadResponse();
+            respuesta.Results["FileSizeInBytes"] = (long)copia.Length;
+            respuesta.Results["FileName"] = pedido.FileAttributeName + ".bin";
+            respuesta.Results["FileContinuationToken"] = token;
+            return respuesta;
+        }
+
+        /// <summary>Token que no salió de una inicialización: falla del servicio. Si existe, copia desde Offset, a lo sumo BlockLength.</summary>
+        private DownloadBlockResponse DescargarBloqueDeArchivo(DownloadBlockRequest pedido)
+        {
+            if (pedido.FileContinuationToken == null || !_archivosPorToken.TryGetValue(pedido.FileContinuationToken, out var bytes))
+            {
+                throw Falla("El token de continuación no corresponde a una descarga de archivo iniciada.");
+            }
+
+            var disponible = Math.Max(0L, Math.Min(pedido.BlockLength, bytes.Length - pedido.Offset));
+            var datos = new byte[disponible];
+            Array.Copy(bytes, pedido.Offset, datos, 0, disponible);
+
+            var respuesta = new DownloadBlockResponse();
+            respuesta.Results["Data"] = datos;
+            return respuesta;
         }
 
         private static string EntidadDe(OrganizationRequest request)
@@ -320,6 +369,7 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
                 case UpdateRequest r: return r.Target?.LogicalName;
                 case DeleteRequest r: return r.Target?.LogicalName;
                 case RetrieveMultipleRequest r: return (r.Query as QueryExpression)?.EntityName;
+                case InitializeFileBlocksDownloadRequest r: return r.Target?.LogicalName;
                 default: return null;
             }
         }

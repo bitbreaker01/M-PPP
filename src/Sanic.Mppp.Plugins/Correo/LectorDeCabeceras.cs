@@ -66,13 +66,13 @@ namespace Sanic.Mppp.Plugins.Correo
             // UTF-8 TOLERANTE: no lanza ante bytes inválidos, los reemplaza (entrada no confiable: nunca revienta).
             var texto = new UTF8Encoding(false, false).GetString(bytes);
 
-            var bloqueCabeceras = ExtraerBloqueDeCabeceras(texto);
-            if (bloqueCabeceras == null)
+            var lineasFisicas = ExtraerLineasFisicasDeCabeceras(texto);
+            if (lineasFisicas == null)
             {
                 return CabecerasLeidas.Ilegibles();
             }
 
-            var lineasLogicas = PlegarLineas(bloqueCabeceras);
+            var lineasLogicas = PlegarLineas(lineasFisicas);
 
             string asunto = null;
             var traeInReplyTo = false;
@@ -135,46 +135,116 @@ namespace Sanic.Mppp.Plugins.Correo
             return resultado;
         }
 
-        /// <summary>El bloque ANTES de la primera línea en blanco (CRLF CRLF o LF LF); nulo si esa línea nunca aparece.</summary>
-        private static string ExtraerBloqueDeCabeceras(string texto)
+        /// <summary>
+        /// Parte el texto en líneas físicas tratando `\r\n`, `\n` suelto y `\r` suelto como fin de línea (revisión de código,
+        /// 2026-09-21: un `\r` sin `\n` tiene que cortar igual, si no un `In-Reply-To` puede quedar escondido dentro del
+        /// `Subject` y DF-08 lee una respuesta como correo nuevo). Devuelve las líneas ANTES de la primera línea en blanco
+        /// (que cierra las cabeceras, sea `\r\n\r\n`, `\n\n` o `\r\r`); nulo si esa línea nunca aparece. Un solo recorrido,
+        /// sin volver a escanear el texto entero (mismo motivo de rendimiento que <see cref="PlegarLineas"/>).
+        /// </summary>
+        private static IList<string> ExtraerLineasFisicasDeCabeceras(string texto)
         {
-            var finCrlf = texto.IndexOf("\r\n\r\n", StringComparison.Ordinal);
-            var finLf = texto.IndexOf("\n\n", StringComparison.Ordinal);
+            var lineas = new List<string>();
+            var inicio = 0;
+            var i = 0;
 
-            if (finCrlf >= 0 && (finLf < 0 || finCrlf <= finLf))
+            while (i < texto.Length)
             {
-                return texto.Substring(0, finCrlf);
-            }
-
-            if (finLf >= 0)
-            {
-                return texto.Substring(0, finLf);
-            }
-
-            return null;
-        }
-
-        /// <summary>Junta cada línea que empieza con espacio o tabulador a la anterior, con un único espacio entre las dos partes.</summary>
-        private static IList<string> PlegarLineas(string bloque)
-        {
-            var lineasFisicas = bloque.Replace("\r\n", "\n").Split('\n');
-            var logicas = new List<string>(lineasFisicas.Length);
-
-            foreach (var linea in lineasFisicas)
-            {
-                var esContinuacion = linea.Length > 0 && (linea[0] == ' ' || linea[0] == '\t') && logicas.Count > 0;
-                if (esContinuacion)
+                var c = texto[i];
+                if (c == '\n')
                 {
-                    var continuado = linea.Trim();
-                    var anterior = logicas[logicas.Count - 1].TrimEnd();
-                    logicas[logicas.Count - 1] = continuado.Length > 0 ? anterior + " " + continuado : anterior;
+                    lineas.Add(texto.Substring(inicio, i - inicio));
+                    i++;
+                    inicio = i;
+                }
+                else if (c == '\r')
+                {
+                    lineas.Add(texto.Substring(inicio, i - inicio));
+                    i++;
+                    if (i < texto.Length && texto[i] == '\n')
+                    {
+                        i++; // \r\n es UN solo fin de línea, no dos.
+                    }
+
+                    inicio = i;
                 }
                 else
                 {
-                    logicas.Add(linea);
+                    i++;
+                    continue;
+                }
+
+                if (lineas[lineas.Count - 1].Length == 0)
+                {
+                    // Línea en blanco: acá terminan las cabeceras. Se devuelve todo lo anterior, sin la línea en blanco.
+                    return lineas.GetRange(0, lineas.Count - 1);
                 }
             }
 
+            return null; // nunca hubo línea en blanco dentro del bloque: ILEGIBLE.
+        }
+
+        /// <summary>
+        /// Junta cada línea que empieza con espacio o tabulador a la anterior, con un único espacio entre las dos partes.
+        /// Revisión de código, 2026-09-21: la versión anterior reconcatenaba `anterior + " " + continuado` DENTRO del bucle,
+        /// así que cada línea de continuación reconstruía todo lo acumulado hasta ahí (cuadrático: con 60.000 continuaciones
+        /// se vuelve inusable). Acá se juntan las partes en una lista y se unen UNA sola vez por cabecera lógica.
+        /// </summary>
+        private static IList<string> PlegarLineas(IList<string> lineasFisicas)
+        {
+            var logicas = new List<string>(lineasFisicas.Count);
+            string primeraLinea = null;
+            var tuvoContinuacion = false;
+            List<string> partes = null;
+
+            void CerrarActual()
+            {
+                if (primeraLinea == null)
+                {
+                    return;
+                }
+
+                if (!tuvoContinuacion)
+                {
+                    logicas.Add(primeraLinea);
+                }
+                else if (partes == null || partes.Count == 0)
+                {
+                    logicas.Add(primeraLinea.TrimEnd());
+                }
+                else
+                {
+                    logicas.Add(primeraLinea.TrimEnd() + " " + string.Join(" ", partes));
+                }
+            }
+
+            foreach (var linea in lineasFisicas)
+            {
+                var esContinuacion = linea.Length > 0 && (linea[0] == ' ' || linea[0] == '\t') && primeraLinea != null;
+                if (esContinuacion)
+                {
+                    tuvoContinuacion = true;
+                    var continuado = linea.Trim();
+                    if (continuado.Length > 0)
+                    {
+                        if (partes == null)
+                        {
+                            partes = new List<string>();
+                        }
+
+                        partes.Add(continuado);
+                    }
+                }
+                else
+                {
+                    CerrarActual();
+                    primeraLinea = linea;
+                    tuvoContinuacion = false;
+                    partes = null;
+                }
+            }
+
+            CerrarActual();
             return logicas;
         }
 
@@ -229,18 +299,31 @@ namespace Sanic.Mppp.Plugins.Correo
             return resultado.ToString();
         }
 
+        /// <summary>RFC 2047 §2: "an 'encoded-word' may not be more than 75 characters long" (incluye `=?...?=` completo).</summary>
+        private const int LargoMaximoPalabraCodificada = 75;
+
         /// <summary>
         /// Reconoce la ESTRUCTURA `=?charset?B|Q?texto?=` a partir de <paramref name="inicio"/> (donde está el `=?`). Si la
         /// estructura es válida, <paramref name="decodificado"/> es el contenido decodificado, o el token CRUDO tal cual si el
         /// charset no se soporta o el contenido está roto (base64 inválido, escape hexadecimal inválido): nunca revienta.
+        /// Revisión de código, 2026-09-21: la búsqueda del cierre está acotada a <see cref="LargoMaximoPalabraCodificada"/>
+        /// caracteres desde <paramref name="inicio"/>; sin esa cota, miles de `=?utf-8?B?X` sin ningún `?=` disparan un
+        /// reescaneo hasta el final del texto en cada intento (cuadrático).
         /// </summary>
         private static bool TryDecodificarPalabra(string valor, int inicio, out string decodificado, out int finIndice)
         {
             decodificado = null;
             finIndice = -1;
 
+            var limite = Math.Min(valor.Length, inicio + LargoMaximoPalabraCodificada);
+
             var pos = inicio + 2;
-            var finCharset = valor.IndexOf('?', pos);
+            if (pos >= limite)
+            {
+                return false;
+            }
+
+            var finCharset = valor.IndexOf('?', pos, limite - pos);
             if (finCharset < 0)
             {
                 return false;
@@ -253,7 +336,7 @@ namespace Sanic.Mppp.Plugins.Correo
             }
 
             pos = finCharset + 1;
-            if (pos >= valor.Length)
+            if (pos >= limite)
             {
                 return false;
             }
@@ -265,14 +348,18 @@ namespace Sanic.Mppp.Plugins.Correo
             }
 
             pos++;
-            if (pos >= valor.Length || valor[pos] != '?')
+            if (pos >= limite || valor[pos] != '?')
             {
                 return false;
             }
 
             pos++; // inicio del texto codificado
+            if (pos > limite)
+            {
+                return false;
+            }
 
-            var finTexto = valor.IndexOf("?=", pos, StringComparison.Ordinal);
+            var finTexto = valor.IndexOf("?=", pos, limite - pos, StringComparison.Ordinal);
             if (finTexto < 0)
             {
                 return false;
