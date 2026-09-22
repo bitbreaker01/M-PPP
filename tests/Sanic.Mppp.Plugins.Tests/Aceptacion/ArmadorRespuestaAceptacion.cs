@@ -200,7 +200,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             foreach (var html in new[] { ArmadorRespuesta.Acuse(solicitud), ArmadorRespuesta.RespuestaFinal(Procesada(solicitud)) })
             {
                 Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
-                Assert.DoesNotContain("onerror", html);
+                Assert.Contains("&lt;img src=x onerror=alert(2)&gt;", html); // escapado, no borrado: la palabra queda visible e inerte
                 Assert.DoesNotContain("<img", html);
                 Assert.DoesNotContain("<b>42</b>", html);
                 Assert.DoesNotContain("<i>etiqueta</i>", html);
@@ -208,6 +208,8 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
                 Assert.DoesNotContain("<hoy>", html);
                 Assert.Contains("&lt;script&gt;", html);
                 Assert.Contains("&amp; ampersand", html);
+                Assert.Contains("Motivo con", html); // las tildes y la ñ del español NO se convierten en entidades numéricas
+                Assert.DoesNotContain("&#", html);
                 Assert.DoesNotContain("{", html); // ningún marcador sin completar
             }
         }
