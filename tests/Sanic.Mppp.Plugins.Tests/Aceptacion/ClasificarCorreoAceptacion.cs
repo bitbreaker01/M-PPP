@@ -232,6 +232,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             var llamadasAntes = m.Svc.Llamadas.Count;
 
             var r = m.Correr(id);
+            var llamadasDelPlugin = m.Svc.Llamadas.Count - llamadasAntes; // antes de que el propio test lea nada
 
             Assert.Equal((false, true), (r.Procesar, r.YaProcesada));
             Assert.Null(r.Clasificacion);
@@ -239,7 +240,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Empty(m.Resultados(id));
             Assert.Empty(m.Bitacora(id));
             Assert.Empty(m.Archivos.Pedidos);
-            Assert.Equal(1, m.Svc.Llamadas.Count - llamadasAntes); // solo la lectura
+            Assert.Equal(1, llamadasDelPlugin); // solo la lectura de la Solicitud
         }
 
         // ------------------------------------------------------------------ catálogos y errores reales

@@ -39,6 +39,20 @@ namespace Sanic.Mppp.Plugins.Datos
         public string Valor { get; }
     }
 
+    /// <summary>Una regla activa del catálogo con su id, para el lookup `sanic_reglaid` del historial (diseno/02 §3.3). El motor solo usa la definición.</summary>
+    public sealed class ReglaDelCatalogo
+    {
+        public ReglaDelCatalogo(Guid id, DefinicionDeRegla definicion)
+        {
+            Id = id;
+            Definicion = definicion;
+        }
+
+        public Guid Id { get; }
+
+        public DefinicionDeRegla Definicion { get; }
+    }
+
     /// <summary>
     /// Lectores de catálogos sobre <see cref="IOrganizationService"/> (pieza 7.6, `Datos/`). Reglas comunes (lo fijan las pruebas
     /// `CatalogosDataverseAceptacion`): cada método hace un número FIJO de consultas, nunca una por elemento (diseno/03 §1 paso 6);
@@ -103,6 +117,23 @@ namespace Sanic.Mppp.Plugins.Datos
         /// lo decide el motor.
         /// </summary>
         public IList<DefinicionDeRegla> ReglasActivas(NivelDeLaRegla nivel)
+        {
+            var conId = ReglasActivasConId(nivel);
+            var definiciones = new List<DefinicionDeRegla>(conId.Count);
+            foreach (var regla in conId)
+            {
+                definiciones.Add(regla.Definicion);
+            }
+
+            return definiciones;
+        }
+
+        /// <summary>
+        /// Lo mismo que <see cref="ReglasActivas"/> pero con el id de cada regla: lo necesita quien guarda el historial
+        /// (`sanic_reglaid`). UNA consulta, igual que aquella (revisión de 7.6b, 2026-09-21: `DefinicionDeRegla` es del motor y
+        /// no conoce Dataverse, así que el id viaja aparte).
+        /// </summary>
+        public IList<ReglaDelCatalogo> ReglasActivasConId(NivelDeLaRegla nivel)
         {
             var consulta = new QueryExpression(Tablas.Regla)
             {

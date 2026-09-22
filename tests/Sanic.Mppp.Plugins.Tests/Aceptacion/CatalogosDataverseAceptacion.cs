@@ -103,6 +103,22 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Empty(new CatalogosDataverse(svc).ReglasActivas(NivelDeLaRegla.Correo));
         }
 
+        [Fact]
+        public void Las_reglas_tambien_se_pueden_leer_con_su_id_en_la_misma_consulta()
+        {
+            var svc = new OrganizationServiceEnMemoria();
+            var id = svc.Sembrar(Regla("TRAE_ADJUNTO", NivelDeLaRegla.Solicitud, 10));
+            var catalogos = new CatalogosDataverse(svc);
+
+            var conId = catalogos.ReglasActivasConId(NivelDeLaRegla.Solicitud);
+
+            var regla = Assert.Single(conId);
+            Assert.Equal(id, regla.Id);
+            Assert.Equal("TRAE_ADJUNTO", regla.Definicion.Codigo);
+            Assert.Equal(1, Consultas(svc));
+            Assert.Equal(conId.Select(r => r.Definicion.Codigo), catalogos.ReglasActivas(NivelDeLaRegla.Solicitud).Select(d => d.Codigo));
+        }
+
         [Theory]
         [InlineData("sanic_codigo")]
         [InlineData("sanic_orden")]
