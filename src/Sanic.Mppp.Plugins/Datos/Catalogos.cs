@@ -143,17 +143,19 @@ namespace Sanic.Mppp.Plugins.Datos
             consulta.Criteria.AddCondition(ColumnaEstado, ConditionOperator.Equal, Tablas.Activo);
 
             var registros = _servicio.RetrieveMultiple(consulta).Entities;
-            var reglas = new List<DefinicionDeRegla>(registros.Count);
+            var reglas = new List<ReglaDelCatalogo>(registros.Count);
             foreach (var registro in registros)
             {
-                reglas.Add(new DefinicionDeRegla
+                var definicion = new DefinicionDeRegla
                 {
                     Codigo = RequeridoTexto(registro, "sanic_codigo"),
                     Orden = RequeridoValor<int>(registro, "sanic_orden"),
                     DependeDe = SepararDependeDe(TextoOpcional(registro, "sanic_dependede")),
                     Efecto = RequeridoChoice<EfectoDeLaRegla>(registro, "sanic_efecto"),
                     MensajeCliente = TextoOpcional(registro, "sanic_mensajecliente")
-                });
+                };
+
+                reglas.Add(new ReglaDelCatalogo(registro.Id, definicion));
             }
 
             return reglas;

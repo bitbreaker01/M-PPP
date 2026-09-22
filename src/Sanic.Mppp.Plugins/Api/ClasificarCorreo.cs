@@ -240,7 +240,8 @@ namespace Sanic.Mppp.Plugins.Api
             // ANTES de escribir nada (nada queda a medias).
             var prefijos = LeerPrefijosDeReenvio();
             var planesAutorizados = _catalogos.PlanesAutorizadosDe(solicitud.Remitente);
-            var reglasActivas = _catalogos.ReglasActivas(NivelDeLaRegla.Correo);
+            var reglasConId = _catalogos.ReglasActivasConId(NivelDeLaRegla.Correo);
+            var reglasActivas = reglasConId.Select(r => r.Definicion).ToList();
 
             var contexto = new CorreoEnValidacion(cabeceras, prefijos, planesAutorizados);
             var motor = new MotorDeReglas<CorreoEnValidacion>(ReglasDelCorreo.Evaluadores());
@@ -299,14 +300,15 @@ namespace Sanic.Mppp.Plugins.Api
                 procesar = true;
             }
 
-            // Un ResultadoRegla por cada una, en los dos finales (se procese o no procese).
-            //
-            // TROPIEZO DE FIRMAS (diseno/03 §0 paso 3, "el catálogo la trae"): CatalogosDataverse.ReglasActivas devuelve
-            // DefinicionDeRegla, que NO trae el id de la regla (a diferencia de PlanDelCatalogo, que sí trae Guid Id). Sin ese id
-            // no se puede armar el diccionario código -> id que pide GuardarResultados, así que acá queda vacío y
-            // `sanic_reglaid` NO se completa. Se reporta como tropiezo en vez de tocar `Datos/Catalogos.cs` o
-            // `Validacion/MotorDeReglas.cs`, que quedan fuera de los archivos permitidos para esta pieza.
+            // Un ResultadoRegla por cada una, en los dos finales (se procese o no procese). El id de cada regla sale de
+            // ReglasActivasConId (Datos/Catalogos.cs): a esta altura el catálogo ya pasó por motor.Evaluar sin
+            // ConfiguracionDeReglasInvalidaException, así que no hay códigos repetidos y el diccionario se arma sin pisar nada.
             var idsDeReglaPorCodigo = new Dictionary<string, Guid>(StringComparer.Ordinal);
+            foreach (var regla in reglasConId)
+            {
+                idsDeReglaPorCodigo[regla.Definicion.Codigo] = regla.Id;
+            }
+
             _solicitudes.GuardarResultados(solicitudId, resultados, idsDeReglaPorCodigo, ahoraUtc);
 
             if (!procesar)
