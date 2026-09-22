@@ -42,6 +42,12 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
     ///  - `Execute`: <see cref="Microsoft.Xrm.Sdk.Messages.ExecuteMultipleRequest"/> (respeta `ContinueOnError` y `ReturnResponses`)
     ///    y <see cref="Microsoft.Xrm.Sdk.Messages.ExecuteTransactionRequest"/> (atómico: si una falla, no queda nada). Otro
     ///    request es <see cref="NotSupportedException"/>;
+    ///  - COLUMNAS DE ARCHIVO: `InitializeFileBlocksDownload` y `DownloadBlock` leen el `byte[]` guardado en esa columna, para que
+    ///    el código que baja un archivo se pueda probar sobre el mismo almacén que el resto. La inicialización devuelve
+    ///    `FileSizeInBytes`, `FileName` (`<columna>.bin`) y un token; un registro o una columna SIN archivo es una falla del
+    ///    servicio (lo que asumimos que hace Dataverse: está anotado en `diseno/PENDIENTES.md` §B para comprobar en Dev);
+    ///    `DownloadBlock` con un token que no salió de una inicialización es una falla, y devuelve lo que haya desde `Offset`
+    ///    (menos bytes que `BlockLength` si el archivo se termina, como la plataforma);
     ///  - `Associate`/`Disassociate`: <see cref="NotSupportedException"/>;
     ///  - registra cada llamada en <see cref="Llamadas"/>; <see cref="Registros"/> devuelve copias de lo guardado.
     ///  - TODO valor de atributo se copia, también los mutables del SDK (`byte[]`, `OptionSetValueCollection`, `EntityCollection`):

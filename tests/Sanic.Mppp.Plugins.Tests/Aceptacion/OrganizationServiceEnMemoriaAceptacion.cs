@@ -435,6 +435,52 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Equal(new[] { "0006", "0042", "00A1" }, Codigos(svc.RetrieveMultiple(q)));
         }
 
+        // ------------------------------------------------------------------ columnas de archivo
+        [Fact]
+        public void Una_columna_de_archivo_se_baja_con_los_mensajes_de_la_plataforma_desde_el_mismo_almacen()
+        {
+            var svc = new OrganizationServiceEnMemoria();
+            var contenido = Enumerable.Range(0, 5000).Select(i => (byte)(i % 251)).ToArray();
+            var id = svc.Sembrar(Entidad(Plan, null, ("sanic_codigo", "0042"), ("sanic_correocrudo", contenido)));
+
+            var ini = (Microsoft.Crm.Sdk.Messages.InitializeFileBlocksDownloadResponse)svc.Execute(new Microsoft.Crm.Sdk.Messages.InitializeFileBlocksDownloadRequest
+            {
+                Target = new EntityReference(Plan, id), FileAttributeName = "sanic_correocrudo",
+            });
+
+            Assert.Equal(contenido.Length, ini.FileSizeInBytes);
+            Assert.False(string.IsNullOrWhiteSpace(ini.FileContinuationToken));
+
+            var bloque = (Microsoft.Crm.Sdk.Messages.DownloadBlockResponse)svc.Execute(new Microsoft.Crm.Sdk.Messages.DownloadBlockRequest
+            {
+                FileContinuationToken = ini.FileContinuationToken, Offset = 4000, BlockLength = 4096,
+            });
+
+            Assert.Equal(contenido.Skip(4000), bloque.Data); // devuelve lo que queda, no lo que se pidió
+            Assert.Equal(new[] { "InitializeFileBlocksDownloadRequest", "DownloadBlockRequest" }, svc.Llamadas.Select(l => l.Operacion));
+
+            var todo = (Microsoft.Crm.Sdk.Messages.DownloadBlockResponse)svc.Execute(new Microsoft.Crm.Sdk.Messages.DownloadBlockRequest
+            {
+                FileContinuationToken = ini.FileContinuationToken, Offset = 0, BlockLength = contenido.Length,
+            });
+            Assert.Equal(contenido, todo.Data);
+            todo.Data[0] = 99; // lo que se devuelve es una copia
+            Assert.Equal(contenido[0], svc.Registros(Plan).Single().GetAttributeValue<byte[]>("sanic_correocrudo")[0]);
+        }
+
+        [Fact]
+        public void Bajar_un_archivo_que_no_esta_es_una_falla_del_servicio_no_un_arreglo_vacio()
+        {
+            var svc = new OrganizationServiceEnMemoria();
+            var sinArchivo = svc.Sembrar(Entidad(Plan, null, ("sanic_codigo", "0042")));
+            Microsoft.Crm.Sdk.Messages.InitializeFileBlocksDownloadRequest Ini(Guid id, string columna) =>
+                new Microsoft.Crm.Sdk.Messages.InitializeFileBlocksDownloadRequest { Target = new EntityReference(Plan, id), FileAttributeName = columna };
+
+            Assert.Throws<FaultException<OrganizationServiceFault>>(() => svc.Execute(Ini(sinArchivo, "sanic_correocrudo")));
+            Assert.Throws<FaultException<OrganizationServiceFault>>(() => svc.Execute(Ini(Guid.NewGuid(), "sanic_correocrudo")));
+            Assert.Throws<FaultException<OrganizationServiceFault>>(() => svc.Execute(new Microsoft.Crm.Sdk.Messages.DownloadBlockRequest { FileContinuationToken = "inventado", Offset = 0, BlockLength = 10 }));
+        }
+
         [Fact]
         public void Executetransaction_sin_pedir_respuestas_devuelve_vacio_y_un_request_de_estado_no_se_simula()
         {

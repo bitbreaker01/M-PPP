@@ -35,7 +35,63 @@ namespace Sanic.Mppp.Plugins.Api
 
         public void Execute(IServiceProvider serviceProvider)
         {
-            throw new NotImplementedException();
+            if (serviceProvider == null)
+            {
+                throw new InvalidPluginExecutionException("No se recibió el proveedor de servicios del plugin.");
+            }
+
+            // Un proveedor sin lo que hace falta es un error de plataforma, nunca una referencia nula (contrato de la pieza).
+            var contexto = (IPluginExecutionContext)serviceProvider.GetService(typeof(IPluginExecutionContext));
+            var fabrica = (IOrganizationServiceFactory)serviceProvider.GetService(typeof(IOrganizationServiceFactory));
+            var trace = (ITracingService)serviceProvider.GetService(typeof(ITracingService));
+            if (contexto == null || fabrica == null || trace == null)
+            {
+                throw new InvalidPluginExecutionException("Faltan servicios de la plataforma para ejecutar la Custom API.");
+            }
+
+            var solicitudId = LeerSolicitudId(contexto);
+
+            try
+            {
+                trace.Trace($"ClasificarCorreo: empieza para la solicitud {solicitudId}.");
+
+                var servicio = fabrica.CreateOrganizationService(contexto.UserId);
+                var clasificar = new ClasificarCorreo(
+                    new SolicitudesDataverse(servicio), new CatalogosDataverse(servicio), new ArchivosDataverse(servicio), new AvisosDataverse(servicio));
+
+                var ahoraUtc = DateTime.SpecifyKind(contexto.OperationCreatedOn, DateTimeKind.Utc);
+                var resultado = clasificar.Ejecutar(solicitudId, ahoraUtc);
+
+                contexto.OutputParameters[SalidaProcesar] = resultado.Procesar;
+                contexto.OutputParameters[SalidaClasificacion] = resultado.Clasificacion;
+                contexto.OutputParameters[SalidaYaProcesada] = resultado.YaProcesada;
+
+                trace.Trace($"ClasificarCorreo: termina. clasificacion={resultado.Clasificacion}, procesar={resultado.Procesar}, yaprocesada={resultado.YaProcesada}.");
+            }
+            catch (InvalidPluginExecutionException)
+            {
+                // Ya es el error que quien llama tiene que ver: se propaga tal cual.
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // Cualquier otra excepción puede traer datos del correo o del SDK (diseno/03 §1 "Errores"): el detalle
+                // completo va SOLO al trace, y quien llama recibe un mensaje genérico. La plataforma revierte la transacción.
+                trace.Trace(ex.ToString());
+                throw new InvalidPluginExecutionException(MensajeDeErrorGenerico);
+            }
+        }
+
+        /// <summary>`solicitudid`: tiene que estar, ser un `Guid` y no estar vacío. No toca el servicio ni el trace: es
+        /// el primer chequeo, antes de que exista nada que revertir.</summary>
+        private static Guid LeerSolicitudId(IPluginExecutionContext contexto)
+        {
+            if (!contexto.InputParameters.Contains(ParametroSolicitudId) || !(contexto.InputParameters[ParametroSolicitudId] is Guid solicitudId) || solicitudId == Guid.Empty)
+            {
+                throw new InvalidPluginExecutionException($"Falta el parámetro '{ParametroSolicitudId}' o no es un identificador válido.");
+            }
+
+            return solicitudId;
         }
     }
 }

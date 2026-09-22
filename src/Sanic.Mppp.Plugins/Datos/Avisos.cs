@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Query;
 using Sanic.Mppp.Plugins.Api;
 
 namespace Sanic.Mppp.Plugins.Datos
@@ -38,14 +41,93 @@ namespace Sanic.Mppp.Plugins.Datos
     /// </summary>
     public sealed class AvisosDataverse : IAvisos
     {
+        private const string ColumnaIdRol = "roleid";
+        private const string ColumnaIdUsuario = "systemuserid";
+
+        private readonly IOrganizationService _servicio;
+
         public AvisosDataverse(IOrganizationService servicio)
         {
-            throw new NotImplementedException();
+            _servicio = servicio ?? throw new ArgumentNullException(nameof(servicio));
         }
 
         public void AvisarAEjecutivos(Guid solicitudId, string titulo, string cuerpo)
         {
-            throw new NotImplementedException();
+            if (solicitudId == Guid.Empty)
+            {
+                throw new ArgumentException("El id de la solicitud no puede estar vacío.", nameof(solicitudId));
+            }
+
+            if (string.IsNullOrWhiteSpace(titulo))
+            {
+                throw new ArgumentException("El título del aviso no puede estar vacío.", nameof(titulo));
+            }
+
+            if (string.IsNullOrWhiteSpace(cuerpo))
+            {
+                throw new ArgumentException("El cuerpo del aviso no puede estar vacío.", nameof(cuerpo));
+            }
+
+            // Consulta 1: el rol Ejecutivo. Si no existe, nadie tiene que enterarse (DA-08): que nadie tenga el rol
+            // no puede tumbar la clasificación de un correo.
+            var consultaRol = new QueryExpression(TablasNativas.Rol) { ColumnSet = new ColumnSet(false) };
+            consultaRol.Criteria.AddCondition("name", ConditionOperator.Equal, TablasNativas.RolEjecutivo);
+            var rolesEjecutivo = _servicio.RetrieveMultiple(consultaRol).Entities.Select(e => e.Id).ToList();
+            if (rolesEjecutivo.Count == 0)
+            {
+                return;
+            }
+
+            // Consulta 2: quiénes tienen ese rol asignado (repetido o no).
+            var consultaAsignaciones = new QueryExpression(TablasNativas.UsuarioRol) { ColumnSet = new ColumnSet(ColumnaIdUsuario) };
+            consultaAsignaciones.Criteria.AddCondition("roleid", ConditionOperator.In, rolesEjecutivo.Cast<object>().ToArray());
+            var usuariosConRol = _servicio.RetrieveMultiple(consultaAsignaciones).Entities
+                .Select(e => e.GetAttributeValue<EntityReference>(ColumnaIdUsuario).Id)
+                .Distinct()
+                .ToList();
+            if (usuariosConRol.Count == 0)
+            {
+                return;
+            }
+
+            // Consulta 3: de esos, quiénes están habilitados hoy.
+            var consultaUsuarios = new QueryExpression(TablasNativas.Usuario) { ColumnSet = new ColumnSet(false) };
+            consultaUsuarios.Criteria.AddCondition(ColumnaIdUsuario, ConditionOperator.In, usuariosConRol.Cast<object>().ToArray());
+            consultaUsuarios.Criteria.AddCondition("isdisabled", ConditionOperator.Equal, false);
+            var usuariosHabilitados = _servicio.RetrieveMultiple(consultaUsuarios).Entities.Select(e => e.Id);
+
+            var tituloRecortado = Recortar(titulo, TablasNativas.LargoTitulo);
+            var cuerpoRecortado = Recortar(cuerpo, TablasNativas.LargoCuerpo);
+
+            // Un Create por destinatario (DA-08: "una por solicitud y por tanda, nunca una por fila" — acá la
+            // "tanda" es el correo sin procesar, y cada ejecutivo recibe la suya).
+            foreach (var usuarioId in usuariosHabilitados)
+            {
+                var aviso = new Entity(TablasNativas.Notificacion)
+                {
+                    ["title"] = tituloRecortado,
+                    ["body"] = cuerpoRecortado,
+                    ["ownerid"] = new EntityReference(TablasNativas.Usuario, usuarioId),
+                };
+                _servicio.Create(aviso);
+            }
+        }
+
+        /// <summary>Recorta sin partir un par subrogado (un carácter Unicode fuera del plano básico ocupa dos `char`).</summary>
+        private static string Recortar(string texto, int largoMaximo)
+        {
+            if (texto.Length <= largoMaximo)
+            {
+                return texto;
+            }
+
+            var corte = largoMaximo;
+            if (char.IsHighSurrogate(texto[corte - 1]))
+            {
+                corte--;
+            }
+
+            return texto.Substring(0, corte);
         }
     }
 }

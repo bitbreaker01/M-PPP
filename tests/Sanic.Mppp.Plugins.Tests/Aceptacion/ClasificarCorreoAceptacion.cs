@@ -289,6 +289,29 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         }
 
         [Fact]
+        public void Si_la_solicitud_no_tiene_el_correo_cargado_es_un_error_real_no_una_clasificacion()
+        {
+            // `MPPP-ING` guarda el .eml antes de llamar (07 DF-01): que no esté es una anomalía, no un correo ilegible.
+            // Se propaga, la transacción se revierte y `MPPP-VIG` reintenta (03 §1 "Errores").
+            var m = new Mundo();
+            var id = m.Solicitud(eml: null);
+            Assert.ThrowsAny<Exception>(() => m.Correr(id));
+            Assert.Equal(EstadoDeLaSolicitud.Ingresada, m.Estado(id));
+            Assert.Empty(m.Resultados(id));
+        }
+
+        [Fact]
+        public void El_camino_feliz_tiene_un_numero_fijo_de_llamadas()
+        {
+            var m = new Mundo();
+            var id = m.Solicitud();
+            m.Correr(id);
+            // Leer + prefijos + reglas + autorizaciones (hasta 4) + un Create por resultado + Bitácora. Sin N+1.
+            Assert.InRange(m.Svc.Llamadas.Count, 1, 12);
+            Assert.Equal(2, m.Svc.Llamadas.Count(l => l.Operacion == "Create" && l.Entidad == TablasHistorico.ResultadoRegla));
+        }
+
+        [Fact]
         public void Los_argumentos_se_validan_y_la_fecha_tiene_que_ser_utc()
         {
             var m = new Mundo();

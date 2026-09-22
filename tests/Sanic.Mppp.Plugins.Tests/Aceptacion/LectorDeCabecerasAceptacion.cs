@@ -104,6 +104,44 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Equal("x", c.Asunto);
         }
 
+        // ------------------------------------------------------------------ revisión de código, 2026-09-21
+        [Theory]
+        [InlineData("Subject: hola\rIn-Reply-To: <x@y>\r\n\r\n")] // CR suelto: NO puede esconder la referencia
+        [InlineData("Subject: hola\rReferences: <x@y>\n\n")]
+        [InlineData("Subject: hola\rIn-Reply-To: <x@y>\r\r")] // y un CR CR también cierra las cabeceras
+        public void Un_retorno_de_carro_suelto_no_esconde_una_respuesta_dentro_de_otra_cabecera(string eml)
+        {
+            // DF-08: "una respuesta no se procesa nunca". Si un CR suelto fundiera dos cabeceras, una respuesta se leería
+            // como correo nuevo y entraría a validarse: es la dirección peligrosa del error.
+            var c = LectorDeCabeceras.Leer(B(eml));
+            Assert.True(c.TraeReferenciasAOtroCorreo);
+            Assert.DoesNotContain("In-Reply-To", c.Asunto);
+            Assert.DoesNotContain("References", c.Asunto);
+        }
+
+        [Fact]
+        public void Miles_de_lineas_de_continuacion_no_hacen_al_lector_cuadratico()
+        {
+            // "Es liviano de verdad... corre en milisegundos" (03 §0). El .eml viene de afuera del banco.
+            var hostil = "Subject: x\r\n" + string.Concat(Enumerable.Repeat(" a\r\n", 60000)) + "In-Reply-To: <a@b>\r\n\r\n";
+            var reloj = System.Diagnostics.Stopwatch.StartNew();
+            var c = LectorDeCabeceras.Leer(B(hostil));
+            reloj.Stop();
+            Assert.True(c.Legibles);
+            Assert.True(reloj.ElapsedMilliseconds < 2000, $"tardó {reloj.ElapsedMilliseconds} ms");
+        }
+
+        [Fact]
+        public void Miles_de_palabras_codificadas_sin_cierre_no_hacen_al_lector_cuadratico()
+        {
+            var hostil = "Subject: " + string.Concat(Enumerable.Repeat("=?utf-8?B?X", 20000)) + "\r\n\r\n";
+            var reloj = System.Diagnostics.Stopwatch.StartNew();
+            var c = LectorDeCabeceras.Leer(B(hostil));
+            reloj.Stop();
+            Assert.True(c.Legibles);
+            Assert.True(reloj.ElapsedMilliseconds < 2000, $"tardó {reloj.ElapsedMilliseconds} ms");
+        }
+
         [Fact]
         public void Una_cabecera_con_nombre_vacio_o_solo_dos_puntos_no_rompe_la_lectura()
         {
