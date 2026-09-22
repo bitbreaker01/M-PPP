@@ -6,6 +6,7 @@ using Sanic.Mppp.Plugins.Datos;
 using Sanic.Mppp.Plugins.Dominio;
 using Sanic.Mppp.Plugins.Plantilla;
 using Sanic.Mppp.Plugins.Respuesta;
+using Sanic.Mppp.Plugins.Steps;
 using Sanic.Mppp.Plugins.Validacion;
 
 namespace Sanic.Mppp.Plugins.Api
@@ -140,7 +141,7 @@ namespace Sanic.Mppp.Plugins.Api
 
             if (sobreDejaSeguir)
             {
-                ProcesarFilas(sobre, estructura, listas, obligatoriedad, solicitud.Remitente, ahoraUtc, filasParaGuardar, filasParaRespuesta, estadosDeFilas);
+                ProcesarFilas(sobre, estructura, listas, obligatoriedad, solicitud.Numero, solicitud.Remitente, ahoraUtc, filasParaGuardar, filasParaRespuesta, estadosDeFilas);
             }
 
             var estadoFinal = EstadosPorReglas.DeLaSolicitud(resultadosSolicitud, estadosDeFilas);
@@ -217,7 +218,7 @@ namespace Sanic.Mppp.Plugins.Api
         /// </summary>
         private void ProcesarFilas(
             SobreEnValidacion sobre, ConfiguracionPlantilla estructura, ListasPlantilla listas, ObligatoriedadPlantilla obligatoriedad,
-            string remitente, DateTime ahoraUtc,
+            string numeroDeSolicitud, string remitente, DateTime ahoraUtc,
             List<FilaParaGuardar> filasParaGuardar, List<FilaParaRespuesta> filasParaRespuesta, List<EstadoDeLaFila> estadosDeFilas)
         {
             var filasDeLaVentana = sobre.Lectura.Filas;
@@ -260,6 +261,9 @@ namespace Sanic.Mppp.Plugins.Api
                 filasParaGuardar.Add(new FilaParaGuardar
                 {
                     NumeroFila = fila.NumeroFila,
+                    // Se calcula acá, con el número de solicitud ya en memoria: así el step no vuelve a leer la
+                    // Solicitud por cada fila del Create (03 §1 paso 6, "nunca una consulta por fila").
+                    Nombre = NombreCalculado.DeFila(numeroDeSolicitud, fila.NumeroFila),
                     Gestion = fila.Gestion,
                     Clasificacion = fila.Clasificacion,
                     Moneda = fila.Moneda,

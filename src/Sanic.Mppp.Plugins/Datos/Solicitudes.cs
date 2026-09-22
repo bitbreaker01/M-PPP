@@ -18,7 +18,8 @@ namespace Sanic.Mppp.Plugins.Datos
 
         /// <summary>Largos de las columnas de texto que se escriben (diseno/02 §3): todo texto se recorta a esto antes de mandarse.</summary>
         public const int LargoNumeroPlan = 4, LargoNombreBeneficiario = 200, LargoNumeroIdentificacion = 100, LargoNumeroCuenta = 100,
-            LargoReferencia = 100, LargoMensaje = 4000, LargoRazon = 2000, LargoMotivoClasificacion = 300, LargoActor = 200, LargoDetalle = 10000, LargoVersionParametros = 200, LargoReglaCodigo = 50;
+            LargoReferencia = 100, LargoMensaje = 4000, LargoRazon = 2000, LargoMotivoClasificacion = 300, LargoActor = 200, LargoDetalle = 10000, LargoVersionParametros = 200, LargoReglaCodigo = 50,
+            LargoNombreFila = 120;
     }
 
     /// <summary>Lo que el plugin liviano y el de validación leen de una Solicitud (diseno/02 §3.1). Sin SDK hacia afuera.</summary>
@@ -296,6 +297,13 @@ namespace Sanic.Mppp.Plugins.Datos
             var entidad = new Entity(TablasHistorico.Fila);
             entidad["sanic_solicitudid"] = new EntityReference(TablasHistorico.Solicitud, solicitudId);
             entidad["sanic_numerofila"] = fila.NumeroFila;
+            // Nombre ya calculado por quien arma la fila (revisión de código, 2026-09-21): si viene, se manda acá y
+            // NombreCalculadoStep no vuelve a leer la Solicitud (03 §1 paso 6). En blanco o nulo: no se manda, lo calcula el step.
+            if (!string.IsNullOrWhiteSpace(fila.Nombre))
+            {
+                entidad["sanic_nombre"] = Recortar(fila.Nombre, TablasHistorico.LargoNombreFila);
+            }
+
             AgregarChoiceSiNoEsNulo(entidad, "sanic_gestion", fila.Gestion);
             AgregarChoiceSiNoEsNulo(entidad, "sanic_clasificacion", fila.Clasificacion);
             AgregarChoiceSiNoEsNulo(entidad, "sanic_moneda", fila.Moneda);

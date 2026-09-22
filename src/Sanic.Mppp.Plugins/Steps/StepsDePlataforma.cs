@@ -173,7 +173,7 @@ namespace Sanic.Mppp.Plugins.Steps
     {
         public void Execute(IServiceProvider serviceProvider)
         {
-            if (!PlomeriaDePlataforma.Preparar(serviceProvider, out _, out var servicio, out var target))
+            if (!PlomeriaDePlataforma.Preparar(serviceProvider, out var contexto, out var servicio, out var target))
             {
                 return;
             }
@@ -189,7 +189,15 @@ namespace Sanic.Mppp.Plugins.Steps
                         target["sanic_nombre"] = NombreDeAutorizacionPlan(servicio, target);
                         break;
                     case TablasHistorico.Fila:
-                        target["sanic_nombre"] = NombreDeFila(servicio, target);
+                        // EXCEPCIÓN (revisión de código, 2026-09-21): si el Target ya trae sanic_nombre con contenido
+                        // y quien escribe es código de servidor, se respeta y no se lee la Solicitud — así la Custom
+                        // API de validación, que crea las filas una por una, no provoca un Retrieve por fila (03 §1
+                        // paso 6). A una persona se le pisa siempre, igual que en Plan y AutorizacionPlan.
+                        if (!TraeNombrePropio(target) || !BaseDeStep.EsCodigoDeServidor(contexto, servicio))
+                        {
+                            target["sanic_nombre"] = NombreDeFila(servicio, target);
+                        }
+
                         break;
                 }
             }
@@ -223,6 +231,12 @@ namespace Sanic.Mppp.Plugins.Steps
             var codigoDePlan = plan.GetAttributeValue<string>("sanic_codigo");
 
             return NombreCalculado.DeAutorizacionPlan(correo, codigoDePlan);
+        }
+
+        /// <summary>El Target ya trae un `sanic_nombre` con contenido (no nulo ni en blanco), sin mirar quién escribe.</summary>
+        private static bool TraeNombrePropio(Entity target)
+        {
+            return target.Contains("sanic_nombre") && !string.IsNullOrWhiteSpace(target["sanic_nombre"] as string);
         }
 
         private static string NombreDeFila(IOrganizationService servicio, Entity target)
