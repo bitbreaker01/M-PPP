@@ -97,6 +97,7 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
             var id = entidad.Id != Guid.Empty ? entidad.Id : Guid.NewGuid();
             var copia = Clonar(entidad);
             copia.Id = id;
+            FijarAtributoClavePrimaria(copia);
 
             var tabla = ObtenerOCrearTabla(entidad.LogicalName);
             var orden = ObtenerOCrearOrden(entidad.LogicalName);
@@ -229,6 +230,7 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
 
             var copia = Clonar(entity);
             copia.Id = id;
+            FijarAtributoClavePrimaria(copia);
             tabla[id] = copia;
             ObtenerOCrearOrden(entity.LogicalName).Add(id);
             return id;
@@ -241,6 +243,16 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
             {
                 registro[atributo.Key] = ClonarValor(atributo.Value);
             }
+
+            // La clave primaria no la manda quien actualiza (Dataverse no la deja tocar); la reponemos por si
+            // el merge la pisó, así queda siempre correcta para filtrar (diseno/03 §8, revisión de código).
+            FijarAtributoClavePrimaria(registro);
+        }
+
+        /// <summary>Como en Dataverse, el atributo de la clave primaria (`&lt;logicalname&gt;id`) siempre está en lo guardado.</summary>
+        private static void FijarAtributoClavePrimaria(Entity entidad)
+        {
+            entidad[entidad.LogicalName + "id"] = entidad.Id;
         }
 
         private void BorrarInterno(string entityName, Guid id)
@@ -503,17 +515,55 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
                     }
 
                     return copiaColeccion;
+                case byte[] bytes:
+                    // Revisión de código, 2026-09-21: byte[] es mutable (archivos) y se compartía por referencia.
+                    var copiaBytes = new byte[bytes.Length];
+                    Array.Copy(bytes, copiaBytes, bytes.Length);
+                    return copiaBytes;
+                case OptionSetValueCollection multi:
+                    // Multiselección: mismo problema que byte[], y cada OptionSetValue adentro también se clona.
+                    var copiaMulti = new OptionSetValueCollection();
+                    foreach (var item in multi)
+                    {
+                        copiaMulti.Add(new OptionSetValue(item.Value));
+                    }
+
+                    return copiaMulti;
+                case EntityCollection coleccionEntidades:
+                    // Igual que Entity: se comparte por referencia si no se clona cada entidad adentro.
+                    var copiaColeccionEntidades = new EntityCollection(coleccionEntidades.Entities.Select(Clonar).ToList())
+                    {
+                        EntityName = coleccionEntidades.EntityName,
+                        MoreRecords = coleccionEntidades.MoreRecords,
+                        PagingCookie = coleccionEntidades.PagingCookie,
+                        TotalRecordCount = coleccionEntidades.TotalRecordCount,
+                        TotalRecordCountLimitExceeded = coleccionEntidades.TotalRecordCountLimitExceeded,
+                    };
+
+                    return copiaColeccionEntidades;
                 default:
-                    // Strings, numéricos, bool, Guid, DateTime, enums: inmutables, se comparten sin riesgo de mutación cruzada.
-                    return valor;
+                    // Solo los tipos inmutables conocidos se comparten sin riesgo: cualquier otro tipo se presume
+                    // mutable y el doble no miente simulando una copia que no hace (diseno/03 §8).
+                    var tipo = valor.GetType();
+                    if (valor is string || valor is bool || valor is byte || valor is sbyte || valor is short || valor is ushort
+                        || valor is int || valor is uint || valor is long || valor is ulong || valor is float || valor is double
+                        || valor is decimal || valor is Guid || valor is DateTime || tipo.IsEnum)
+                    {
+                        return valor;
+                    }
+
+                    throw new NotSupportedException($"El doble no sabe copiar el tipo '{tipo.FullName}': agregalo a ClonarValor si hace falta simularlo (diseno/03 §8).");
             }
         }
 
         private static Entity ProyectarColumnas(Entity origen, ColumnSet columnSet)
         {
             var copia = Clonar(origen);
+            var atributoClave = copia.LogicalName + "id";
+
             if (columnSet.AllColumns)
             {
+                copia[atributoClave] = copia.Id;
                 return copia;
             }
 
@@ -526,6 +576,9 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
                 }
             }
 
+            // Como Id/LogicalName: el atributo de la clave primaria viene siempre, aunque no se haya pedido
+            // (diseno/03 §8, revisión de código: "el atributo de la clave primaria viene SIEMPRE...").
+            proyectada[atributoClave] = copia.Id;
             return proyectada;
         }
 
@@ -553,6 +606,11 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
                 throw new NotSupportedException("El doble no simula paginación (PageInfo): traé todo con TopCount o filtrá más (diseno/03 §8).");
             }
 
+            if (query.Distinct)
+            {
+                throw new NotSupportedException("El doble no simula Distinct: quitalo de la consulta (diseno/03 §8).");
+            }
+
             var candidatos = _porEntidad.TryGetValue(query.EntityName, out var tabla)
                 ? (IEnumerable<Entity>)tabla.Values
                 : Array.Empty<Entity>();
@@ -566,9 +624,17 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
             }
             else
             {
-                // Sin Orders explícitos: orden de alta, como una tabla recorrida por rowid.
+                // Sin Orders explícitos: orden de alta, como una tabla recorrida por rowid. Se arma un diccionario
+                // de posición UNA vez en vez de orden.IndexOf(e.Id) dentro del OrderBy (eso era O(n) por elemento
+                // ordenado, es decir O(n²) en total; diseno/03 §1 paso 6, revisión de código).
                 var orden = _ordenPorEntidad.TryGetValue(query.EntityName, out var listaOrden) ? listaOrden : new List<Guid>();
-                ordenados = filtrados.OrderBy(e => orden.IndexOf(e.Id));
+                var posicion = new Dictionary<Guid, int>(orden.Count);
+                for (var i = 0; i < orden.Count; i++)
+                {
+                    posicion[orden[i]] = i;
+                }
+
+                ordenados = filtrados.OrderBy(e => posicion[e.Id]);
             }
 
             if (query.TopCount.HasValue)
@@ -667,6 +733,13 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
             if (a == null || b == null)
             {
                 return a == null && b == null;
+            }
+
+            if (a is string textoA && b is string textoB)
+            {
+                // Microsoft Learn, "Query data using the SDK for .NET": las condiciones de texto no distinguen
+                // mayúsculas en Dataverse (los espacios sí cuentan, por eso no se recorta nada acá).
+                return string.Equals(textoA, textoB, StringComparison.OrdinalIgnoreCase);
             }
 
             return a.Equals(b);
