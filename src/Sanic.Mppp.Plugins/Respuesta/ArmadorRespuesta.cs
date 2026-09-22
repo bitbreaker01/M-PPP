@@ -58,7 +58,11 @@ namespace Sanic.Mppp.Plugins.Respuesta
         /// <summary>COMPLETO, como está en la Fila: el armador lo enmascara. Nunca sale entero.</summary>
         public string NumeroCuenta { get; set; }
 
-        /// <summary>COMPLETO, como está en la Fila: el armador lo enmascara. Nunca sale entero.</summary>
+        /// <summary>
+        /// COMPLETO, como está en la Fila. La identificación NUNCA sale en la tabla de la respuesta (a diferencia de
+        /// la cuenta, no tiene columna propia): solo se usa si aparece literalmente dentro de <see cref="Mensaje"/>
+        /// (DD-08, última línea de defensa), y ahí sí se enmascara antes de escapar.
+        /// </summary>
         public string NumeroIdentificacion { get; set; }
 
         public EstadoDeLaFila Estado { get; set; }
@@ -91,7 +95,9 @@ namespace Sanic.Mppp.Plugins.Respuesta
     /// (lo fijan las pruebas `ArmadorRespuestaAceptacion`):
     ///  - HTML completo y autocontenido (sin scripts, estilos externos ni imágenes), en español, con el número de la solicitud;
     ///  - TODO texto que venga del cliente o de las filas se escapa (el Excel es hostil): nunca sale una etiqueta sin escapar;
-    ///  - la cuenta y la identificación salen SIEMPRE por <see cref="Enmascarado"/>; el valor completo no aparece nunca;
+    ///  - la cuenta sale SIEMPRE por <see cref="Enmascarado"/> en su columna; la identificación no se muestra en ninguna
+    ///    columna. Ninguna de las dos aparece completa: si el mensaje de una fila la cita literalmente, también se
+    ///    enmascara ahí (DD-08, última línea de defensa);
     ///  - las filas van en una tabla ordenada por número, con su estado en palabras del cliente y sus motivos;
     ///  - acuse de una Solicitud Rechazada (por el sobre o porque ninguna fila quedó Validada): texto de DD-09, expreso:
     ///    no hay nada que procesar, no recibirá otro correo por esta solicitud, corrija y reenvíe;
@@ -185,6 +191,12 @@ namespace Sanic.Mppp.Plugins.Respuesta
             }
 
             var filas = solicitud.Filas ?? new List<FilaParaRespuesta>();
+            if (filas.Count == 0)
+            {
+                // Simetría con el acuse En proceso: una Procesada sin filas no tiene nada que informar, es un error de armado.
+                throw new ArgumentException("Una solicitud Procesada necesita al menos una fila.", nameof(solicitud));
+            }
+
             return ArmarRespuestaFinal(solicitud, filas);
         }
 
@@ -219,10 +231,7 @@ namespace Sanic.Mppp.Plugins.Respuesta
             var sb = new StringBuilder();
             AbrirDocumento(sb);
             EscribirSaludoYNumero(sb, solicitud);
-
-            sb.Append("<p>Recibimos ").Append(Numero(ordenadas.Count)).Append(" fila(s): ").Append(Numero(validas))
-                .Append(" quedaron validadas y ").Append(Numero(rechazadas)).Append(" quedaron rechazadas.</p>");
-
+            EscribirContadorValidasRechazadas(sb, ordenadas.Count, validas, rechazadas);
             EscribirTablaFilas(sb, ordenadas);
 
             // DD-08: el acuse anuncia que viene una segunda comunicación cuando termine el procesamiento.
@@ -253,9 +262,13 @@ namespace Sanic.Mppp.Plugins.Respuesta
             }
             else
             {
-                // Rechazada porque ninguna fila quedó Validada: la tabla de filas con contadores.
+                // Rechazada porque ninguna fila quedó Validada: mismos contadores y misma redacción que el acuse
+                // En proceso (prueba `Los_contadores_del_acuse_concuerdan_en_numero`, caso validas=0).
                 var ordenadas = filas.OrderBy(f => f.NumeroFila).ToList();
-                sb.Append("<p>Recibimos ").Append(Numero(ordenadas.Count)).Append(" fila(s), y ninguna quedó validada.</p>");
+                var validas = ordenadas.Count(f => f.Estado == EstadoDeLaFila.Validada);
+                var rechazadas = ordenadas.Count - validas;
+
+                EscribirContadorValidasRechazadas(sb, ordenadas.Count, validas, rechazadas);
                 EscribirTablaFilas(sb, ordenadas);
             }
 
@@ -280,8 +293,10 @@ namespace Sanic.Mppp.Plugins.Respuesta
             AbrirDocumento(sb);
             EscribirSaludoYNumero(sb, solicitud);
 
-            sb.Append("<p>De ").Append(Numero(ordenadas.Count)).Append(" fila(s) recibidas, ").Append(Numero(procesadas))
-                .Append(" se procesaron y ").Append(Numero(noProcesadas)).Append(" no se procesaron.</p>");
+            // Mismo criterio de concordancia que el acuse (revisión de código, 2026-09-21).
+            sb.Append("<p>De ").Append(FilaSingularPlural(ordenadas.Count)).Append(" recibidas, ")
+                .Append(Cantidad(procesadas, "se procesó", "se procesaron")).Append(" y ")
+                .Append(Cantidad(noProcesadas, "quedó sin procesar", "quedaron sin procesar")).Append(".</p>");
 
             EscribirTablaFilas(sb, ordenadas);
 
@@ -342,11 +357,35 @@ namespace Sanic.Mppp.Plugins.Respuesta
                 // El estado en palabras sale de nuestro propio diccionario fijo (EstadoParaElCliente), no del cliente:
                 // no hace falta escaparlo, y así no se corre el riesgo de tocar sus tildes.
                 EscribirCelda(sb, EstadoParaElCliente(fila.Estado));
-                EscribirCelda(sb, Escapar(fila.Mensaje));
+                EscribirCelda(sb, Escapar(DefenderMensaje(fila)));
                 sb.Append("</tr>");
             }
 
             sb.Append("</tbody></table>");
+        }
+
+        // DD-08, última línea de defensa (revisión de código, 2026-09-21): `sanic_mensaje` lo redacta el catálogo
+        // (D-19, marcador {valor}) y hoy nunca cita la cuenta ni la identificación completas, pero si algún día lo
+        // hiciera, acá se enmascaran igual antes de escapar. Solo en el mensaje de ESA fila: los motivos del sobre
+        // no tienen fila ni cuenta/identificación asociada.
+        private static string DefenderMensaje(FilaParaRespuesta fila)
+        {
+            var mensaje = fila.Mensaje;
+            mensaje = ReemplazarSiIdentifica(mensaje, fila.NumeroCuenta, Enmascarado.Cuenta(fila.NumeroCuenta));
+            mensaje = ReemplazarSiIdentifica(mensaje, fila.NumeroIdentificacion, Enmascarado.Identificacion(fila.NumeroIdentificacion));
+            return mensaje;
+        }
+
+        // Reemplazo ordinal (String.Replace(string, string) no depende de la cultura), sin Regex. Menos de 5
+        // caracteres no califica: es demasiado corto para identificar a alguien y coincidiría con cualquier texto.
+        private static string ReemplazarSiIdentifica(string mensaje, string valor, string enmascarado)
+        {
+            if (string.IsNullOrEmpty(mensaje) || string.IsNullOrEmpty(valor) || valor.Length < 5)
+            {
+                return mensaje;
+            }
+
+            return mensaje.Replace(valor, enmascarado);
         }
 
         private static void EscribirCelda(StringBuilder sb, string contenidoYaEscapado)
@@ -383,10 +422,11 @@ namespace Sanic.Mppp.Plugins.Respuesta
                         sb.Append("&quot;");
                         break;
                     case '\'':
-                        // Entidad NOMBRADA (no numérica): el documento es HTML5 (`<!DOCTYPE html>`), donde `&apos;`
-                        // es válida; ninguna entidad `&#…;` puede aparecer (la prueba de aceptación lo exige, para
-                        // no confundir un escape real con una tilde o una eñe convertida a numérica).
-                        sb.Append("&apos;");
+                        // Entidad NUMÉRICA, no `&apos;`: Outlook de escritorio renderiza el cuerpo con el motor de
+                        // Word, que no conoce `&apos;` (es válida en HTML5/XML pero no en ese motor) y lo mostraría
+                        // tal cual, literal. `&#39;` es el apóstrofo en cualquier motor. No es ambigüedad con una
+                        // tilde o una eñe convertidas a numérica: esas nunca se tocan (van tal cual, sin escapar).
+                        sb.Append("&#39;");
                         break;
                     default:
                         sb.Append(c);
@@ -400,6 +440,39 @@ namespace Sanic.Mppp.Plugins.Respuesta
         private static string Numero(int valor)
         {
             return valor.ToString(CultureInfo.InvariantCulture);
+        }
+
+        // Compartido por las dos ramas del acuse que muestran tabla (En proceso y Rechazada sin ninguna Validada):
+        // misma pregunta ("¿cuántas quedaron validadas y cuántas rechazadas?"), misma redacción con concordancia
+        // número-verbo (revisión de código, 2026-09-21: "1 quedaron validadas" no es español de un banco).
+        private static void EscribirContadorValidasRechazadas(StringBuilder sb, int total, int validas, int rechazadas)
+        {
+            sb.Append("<p>Recibimos ").Append(FilaSingularPlural(total)).Append(": ")
+                .Append(Cantidad(validas, "quedó validada", "quedaron validadas")).Append(" y ")
+                .Append(Cantidad(rechazadas, "quedó rechazada", "quedaron rechazadas")).Append(".</p>");
+        }
+
+        // "1 fila" / "2 filas" (nunca 0: quien llama garantiza al menos una fila en los dos casos que usan esto).
+        private static string FilaSingularPlural(int cantidad)
+        {
+            return cantidad == 1 ? "1 fila" : Numero(cantidad) + " filas";
+        }
+
+        // Concordancia número-verbo para los contadores (revisión de código, 2026-09-21): 0 → "ninguna <singular>",
+        // 1 → "1 <singular>", N → "N <plural>". `singular` y `plural` ya traen el verbo conjugado.
+        private static string Cantidad(int cantidad, string singular, string plural)
+        {
+            if (cantidad == 0)
+            {
+                return "ninguna " + singular;
+            }
+
+            if (cantidad == 1)
+            {
+                return "1 " + singular;
+            }
+
+            return Numero(cantidad) + " " + plural;
         }
     }
 }
