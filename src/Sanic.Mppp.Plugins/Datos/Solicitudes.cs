@@ -18,8 +18,9 @@ namespace Sanic.Mppp.Plugins.Datos
         public const string ResultadoRegla = "sanic_mppp_tbl_resultadoregla";
         public const string Bitacora = "sanic_mppp_tbl_bitacora";
 
-        /// <summary>Tamaño máximo de un lote de `ExecuteMultiple` (límite de la plataforma: 1000; se usa un margen amplio).</summary>
-        public const int TamanoDeLote = 100;
+        /// <summary>Largos de las columnas de texto que se escriben (diseno/02 §3): todo texto se recorta a esto antes de mandarse.</summary>
+        public const int LargoNumeroPlan = 4, LargoNombreBeneficiario = 200, LargoNumeroIdentificacion = 100, LargoNumeroCuenta = 100,
+            LargoReferencia = 100, LargoMensaje = 4000, LargoRazon = 2000, LargoMotivoClasificacion = 300, LargoActor = 200, LargoDetalle = 10000, LargoVersionParametros = 200;
     }
 
     /// <summary>Lo que el plugin liviano y el de validación leen de una Solicitud (diseno/02 §3.1). Sin SDK hacia afuera.</summary>
@@ -108,7 +109,7 @@ namespace Sanic.Mppp.Plugins.Datos
 
         public EstadoDeLaFila Estado { get; set; }
 
-        /// <summary>`sanic_mensaje` M(4000): se recorta a 4000 al guardar.</summary>
+        /// <summary>`sanic_mensaje` M(4000): se recorta a 4000 al guardar. Los demás textos también se recortan al largo de su columna.</summary>
         public string Mensaje { get; set; }
 
         public DateTime FechaValidada { get; set; }
@@ -117,12 +118,15 @@ namespace Sanic.Mppp.Plugins.Datos
     /// <summary>
     /// Lectura y escritura de la Solicitud y su unidad histórica sobre <see cref="IOrganizationService"/> (pieza 7.6, `Datos/`).
     /// Reglas (las fijan las pruebas `SolicitudesDataverseAceptacion`): se leen solo las columnas usadas; los choices se traducen a
-    /// los enums de `Dominio` y un valor fuera del enum es <see cref="InvalidOperationException"/> con tabla, columna y registro; los
-    /// textos se recortan al largo de su columna (diseno/02) antes de escribir; las altas masivas van en lotes de
-    /// <see cref="TablasHistorico.TamanoDeLote"/> con `ExecuteMultiple` (`ContinueOnError` = false) y si un ítem falla se lanza la
-    /// falla del servicio; los lookups a Solicitud son `EntityReference`; toda escritura de estado de Solicitud va por
-    /// `sanic_estadoprocesamiento`; nada de acá fija la fecha: la recibe (el plugin la toma del contexto). Servicio nulo:
-    /// <see cref="ArgumentNullException"/>.
+    /// los enums de `Dominio` y un valor fuera del enum es <see cref="InvalidOperationException"/> con tabla, columna y registro; TODO
+    /// texto se recorta al largo de su columna (diseno/02, constantes `Largo…`) antes de escribir, sin partir un par subrogado (un
+    /// carácter fuera del plano básico se descarta entero antes que dejarlo por la mitad); las altas van UNA POR UNA con `Create`
+    /// (Microsoft Learn, "Don't use batch request types in plug-ins": el plugin ya corre en la transacción, no hay latencia que
+    /// ahorrar, y un lote puede pasarse del tiempo máximo; revisión de código, 2026-09-21) y la primera falla se propaga tal cual;
+    /// los lookups a Solicitud son `EntityReference`; toda escritura de estado de Solicitud va por `sanic_estadoprocesamiento`;
+    /// nada de acá fija la fecha: la recibe, y EXIGE `DateTimeKind.Utc` (otro `Kind` se guardaría corrido en silencio en una columna
+    /// "usuario local": <see cref="ArgumentException"/>); un `solicitudId` vacío es <see cref="ArgumentException"/> en todos los
+    /// métodos. Servicio nulo: <see cref="ArgumentNullException"/>.
     /// </summary>
     public sealed class SolicitudesDataverse
     {
@@ -192,7 +196,7 @@ namespace Sanic.Mppp.Plugins.Datos
         }
 
         /// <summary>
-        /// Alta de las filas en lotes. `sanic_nombre` NO se manda (es calculado). Los choices van como `OptionSetValue`; un
+        /// Alta de las filas, un `Create` por fila. `sanic_nombre` NO se manda (es calculado). Los choices van como `OptionSetValue`; un
         /// valor nulo del dominio NO se manda (la columna queda vacía, DD-01). `sanic_planid` como `EntityReference` a Plan.
         /// Vacío → sin llamadas.
         /// </summary>
@@ -212,7 +216,7 @@ namespace Sanic.Mppp.Plugins.Datos
         }
 
         /// <summary>
-        /// Alta de un `sanic_mppp_tbl_resultadoregla` por cada resultado (diseno/02 §3.3), en lotes: `sanic_reglacodigo`,
+        /// Alta de un `sanic_mppp_tbl_resultadoregla` por cada resultado (diseno/02 §3.3), un `Create` por resultado: `sanic_reglacodigo`,
         /// `sanic_resultado`, `sanic_razon` (recortada a 2000), `sanic_efectoaplicado`, `sanic_orden`, `sanic_fechaevaluacion`.
         /// `sanic_reglaid` se manda solo si el diccionario de ids trae ese código. Vacío → sin llamadas.
         /// </summary>

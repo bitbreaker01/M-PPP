@@ -106,7 +106,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         }
 
         [Fact]
-        public void Las_filas_se_guardan_en_lotes_con_sus_columnas_y_los_nulos_no_se_mandan()
+        public void Las_filas_se_guardan_una_por_una_con_sus_columnas_y_los_nulos_no_se_mandan()
         {
             var svc = new OrganizationServiceEnMemoria();
             var id = Sembrar(svc);
@@ -118,7 +118,8 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
 
             new SolicitudesDataverse(svc).GuardarFilas(id, new[] { Fila(1, plan: plan), invalida });
 
-            Assert.Equal(new[] { "ExecuteMultipleRequest" }, svc.Llamadas.Select(l => l.Operacion));
+            // Learn, "Don't use batch request types in plug-ins": un Create por fila, nada de ExecuteMultiple/ExecuteTransaction.
+            Assert.Equal(new[] { "Create", "Create" }, svc.Llamadas.Select(l => l.Operacion));
             var filas = svc.Registros(TablasHistorico.Fila).OrderBy(f => (int)f["sanic_numerofila"]).ToList();
             Assert.Equal(2, filas.Count);
             var f1 = filas[0];
@@ -145,13 +146,14 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         }
 
         [Fact]
-        public void Mas_filas_que_el_tamano_de_lote_van_en_varios_lotes_y_ninguna_se_pierde()
+        public void Cien_filas_son_cien_creates_y_ninguna_se_pierde()
         {
             var svc = new OrganizationServiceEnMemoria();
             var id = Sembrar(svc);
-            var n = TablasHistorico.TamanoDeLote * 2 + 5;
+            var n = 100;
             new SolicitudesDataverse(svc).GuardarFilas(id, Enumerable.Range(1, n).Select(i => Fila(i)));
-            Assert.Equal(3, svc.Llamadas.Count);
+            Assert.Equal(n, svc.Llamadas.Count);
+            Assert.All(svc.Llamadas, l => Assert.Equal("Create", l.Operacion));
             Assert.Equal(n, svc.Registros(TablasHistorico.Fila).Count);
             Assert.Equal(Enumerable.Range(1, n), svc.Registros(TablasHistorico.Fila).Select(f => (int)f["sanic_numerofila"]).OrderBy(x => x));
         }
@@ -169,6 +171,72 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Throws<ArgumentNullException>(() => repo.GuardarResultados(id, null, new Dictionary<string, Guid>(), Fecha));
             Assert.Throws<ArgumentNullException>(() => repo.GuardarResultados(id, new ResultadoDeRegla[0], null, Fecha));
             Assert.Throws<ArgumentException>(() => repo.GuardarFilas(Guid.Empty, new[] { Fila(1) }));
+            Assert.Throws<ArgumentException>(() => repo.GuardarResultados(Guid.Empty, new ResultadoDeRegla[0], new Dictionary<string, Guid>(), Fecha));
+            Assert.Throws<ArgumentException>(() => repo.CerrarValidacion(Guid.Empty, new CierreDeValidacion { FechaValidada = Fecha }));
+            Assert.Throws<ArgumentException>(() => repo.Clasificar(Guid.Empty, new ClasificacionDelCorreo()));
+            Assert.Throws<ArgumentException>(() => repo.RegistrarEvento(Guid.Empty, Fecha, EventoDeBitacora.Ingresada, OrigenDelEvento.MPPPING, 0, null, "x"));
+            Assert.Throws<ArgumentException>(() => repo.Leer(Guid.Empty));
+        }
+
+        // ------------------------------------------------------------------ revisión de código, 2026-09-21
+        [Fact]
+        public void Todo_texto_de_la_fila_se_recorta_al_largo_de_su_columna_para_que_dataverse_nunca_rechace_el_alta()
+        {
+            // DD-01: se guarda lo que llegó, recortado al largo de la columna. Sin esto, una celda larga tumba la transacción entera
+            // y la Solicitud queda en Ingresada para siempre (MPPP-VIG reintenta y el Excel no cambia).
+            var svc = new OrganizationServiceEnMemoria();
+            var id = Sembrar(svc);
+            var larga = Fila(1);
+            larga.NumeroPlan = "0042X";
+            larga.NombreBeneficiario = new string('n', 500);
+            larga.NumeroIdentificacion = new string('i', 500);
+            larga.NumeroCuenta = new string('c', 500);
+            larga.Referencia = new string('r', 500);
+            larga.ReferenciaRecibida = new string('q', 500);
+
+            new SolicitudesDataverse(svc).GuardarFilas(id, new[] { larga });
+
+            var f = svc.Registros(TablasHistorico.Fila).Single();
+            Assert.Equal(TablasHistorico.LargoNumeroPlan, ((string)f["sanic_numeroplan"]).Length);
+            Assert.Equal(TablasHistorico.LargoNombreBeneficiario, ((string)f["sanic_nombrebeneficiario"]).Length);
+            Assert.Equal(TablasHistorico.LargoNumeroIdentificacion, ((string)f["sanic_numeroidentificacion"]).Length);
+            Assert.Equal(TablasHistorico.LargoNumeroCuenta, ((string)f["sanic_numerocuenta"]).Length);
+            Assert.Equal(TablasHistorico.LargoReferencia, ((string)f["sanic_referencia"]).Length);
+            Assert.Equal(TablasHistorico.LargoReferencia, ((string)f["sanic_referenciarecibida"]).Length);
+            Assert.Equal((4, 200, 100, 100, 100), (TablasHistorico.LargoNumeroPlan, TablasHistorico.LargoNombreBeneficiario, TablasHistorico.LargoNumeroIdentificacion, TablasHistorico.LargoNumeroCuenta, TablasHistorico.LargoReferencia));
+        }
+
+        [Fact]
+        public void Un_recorte_nunca_parte_un_par_subrogado()
+        {
+            var svc = new OrganizationServiceEnMemoria();
+            var id = Sembrar(svc);
+            var fila = Fila(1);
+            fila.NombreBeneficiario = new string('n', 199) + "😀" + "resto"; // el emoji ocupa las posiciones 200 y 201
+            new SolicitudesDataverse(svc).GuardarFilas(id, new[] { fila });
+            var guardado = (string)svc.Registros(TablasHistorico.Fila).Single()["sanic_nombrebeneficiario"];
+            Assert.Equal(199, guardado.Length); // se descarta el emoji entero antes que dejarlo por la mitad
+            Assert.DoesNotContain(guardado, c => char.IsSurrogate(c));
+        }
+
+        [Fact]
+        public void Las_fechas_tienen_que_venir_en_utc()
+        {
+            var svc = new OrganizationServiceEnMemoria();
+            var id = Sembrar(svc);
+            var repo = new SolicitudesDataverse(svc);
+            foreach (var kind in new[] { DateTimeKind.Local, DateTimeKind.Unspecified })
+            {
+                var fecha = new DateTime(2026, 9, 21, 15, 30, 0, kind);
+                Assert.Throws<ArgumentException>(() => repo.RegistrarEvento(id, fecha, EventoDeBitacora.Ingresada, OrigenDelEvento.MPPPING, 0, null, "x"));
+                Assert.Throws<ArgumentException>(() => repo.CerrarValidacion(id, new CierreDeValidacion { Estado = EstadoDeLaSolicitud.Rechazada, FechaValidada = fecha, AcuseContenido = "x" }));
+                var fila = Fila(1);
+                fila.FechaValidada = fecha;
+                Assert.Throws<ArgumentException>(() => repo.GuardarFilas(id, new[] { fila }));
+                Assert.Throws<ArgumentException>(() => repo.GuardarResultados(id, new[] { new ResultadoDeRegla("A", 1, ResultadoDeLaRegla.Cumplida, null, EfectoDeLaRegla.Rechaza) }, new Dictionary<string, Guid>(), fecha));
+            }
+
+            Assert.Empty(svc.Llamadas);
         }
 
         // ------------------------------------------------------------------ resultados de regla
@@ -187,7 +255,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
 
             new SolicitudesDataverse(svc).GuardarResultados(id, resultados, new Dictionary<string, Guid> { ["TRAE_ADJUNTO"] = reglaId }, Fecha);
 
-            Assert.Equal(new[] { "ExecuteMultipleRequest" }, svc.Llamadas.Select(l => l.Operacion));
+            Assert.Equal(new[] { "Create", "Create", "Create" }, svc.Llamadas.Select(l => l.Operacion));
             var guardados = svc.Registros(TablasHistorico.ResultadoRegla).OrderBy(r => (int)r["sanic_orden"]).ToList();
             Assert.Equal(3, guardados.Count);
             var r1 = guardados[0];
@@ -207,35 +275,37 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         }
 
         [Fact]
-        public void Si_un_alta_del_lote_falla_se_lanza_la_falla_del_servicio()
+        public void Si_un_alta_falla_se_propaga_la_falla_del_servicio_y_no_se_sigue()
         {
             var svc = new OrganizationServiceEnMemoria();
             var id = Sembrar(svc);
             var fallador = new ServicioQueFallaEnElSegundoCreate(svc);
-            Assert.Throws<FaultException<OrganizationServiceFault>>(() => new SolicitudesDataverse(fallador).GuardarFilas(id, new[] { Fila(1), Fila(2) }));
+            Assert.Throws<FaultException<OrganizationServiceFault>>(() => new SolicitudesDataverse(fallador).GuardarFilas(id, new[] { Fila(1), Fila(2), Fila(3) }));
+            Assert.Single(svc.Registros(TablasHistorico.Fila)); // la tercera no se intentó: la transacción del plugin va a revertir la primera
         }
 
-        /// <summary>Envuelve al doble y hace fallar el segundo `CreateRequest` de un lote, como haría Dataverse ante un dato inválido.</summary>
+        /// <summary>Envuelve al doble y hace fallar el segundo `Create`, como haría Dataverse ante un dato inválido.</summary>
         private sealed class ServicioQueFallaEnElSegundoCreate : IOrganizationService
         {
             private readonly OrganizationServiceEnMemoria _real;
+            private int _creates;
 
             public ServicioQueFallaEnElSegundoCreate(OrganizationServiceEnMemoria real)
             {
                 _real = real;
             }
 
-            public OrganizationResponse Execute(OrganizationRequest request)
+            public Guid Create(Entity entity)
             {
-                if (request is Microsoft.Xrm.Sdk.Messages.ExecuteMultipleRequest lote && lote.Requests.Count >= 2)
+                if (++_creates == 2)
                 {
-                    lote.Requests[1] = new Microsoft.Xrm.Sdk.Messages.DeleteRequest { Target = new EntityReference(TablasHistorico.Fila, Guid.NewGuid()) };
+                    throw new FaultException<OrganizationServiceFault>(new OrganizationServiceFault { Message = "dato inválido" }, new FaultReason("dato inválido"));
                 }
 
-                return _real.Execute(request);
+                return _real.Create(entity);
             }
 
-            public Guid Create(Entity entity) => _real.Create(entity);
+            public OrganizationResponse Execute(OrganizationRequest request) => _real.Execute(request);
 
             public Entity Retrieve(string entityName, Guid id, ColumnSet columnSet) => _real.Retrieve(entityName, id, columnSet);
 
