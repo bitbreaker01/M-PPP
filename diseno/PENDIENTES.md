@@ -52,6 +52,8 @@ La matriz de obligatoriedad arranca con **todo obligatorio salvo Referencia** (D
 
 ## B. Verificaciones contra el entorno
 
+- **El registro de los steps, contra la lista blanca (revisión de código, 2026-09-21).** La lista blanca de columnas (`04` §1) es el control que compensa que `W` sea sobre la fila entera, pero su eficacia depende de CÓMO queden registrados los steps, y eso no vive en el código: al registrar (P-09) hay que comprobar en Dev que el step está sobre `Update` de Fila y de Solicitud, PreOperation, orden 0, y **también sobre `Upsert`** si el entorno lo admite; si no, un `UpsertRequest` de una persona con privilegio escribiría cualquier columna sin pasar por el control. Comprobar además que ninguna persona tenga `applicationid` en su usuario, porque esa marca exime del control.
+
 - **`InitializeFileBlocksDownload` sobre una columna de archivo vacía (revisión de 7.6, 2026-09-21).** El código asume que la plataforma responde con una falla del servicio (que se propaga). Learn no lo dice. Comprobarlo en Dev en la prueba de humo de P-09 con una Solicitud sin Excel: si en vez de fallar devuelve tamaño 0, `ArchivosDataverse` ya lo trata como archivo vacío, pero hay que saber cuál de las dos pasa.
 
 - **El acuse y la respuesta final en clientes de correo reales (revisión de 7.4, 2026-09-21).** El cuerpo es un documento HTML completo con estilos inline que Power Automate mete en un *Reply to email*. Antes de producción, enviar un acuse de prueba y mirarlo en Outlook de escritorio (motor de Word: bordes de tabla con `border-collapse`, apóstrofos), Outlook web y Gmail. Enmascarado: un carácter fuera del plano básico (emoji) en la cuenta podría cortarse a la mitad al enmascarar; riesgo aceptado, una cuenta bancaria no trae emojis.
