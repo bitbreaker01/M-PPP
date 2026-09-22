@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Paquete de plugins (pieza 8, P-09). Existe por UNA razón: `Sanic.Mppp.Plugins` depende de DocumentFormat.OpenXml, y un
+       `pluginassembly` suelto no admite ensamblados dependientes; un PAQUETE sí (Learn, "Dependent assembly plug-ins").
+       Se arma con `dotnet pack` y produce un .nupkg que se registra en `pluginpackage`. El proyecto no tiene código propio. -->
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <PackageId>SanicMpppPlugins</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Sistemas Abiertos Nicaragua</Authors>
+    <Description>Plugins de Mantenimiento PPP (M-PPP) para Dataverse.</Description>
+    <!-- El paquete NO se firma: el aprobador lo decidió al elegir el esqueleto (docs/investigacion). -->
+    <SignAssembly>false</SignAssembly>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <NoWarn>NU5100;NU5128</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.PowerApps.MSBuild.Plugin" Version="1.44.2" />
+    <!-- El SDK ya vive en el sandbox: se referencia para compilar pero NO viaja en el paquete (si viaja, puede chocar con el
+         de la plataforma). `ExcludeAssets="runtime"` es lo que lo saca del publish que arma el .nupkg. -->
+    <PackageReference Include="Microsoft.CrmSdk.CoreAssemblies" Version="9.0.2.60" ExcludeAssets="runtime" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Sanic.Mppp.Plugins/Sanic.Mppp.Plugins.csproj" />
+  </ItemGroup>
+</Project>
