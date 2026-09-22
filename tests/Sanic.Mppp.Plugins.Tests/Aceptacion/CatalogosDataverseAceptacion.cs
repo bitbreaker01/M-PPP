@@ -47,13 +47,16 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         }
 
         [Fact]
-        public void Un_parametro_sin_version_activa_es_nulo_y_el_nombre_es_exacto()
+        public void Un_parametro_sin_version_activa_es_nulo_y_el_nombre_se_compara_como_dataverse_sin_distinguir_mayusculas()
         {
             var svc = new OrganizationServiceEnMemoria();
             svc.Sembrar(Entidad(Tablas.Parametro, Inactivo, ("sanic_nombre", "lectura.limites"), ("sanic_version", 1), ("sanic_valor", "x")));
             var catalogos = new CatalogosDataverse(svc);
             Assert.Null(catalogos.Parametro("lectura.limites"));
-            Assert.Null(catalogos.Parametro("Lectura.Limites"));
+            // Re-revisión, 2026-09-21: Dataverse compara texto sin distinguir mayúsculas; el nombre va en minúscula por convención (02 §2.5).
+            svc.Sembrar(Entidad(Tablas.Parametro, Tablas.Activo, ("sanic_nombre", "lectura.limites"), ("sanic_version", 2), ("sanic_valor", "y")));
+            Assert.Equal("y", catalogos.Parametro("Lectura.Limites").Valor);
+            Assert.Null(catalogos.Parametro("lectura.limites.otra"));
             Assert.Throws<ArgumentException>(() => catalogos.Parametro(" "));
             Assert.Throws<ArgumentException>(() => catalogos.Parametro(null));
         }
@@ -157,6 +160,20 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Empty(catalogos.PlanesActivosPorCodigo(new[] { " ", null }));
             Assert.Equal(0, Consultas(svc));
             Assert.Throws<ArgumentNullException>(() => catalogos.PlanesActivosPorCodigo(null));
+        }
+
+        [Theory]
+        [InlineData("sanic_tipoformato")] // un plan sin sanic_codigo no puede calzar con el In: no llega a leerse, ni acá ni en Dataverse
+        [InlineData("sanic_moneda")]
+        public void Un_plan_activo_con_una_columna_requerida_en_nulo_es_un_error_real(string columna)
+        {
+            var svc = new OrganizationServiceEnMemoria();
+            var e = Entidad(Tablas.Plan, Tablas.Activo, ("sanic_codigo", "0042"), ("sanic_tipoformato", new OptionSetValue((int)TipoDeFormatoDelPlan._11)), ("sanic_moneda", new OptionSetValue((int)Moneda.USD)));
+            e[columna] = null;
+            var id = svc.Sembrar(e);
+            var ex = Assert.Throws<InvalidOperationException>(() => new CatalogosDataverse(svc).PlanesActivosPorCodigo(new[] { "0042" }));
+            Assert.Contains(columna, ex.Message);
+            Assert.Contains(id.ToString(), ex.Message);
         }
 
         [Fact]

@@ -65,7 +65,8 @@ namespace Sanic.Mppp.Plugins.Datos
         }
 
         /// <summary>
-        /// La versión activa más alta del parámetro con ese nombre exacto (`sanic_nombre`), o nulo si no hay ninguna activa.
+        /// La versión activa más alta del parámetro con ese nombre (`sanic_nombre`; Dataverse compara texto sin distinguir
+        /// mayúsculas, y el nombre va en minúscula por convención), o nulo si no hay ninguna activa.
         /// UNA consulta: filtro por nombre y activo, orden por `sanic_version` descendente, `TopCount` 1.
         /// </summary>
         public ParametroLeido Parametro(string nombre)
