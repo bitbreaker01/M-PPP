@@ -44,6 +44,11 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
     ///    request es <see cref="NotSupportedException"/>;
     ///  - `Associate`/`Disassociate`: <see cref="NotSupportedException"/>;
     ///  - registra cada llamada en <see cref="Llamadas"/>; <see cref="Registros"/> devuelve copias de lo guardado.
+    ///  - TODO valor de atributo se copia, también los mutables del SDK (`byte[]`, `OptionSetValueCollection`, `EntityCollection`):
+    ///    un tipo que no esté listado se presume mutable y se clona, o se rechaza con <see cref="NotSupportedException"/>;
+    ///  - el atributo de la clave primaria (`<logicalname>id`) viene SIEMPRE en lo que se devuelve y sirve para filtrar, como en Dataverse;
+    ///  - los TEXTOS en condiciones se comparan sin distinguir mayúsculas (Dataverse: "all filter conditions for string values are case
+    ///    insensitive"); los espacios sí cuentan; `Distinct` no se simula (<see cref="NotSupportedException"/>).
     /// Los nombres lógicos y de atributos se comparan de forma ordinal, como los guarda Dataverse (en minúscula).
     /// </summary>
     public sealed class OrganizationServiceEnMemoria : IOrganizationService

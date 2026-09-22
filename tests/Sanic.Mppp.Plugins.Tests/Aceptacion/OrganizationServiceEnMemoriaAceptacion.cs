@@ -351,5 +351,100 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             var r2 = (RetrieveMultipleResponse)svc.Execute(new RetrieveMultipleRequest { Query = Consulta(Plan, new ConditionExpression("sanic_codigo", ConditionOperator.Equal, "0006")) });
             Assert.Single(r2.EntityCollection.Entities);
         }
+
+        // ------------------------------------------------------------------ revisión de código, 2026-09-21: dónde mentía el doble
+        [Fact]
+        public void Los_tipos_mutables_del_sdk_tambien_se_copian_archivos_multiselect_y_colecciones()
+        {
+            var svc = new OrganizationServiceEnMemoria();
+            var bytes = new byte[] { 1, 2, 3 };
+            var multi = new OptionSetValueCollection { new OptionSetValue(1) };
+            var coleccion = new EntityCollection(new List<Entity> { Entidad(Fila, null, ("n", 1)) });
+            var id = svc.Create(Entidad(Plan, null, ("sanic_documentofirmado", bytes), ("sanic_multi", multi), ("sanic_partes", coleccion)));
+
+            bytes[0] = 99;
+            multi.Add(new OptionSetValue(2));
+            coleccion.Entities[0]["n"] = 99;
+
+            var leido = svc.Retrieve(Plan, id, new ColumnSet(true));
+            Assert.Equal(new byte[] { 1, 2, 3 }, leido.GetAttributeValue<byte[]>("sanic_documentofirmado"));
+            Assert.Single(leido.GetAttributeValue<OptionSetValueCollection>("sanic_multi"));
+            Assert.Equal(1, leido.GetAttributeValue<EntityCollection>("sanic_partes").Entities[0]["n"]);
+
+            leido.GetAttributeValue<byte[]>("sanic_documentofirmado")[1] = 77;
+            leido.GetAttributeValue<OptionSetValueCollection>("sanic_multi").Clear();
+            Assert.Equal(new byte[] { 1, 2, 3 }, svc.Retrieve(Plan, id, new ColumnSet(true)).GetAttributeValue<byte[]>("sanic_documentofirmado"));
+            Assert.Single(svc.Retrieve(Plan, id, new ColumnSet(true)).GetAttributeValue<OptionSetValueCollection>("sanic_multi"));
+        }
+
+        [Fact]
+        public void Distinct_no_se_simula_se_dice()
+        {
+            var svc = ConPlanes();
+            var q = Consulta(Plan);
+            q.Distinct = true;
+            Assert.Throws<NotSupportedException>(() => svc.RetrieveMultiple(q));
+        }
+
+        [Fact]
+        public void Los_textos_se_comparan_sin_distinguir_mayusculas_como_dataverse_pero_los_espacios_si_cuentan()
+        {
+            // Microsoft Learn, "Query data using the SDK for .NET": all filter conditions for string values are case insensitive.
+            var svc = ConPlanes();
+            Assert.Equal(new[] { "00A1" }, Codigos(svc.RetrieveMultiple(Consulta(Plan, new ConditionExpression("sanic_codigo", ConditionOperator.Equal, "00a1")))));
+            Assert.Equal(new[] { "00A1" }, Codigos(svc.RetrieveMultiple(Consulta(Plan, new ConditionExpression("sanic_codigo", ConditionOperator.In, "00a1", "zzzz")))));
+            Assert.Equal(2, svc.RetrieveMultiple(Consulta(Plan, new ConditionExpression("sanic_codigo", ConditionOperator.NotEqual, "00a1"))).Entities.Count);
+            Assert.Empty(svc.RetrieveMultiple(Consulta(Plan, new ConditionExpression("sanic_codigo", ConditionOperator.Equal, " 00A1"))).Entities);
+        }
+
+        [Fact]
+        public void El_atributo_de_la_clave_primaria_viene_siempre_como_en_dataverse_y_sirve_para_filtrar()
+        {
+            var svc = ConPlanes();
+            var id = svc.Registros(Plan)[0].Id;
+            var leido = svc.Retrieve(Plan, id, new ColumnSet("sanic_codigo"));
+            Assert.Equal(id, leido.GetAttributeValue<Guid>("sanic_mppp_tbl_planid"));
+            Assert.All(svc.RetrieveMultiple(Consulta(Plan)).Entities, e => Assert.Equal(e.Id, e.GetAttributeValue<Guid>("sanic_mppp_tbl_planid")));
+
+            var porId = svc.RetrieveMultiple(Consulta(Plan, new ConditionExpression("sanic_mppp_tbl_planid", ConditionOperator.In, new object[] { id, Guid.NewGuid() })));
+            Assert.Equal(new[] { "0042" }, Codigos(porId));
+            Assert.Single(svc.RetrieveMultiple(Consulta(Plan, new ConditionExpression("sanic_mppp_tbl_planid", ConditionOperator.Equal, id))).Entities);
+        }
+
+        [Fact]
+        public void La_clave_alternativa_compuesta_exige_todos_sus_atributos()
+        {
+            var svc = new OrganizationServiceEnMemoria();
+            var cliente = Guid.NewGuid();
+            var id = svc.Create(Entidad("sanic_mppp_tbl_autorizado", null, ("sanic_nombre", "ana@acme.com"), ("sanic_clienteid", new EntityReference("sanic_mppp_tbl_cliente", cliente))));
+            svc.Create(Entidad("sanic_mppp_tbl_autorizado", null, ("sanic_nombre", "ana@acme.com"), ("sanic_clienteid", new EntityReference("sanic_mppp_tbl_cliente", Guid.NewGuid()))));
+
+            var claves = new KeyAttributeCollection { ["sanic_nombre"] = "ana@acme.com", ["sanic_clienteid"] = new EntityReference("sanic_mppp_tbl_cliente", cliente) };
+            var r = (RetrieveResponse)svc.Execute(new RetrieveRequest { Target = new EntityReference("sanic_mppp_tbl_autorizado", claves), ColumnSet = new ColumnSet(true) });
+            Assert.Equal(id, r.Entity.Id);
+        }
+
+        [Fact]
+        public void In_con_optionset_y_orders_sobre_optionset_y_entityreference()
+        {
+            var svc = ConPlanes();
+            Assert.Equal(2, svc.RetrieveMultiple(Consulta(Plan, new ConditionExpression("sanic_moneda", ConditionOperator.In, new object[] { new OptionSetValue(2) }))).Entities.Count);
+            var q = Consulta(Plan);
+            q.AddOrder("sanic_moneda", OrderType.Ascending);
+            q.AddOrder("sanic_codigo", OrderType.Ascending);
+            Assert.Equal(new[] { "0006", "0042", "00A1" }, Codigos(svc.RetrieveMultiple(q)));
+        }
+
+        [Fact]
+        public void Executetransaction_sin_pedir_respuestas_devuelve_vacio_y_un_request_de_estado_no_se_simula()
+        {
+            var svc = new OrganizationServiceEnMemoria();
+            var tx = new ExecuteTransactionRequest { Requests = new OrganizationRequestCollection() };
+            tx.Requests.Add(new CreateRequest { Target = Entidad(Fila, null, ("n", 1)) });
+            var r = (ExecuteTransactionResponse)svc.Execute(tx);
+            Assert.Empty(r.Responses);
+            Assert.Single(svc.Registros(Fila));
+            Assert.Throws<NotSupportedException>(() => svc.Execute(new OrganizationRequest("SetState") { ["EntityMoniker"] = new EntityReference(Fila, Guid.NewGuid()) }));
+        }
     }
 }
