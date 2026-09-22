@@ -1,5 +1,8 @@
 using System;
+using System.ServiceModel;
 using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Query;
+using Sanic.Mppp.Plugins.Datos;
 
 namespace Sanic.Mppp.Plugins.Steps
 {
@@ -18,7 +21,56 @@ namespace Sanic.Mppp.Plugins.Steps
     {
         public static bool EsCodigoDeServidor(IPluginExecutionContext contexto, IOrganizationService servicio)
         {
-            throw new NotImplementedException();
+            if (contexto.Depth > 1)
+            {
+                // Nuestro propio plugin o Custom API, que ya escribe con SYSTEM (03 §4): no hace falta preguntar nada.
+                return true;
+            }
+
+            Entity usuario;
+            try
+            {
+                usuario = servicio.Retrieve(TablasNativas.Usuario, contexto.InitiatingUserId, new ColumnSet("applicationid"));
+            }
+            catch (FaultException<OrganizationServiceFault>)
+            {
+                // Que el usuario no exista no puede tumbar un guardado (punto fino de la orden): se trata como persona.
+                return false;
+            }
+
+            return usuario.Contains("applicationid") && usuario["applicationid"] != null;
+        }
+    }
+
+    /// <summary>
+    /// Plomería común a los cuatro steps de esta pieza: extrae contexto, fábrica de servicio y trace del proveedor, y el
+    /// `Target` cuando es una `Entity` utilizable. Un proveedor incompleto es <see cref="InvalidPluginExecutionException"/>;
+    /// un `Target` ausente o que no es `Entity` hace que <see cref="Preparar"/> devuelva `false` (el step no hace nada).
+    /// </summary>
+    internal static class PlomeriaDePlataforma
+    {
+        public static bool Preparar(IServiceProvider serviceProvider, out IPluginExecutionContext contexto, out IOrganizationService servicio, out Entity target)
+        {
+            if (serviceProvider == null)
+            {
+                throw new InvalidPluginExecutionException("No se recibió el proveedor de servicios del plugin.");
+            }
+
+            contexto = (IPluginExecutionContext)serviceProvider.GetService(typeof(IPluginExecutionContext));
+            var fabrica = (IOrganizationServiceFactory)serviceProvider.GetService(typeof(IOrganizationServiceFactory));
+            var trace = (ITracingService)serviceProvider.GetService(typeof(ITracingService));
+            if (contexto == null || fabrica == null || trace == null)
+            {
+                throw new InvalidPluginExecutionException("Faltan servicios de la plataforma para ejecutar el step.");
+            }
+
+            servicio = fabrica.CreateOrganizationService(contexto.UserId);
+
+            target = contexto.InputParameters.Contains("Target") && contexto.InputParameters["Target"] is Entity entidad
+                ? entidad
+                : null;
+
+            return target != null;
         }
     }
 
@@ -32,7 +84,24 @@ namespace Sanic.Mppp.Plugins.Steps
     {
         public void Execute(IServiceProvider serviceProvider)
         {
-            throw new NotImplementedException();
+            if (!PlomeriaDePlataforma.Preparar(serviceProvider, out var contexto, out var servicio, out var target))
+            {
+                return;
+            }
+
+            if (BaseDeStep.EsCodigoDeServidor(contexto, servicio))
+            {
+                // 04 §1: el código de servidor no pasa por la lista blanca.
+                return;
+            }
+
+            // ColumnasNoPermitidas ya devuelve vacío para una tabla que este step no controla (04 §1).
+            var noPermitidas = ListaBlancaDeColumnas.ColumnasNoPermitidas(target.LogicalName, target.Attributes.Keys);
+            if (noPermitidas.Count > 0)
+            {
+                throw new InvalidPluginExecutionException(
+                    $"No se puede guardar: la(s) columna(s) {string.Join(", ", noPermitidas)} no está(n) permitida(s) para este usuario.");
+            }
         }
     }
 
@@ -47,7 +116,45 @@ namespace Sanic.Mppp.Plugins.Steps
     {
         public void Execute(IServiceProvider serviceProvider)
         {
-            throw new NotImplementedException();
+            if (!PlomeriaDePlataforma.Preparar(serviceProvider, out _, out _, out var target))
+            {
+                return;
+            }
+
+            switch (target.LogicalName)
+            {
+                case Tablas.Cliente:
+                    NormalizarColumna(target, "sanic_cifbac", Normalizacion.CifBac);
+                    NormalizarColumna(target, "sanic_cifcom", Normalizacion.CifCom);
+                    break;
+                case Tablas.Plan:
+                    NormalizarColumna(target, "sanic_codigo", Normalizacion.CodigoDePlan);
+                    break;
+                case Tablas.Autorizado:
+                    NormalizarColumna(target, "sanic_nombre", Normalizacion.CorreoAutorizado);
+                    break;
+                case Tablas.Parametro:
+                    NormalizarColumna(target, "sanic_nombre", Normalizacion.NombreDeParametro);
+                    break;
+            }
+        }
+
+        private static void NormalizarColumna(Entity target, string columna, Func<string, string> normalizar)
+        {
+            if (!target.Contains(columna))
+            {
+                // En un Update parcial no se inventa nada (diseno/03 §5).
+                return;
+            }
+
+            try
+            {
+                target[columna] = normalizar(target[columna] as string);
+            }
+            catch (ArgumentException ex)
+            {
+                throw new InvalidPluginExecutionException($"La columna '{columna}' no tiene un valor válido: {ex.Message}");
+            }
         }
     }
 
@@ -63,7 +170,81 @@ namespace Sanic.Mppp.Plugins.Steps
     {
         public void Execute(IServiceProvider serviceProvider)
         {
-            throw new NotImplementedException();
+            if (!PlomeriaDePlataforma.Preparar(serviceProvider, out _, out var servicio, out var target))
+            {
+                return;
+            }
+
+            try
+            {
+                switch (target.LogicalName)
+                {
+                    case Tablas.Plan:
+                        target["sanic_nombre"] = NombreDePlan(servicio, target);
+                        break;
+                    case Tablas.AutorizacionPlan:
+                        target["sanic_nombre"] = NombreDeAutorizacionPlan(servicio, target);
+                        break;
+                    case TablasHistorico.Fila:
+                        target["sanic_nombre"] = NombreDeFila(servicio, target);
+                        break;
+                }
+            }
+            catch (ArgumentException ex)
+            {
+                // NombreCalculado (Dominio) valida con ArgumentException; acá se traduce a lo que el step tiene que lanzar.
+                throw new InvalidPluginExecutionException($"No se pudo calcular 'sanic_nombre': {ex.Message}");
+            }
+        }
+
+        private static string NombreDePlan(IOrganizationService servicio, Entity target)
+        {
+            var clienteRef = LookupObligatorio(target, "sanic_clienteid", "el cliente del plan");
+            var codigo = target.GetAttributeValue<string>("sanic_codigo");
+
+            var cliente = servicio.Retrieve(Tablas.Cliente, clienteRef.Id, new ColumnSet("sanic_nombre"));
+            var nombreDelCliente = cliente.GetAttributeValue<string>("sanic_nombre");
+
+            return NombreCalculado.DePlan(codigo, nombreDelCliente);
+        }
+
+        private static string NombreDeAutorizacionPlan(IOrganizationService servicio, Entity target)
+        {
+            var autorizadoRef = LookupObligatorio(target, "sanic_autorizadoid", "el autorizado de la autorización");
+            var planRef = LookupObligatorio(target, "sanic_planid", "el plan de la autorización");
+
+            var autorizado = servicio.Retrieve(Tablas.Autorizado, autorizadoRef.Id, new ColumnSet("sanic_nombre"));
+            var plan = servicio.Retrieve(Tablas.Plan, planRef.Id, new ColumnSet("sanic_codigo"));
+
+            var correo = autorizado.GetAttributeValue<string>("sanic_nombre");
+            var codigoDePlan = plan.GetAttributeValue<string>("sanic_codigo");
+
+            return NombreCalculado.DeAutorizacionPlan(correo, codigoDePlan);
+        }
+
+        private static string NombreDeFila(IOrganizationService servicio, Entity target)
+        {
+            var solicitudRef = LookupObligatorio(target, "sanic_solicitudid", "la solicitud de la fila");
+            if (!target.Contains("sanic_numerofila") || !(target["sanic_numerofila"] is int numeroDeFila))
+            {
+                throw new InvalidPluginExecutionException("No se puede calcular el nombre de la fila: falta el número de fila ('sanic_numerofila').");
+            }
+
+            var solicitud = servicio.Retrieve(TablasHistorico.Solicitud, solicitudRef.Id, new ColumnSet("sanic_nombre"));
+            var numeroDeSolicitud = solicitud.GetAttributeValue<string>("sanic_nombre");
+
+            return NombreCalculado.DeFila(numeroDeSolicitud, numeroDeFila);
+        }
+
+        /// <summary>El lookup que hace falta para calcular el nombre. Si no viene, no se inventa nada: se rechaza el guardado (diseno/03 §5).</summary>
+        private static EntityReference LookupObligatorio(Entity target, string columna, string motivo)
+        {
+            if (target.Contains(columna) && target[columna] is EntityReference referencia)
+            {
+                return referencia;
+            }
+
+            throw new InvalidPluginExecutionException($"No se puede calcular el nombre: falta {motivo} ('{columna}').");
         }
     }
 
@@ -76,7 +257,56 @@ namespace Sanic.Mppp.Plugins.Steps
     {
         public void Execute(IServiceProvider serviceProvider)
         {
-            throw new NotImplementedException();
+            if (!PlomeriaDePlataforma.Preparar(serviceProvider, out var contexto, out var servicio, out var target))
+            {
+                return;
+            }
+
+            if (!string.Equals(target.LogicalName, Tablas.AutorizacionPlan, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            var traeAutorizado = target.Contains("sanic_autorizadoid");
+            var traePlan = target.Contains("sanic_planid");
+
+            if (!traeAutorizado && !traePlan)
+            {
+                // El Target no trae ninguno de los dos lookups: no hay nada que comprobar (diseno/03 §5).
+                return;
+            }
+
+            EntityReference autorizadoRef;
+            EntityReference planRef;
+
+            if (traeAutorizado && traePlan)
+            {
+                autorizadoRef = (EntityReference)target["sanic_autorizadoid"];
+                planRef = (EntityReference)target["sanic_planid"];
+            }
+            else if (string.Equals(contexto.MessageName, "Update", StringComparison.Ordinal))
+            {
+                // Trae uno solo, y es un Update: el otro se lee del registro existente (diseno/03 §5).
+                var existente = servicio.Retrieve(Tablas.AutorizacionPlan, target.Id, new ColumnSet("sanic_autorizadoid", "sanic_planid"));
+                autorizadoRef = traeAutorizado ? (EntityReference)target["sanic_autorizadoid"] : existente.GetAttributeValue<EntityReference>("sanic_autorizadoid");
+                planRef = traePlan ? (EntityReference)target["sanic_planid"] : existente.GetAttributeValue<EntityReference>("sanic_planid");
+            }
+            else
+            {
+                // Create con un solo lookup: los dos son requeridos por la plataforma: no es asunto de este step.
+                return;
+            }
+
+            var plan = servicio.Retrieve(Tablas.Plan, planRef.Id, new ColumnSet("sanic_clienteid"));
+            var autorizado = servicio.Retrieve(Tablas.Autorizado, autorizadoRef.Id, new ColumnSet("sanic_clienteid"));
+
+            var clienteDelPlan = plan.GetAttributeValue<EntityReference>("sanic_clienteid")?.Id;
+            var clienteDelAutorizado = autorizado.GetAttributeValue<EntityReference>("sanic_clienteid")?.Id;
+
+            if (clienteDelPlan != clienteDelAutorizado)
+            {
+                throw new InvalidPluginExecutionException("No se puede guardar la autorización: el plan pertenece a una empresa distinta de la del autorizado.");
+            }
         }
     }
 }
