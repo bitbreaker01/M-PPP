@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text;
 using Sanic.Mppp.Plugins.Dominio;
 
 namespace Sanic.Mppp.Plugins.Respuesta
@@ -15,12 +18,29 @@ namespace Sanic.Mppp.Plugins.Respuesta
     {
         public static string Cuenta(string numeroCuenta)
         {
-            throw new NotImplementedException();
+            return Enmascarar(numeroCuenta);
         }
 
         public static string Identificacion(string numeroIdentificacion)
         {
-            throw new NotImplementedException();
+            return Enmascarar(numeroIdentificacion);
+        }
+
+        // Misma regla para los dos campos (DD-08): último 4, el resto asteriscos, sin tocar el valor recibido.
+        private static string Enmascarar(string valor)
+        {
+            if (string.IsNullOrEmpty(valor))
+            {
+                return string.Empty;
+            }
+
+            if (valor.Length <= 4)
+            {
+                return new string('*', valor.Length);
+            }
+
+            var visibles = valor.Substring(valor.Length - 4);
+            return new string('*', valor.Length - 4) + visibles;
         }
     }
 
@@ -82,20 +102,304 @@ namespace Sanic.Mppp.Plugins.Respuesta
     /// </summary>
     public static class ArmadorRespuesta
     {
+        // Estilos mínimos e INLINE en cada etiqueta (07 §5: el cuerpo va como HTML en un Reply to email, sin
+        // adjuntos; los clientes de correo ignoran hojas de estilo externas). Un bloque `<style>` con reglas
+        // `selector{...}` queda descartado: la prueba de aceptación prohíbe cualquier `{` en el HTML (ningún
+        // marcador sin completar), y esa misma llave es sintaxis de CSS, no un placeholder — así que van como
+        // atributos `style="…"` cortos, repetidos solo donde hace falta (contrato punto 7: 100 filas de 450
+        // caracteres tienen que entrar holgadas, y estos atributos son unas pocas decenas de caracteres cada uno).
+        private const string EstiloCuerpo = "font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222222";
+        private const string EstiloTabla = "border-collapse:collapse;width:100%;margin:8px 0";
+        private const string EstiloCeldaEncabezado = "border:1px solid #cccccc;padding:4px 8px;text-align:left;background:#f2f2f2";
+        private const string EstiloCelda = "border:1px solid #cccccc;padding:4px 8px;text-align:left;vertical-align:top";
+
+        // 07 §5 "Texto obligatorio en las dos comunicaciones" (consecuencia de DF-08): el cuerpo lo arma el código, nunca
+        // el flujo (DD-08), así que este aviso tiene que salir de acá.
+        private const string TextoNoResponder =
+            "<p>Para enviar una plantilla nueva o corregida, escriba un correo nuevo a esta dirección. No responda a este " +
+            "mensaje: las respuestas no se procesan.</p>";
+
         /// <summary>Palabras del cliente para cada estado de fila, sin códigos ni jerga.</summary>
         public static string EstadoParaElCliente(EstadoDeLaFila estado)
         {
-            throw new NotImplementedException();
+            switch (estado)
+            {
+                case EstadoDeLaFila.RechazadaEnValidacion:
+                    return "Rechazada en validación";
+                case EstadoDeLaFila.SinAutorizacion:
+                    return "Sin autorización";
+                case EstadoDeLaFila.Validada:
+                    return "Validada";
+                case EstadoDeLaFila.Digitada:
+                    return "En proceso";
+                case EstadoDeLaFila.Aprobada:
+                    return "Aprobada";
+                case EstadoDeLaFila.RechazadaEnAS400:
+                    // DD-08/DD-09: el cliente no sabe qué es AS400, nunca se le nombra.
+                    return "Rechazada por el banco";
+                case EstadoDeLaFila.Anulada:
+                    return "Anulada";
+                default:
+                    throw new ArgumentException($"El estado de fila {estado} no tiene palabras para el cliente.", nameof(estado));
+            }
         }
 
         public static string Acuse(SolicitudParaRespuesta solicitud)
         {
-            throw new NotImplementedException();
+            ValidarBase(solicitud);
+
+            var filas = solicitud.Filas ?? new List<FilaParaRespuesta>();
+            var motivosDelSobre = solicitud.MotivosDelSobre ?? new List<string>();
+
+            switch (solicitud.Estado)
+            {
+                case EstadoDeLaSolicitud.EnProceso:
+                    if (filas.Count == 0)
+                    {
+                        throw new ArgumentException("Una solicitud En proceso necesita al menos una fila.", nameof(solicitud));
+                    }
+
+                    return ArmarAcuseEnProceso(solicitud, filas);
+
+                case EstadoDeLaSolicitud.Rechazada:
+                    if (motivosDelSobre.Count == 0 && filas.Count == 0)
+                    {
+                        // DD-09: si no hay motivos del sobre ni filas, no hay nada que decirle al cliente: es un error de armado.
+                        throw new ArgumentException("Una solicitud Rechazada necesita motivos del sobre o filas.", nameof(solicitud));
+                    }
+
+                    return ArmarAcuseRechazada(solicitud, motivosDelSobre, filas);
+
+                default:
+                    throw new ArgumentException($"El acuse no corresponde al estado {solicitud.Estado} de la solicitud.", nameof(solicitud));
+            }
         }
 
         public static string RespuestaFinal(SolicitudParaRespuesta solicitud)
         {
-            throw new NotImplementedException();
+            ValidarBase(solicitud);
+
+            if (solicitud.Estado != EstadoDeLaSolicitud.Procesada)
+            {
+                throw new ArgumentException($"La respuesta final no corresponde al estado {solicitud.Estado} de la solicitud.", nameof(solicitud));
+            }
+
+            var filas = solicitud.Filas ?? new List<FilaParaRespuesta>();
+            return ArmarRespuestaFinal(solicitud, filas);
+        }
+
+        // ------------------------------------------------------------------ validación (contrato punto 5)
+
+        private static void ValidarBase(SolicitudParaRespuesta solicitud)
+        {
+            if (solicitud == null)
+            {
+                throw new ArgumentNullException(nameof(solicitud));
+            }
+
+            if (string.IsNullOrWhiteSpace(solicitud.Numero))
+            {
+                throw new ArgumentException("La solicitud necesita un número para citarle al cliente.", nameof(solicitud));
+            }
+
+            if (solicitud.Filas != null && solicitud.Filas.Any(f => f == null))
+            {
+                throw new ArgumentException("Una fila nula es un error de armado de la solicitud.", nameof(solicitud));
+            }
+        }
+
+        // ------------------------------------------------------------------ acuse
+
+        private static string ArmarAcuseEnProceso(SolicitudParaRespuesta solicitud, IList<FilaParaRespuesta> filas)
+        {
+            var ordenadas = filas.OrderBy(f => f.NumeroFila).ToList();
+            var validas = ordenadas.Count(f => f.Estado == EstadoDeLaFila.Validada);
+            var rechazadas = ordenadas.Count - validas;
+
+            var sb = new StringBuilder();
+            AbrirDocumento(sb);
+            EscribirSaludoYNumero(sb, solicitud);
+
+            sb.Append("<p>Recibimos ").Append(Numero(ordenadas.Count)).Append(" fila(s): ").Append(Numero(validas))
+                .Append(" quedaron validadas y ").Append(Numero(rechazadas)).Append(" quedaron rechazadas.</p>");
+
+            EscribirTablaFilas(sb, ordenadas);
+
+            // DD-08: el acuse anuncia que viene una segunda comunicación cuando termine el procesamiento.
+            sb.Append("<p>Las filas validadas se procesarán en el banco. Las filas rechazadas no se procesarán. Cuando el " +
+                "procesamiento termine, le enviaremos una respuesta final con el resultado de cada fila.</p>");
+
+            sb.Append(TextoNoResponder);
+            CerrarDocumento(sb);
+            return sb.ToString();
+        }
+
+        private static string ArmarAcuseRechazada(SolicitudParaRespuesta solicitud, IList<string> motivosDelSobre, IList<FilaParaRespuesta> filas)
+        {
+            var sb = new StringBuilder();
+            AbrirDocumento(sb);
+            EscribirSaludoYNumero(sb, solicitud);
+
+            if (motivosDelSobre.Count > 0)
+            {
+                // Rechazada por el sobre: sin tabla de filas (contrato punto 3, "Rechazada").
+                sb.Append("<ul>");
+                foreach (var motivo in motivosDelSobre)
+                {
+                    sb.Append("<li>").Append(Escapar(motivo)).Append("</li>");
+                }
+
+                sb.Append("</ul>");
+            }
+            else
+            {
+                // Rechazada porque ninguna fila quedó Validada: la tabla de filas con contadores.
+                var ordenadas = filas.OrderBy(f => f.NumeroFila).ToList();
+                sb.Append("<p>Recibimos ").Append(Numero(ordenadas.Count)).Append(" fila(s), y ninguna quedó validada.</p>");
+                EscribirTablaFilas(sb, ordenadas);
+            }
+
+            // DD-09, expreso: nada que procesar, no recibirá otro correo, corrija y reenvíe. Sin "respuesta final".
+            sb.Append("<p>No hay nada que procesar: no recibirá otro correo por esta solicitud. Corrija la plantilla y " +
+                "reenvíela en un correo nuevo a esta misma dirección.</p>");
+
+            sb.Append(TextoNoResponder);
+            CerrarDocumento(sb);
+            return sb.ToString();
+        }
+
+        // ------------------------------------------------------------------ respuesta final
+
+        private static string ArmarRespuestaFinal(SolicitudParaRespuesta solicitud, IList<FilaParaRespuesta> filas)
+        {
+            var ordenadas = filas.OrderBy(f => f.NumeroFila).ToList();
+            var procesadas = ordenadas.Count(f => f.Estado == EstadoDeLaFila.Aprobada);
+            var noProcesadas = ordenadas.Count - procesadas;
+
+            var sb = new StringBuilder();
+            AbrirDocumento(sb);
+            EscribirSaludoYNumero(sb, solicitud);
+
+            sb.Append("<p>De ").Append(Numero(ordenadas.Count)).Append(" fila(s) recibidas, ").Append(Numero(procesadas))
+                .Append(" se procesaron y ").Append(Numero(noProcesadas)).Append(" no se procesaron.</p>");
+
+            EscribirTablaFilas(sb, ordenadas);
+
+            // diseno/03 §4 "Cierre": qué se hizo y qué no, sin anunciar otra comunicación ni nombrar AS400.
+            sb.Append("<p>Este es el resultado final del procesamiento de su solicitud. Ante cualquier consulta sobre " +
+                "una fila, comuníquese con su ejecutivo.</p>");
+
+            sb.Append(TextoNoResponder);
+            CerrarDocumento(sb);
+            return sb.ToString();
+        }
+
+        // ------------------------------------------------------------------ armado común del HTML
+
+        private static void AbrirDocumento(StringBuilder sb)
+        {
+            sb.Append("<!DOCTYPE html>");
+            sb.Append("<html lang=\"es\"><head><meta charset=\"utf-8\"></head>");
+            sb.Append("<body style=\"").Append(EstiloCuerpo).Append("\">");
+        }
+
+        private static void CerrarDocumento(StringBuilder sb)
+        {
+            sb.Append("</body></html>");
+        }
+
+        private static void EscribirSaludoYNumero(StringBuilder sb, SolicitudParaRespuesta solicitud)
+        {
+            sb.Append("<p>Estimado/a cliente:</p>");
+            sb.Append("<p>Su número de solicitud es <strong>").Append(Escapar(solicitud.Numero)).Append("</strong>");
+
+            var fecha = solicitud.FechaRecibidoTexto;
+            if (!string.IsNullOrEmpty(fecha))
+            {
+                sb.Append(" y la recibimos el ").Append(Escapar(fecha));
+            }
+
+            sb.Append(".</p>");
+        }
+
+        private static void EscribirTablaFilas(StringBuilder sb, IList<FilaParaRespuesta> ordenadas)
+        {
+            sb.Append("<table style=\"").Append(EstiloTabla).Append("\"><thead><tr>");
+            foreach (var encabezado in new[] { "N.º", "Plan", "Beneficiario", "Cuenta", "Resultado", "Motivos" })
+            {
+                sb.Append("<th style=\"").Append(EstiloCeldaEncabezado).Append("\">").Append(encabezado).Append("</th>");
+            }
+
+            sb.Append("</tr></thead><tbody>");
+
+            foreach (var fila in ordenadas)
+            {
+                sb.Append("<tr>");
+                EscribirCelda(sb, Numero(fila.NumeroFila));
+                EscribirCelda(sb, Escapar(fila.NumeroPlan));
+                EscribirCelda(sb, Escapar(fila.NombreBeneficiario));
+                EscribirCelda(sb, Escapar(Enmascarado.Cuenta(fila.NumeroCuenta)));
+                // El estado en palabras sale de nuestro propio diccionario fijo (EstadoParaElCliente), no del cliente:
+                // no hace falta escaparlo, y así no se corre el riesgo de tocar sus tildes.
+                EscribirCelda(sb, EstadoParaElCliente(fila.Estado));
+                EscribirCelda(sb, Escapar(fila.Mensaje));
+                sb.Append("</tr>");
+            }
+
+            sb.Append("</tbody></table>");
+        }
+
+        private static void EscribirCelda(StringBuilder sb, string contenidoYaEscapado)
+        {
+            sb.Append("<td style=\"").Append(EstiloCelda).Append("\">").Append(contenidoYaEscapado).Append("</td>");
+        }
+
+        // Escapador directo, carácter por carácter: solo los 5 metacaracteres de HTML se codifican; el resto —
+        // tildes, eñe, cualquier otra letra— sale tal cual (el texto al cliente lleva ortografía completa). No
+        // depende de cómo un runtime particular codifique lo que no es peligroso, y sigue cerrando el vector: nunca
+        // sale un `<`, `>`, `&`, `"` ni `'` sin escapar.
+        private static string Escapar(string valor)
+        {
+            if (string.IsNullOrEmpty(valor))
+            {
+                return string.Empty;
+            }
+
+            var sb = new StringBuilder(valor.Length);
+            foreach (var c in valor)
+            {
+                switch (c)
+                {
+                    case '&':
+                        sb.Append("&amp;");
+                        break;
+                    case '<':
+                        sb.Append("&lt;");
+                        break;
+                    case '>':
+                        sb.Append("&gt;");
+                        break;
+                    case '"':
+                        sb.Append("&quot;");
+                        break;
+                    case '\'':
+                        // Entidad NOMBRADA (no numérica): el documento es HTML5 (`<!DOCTYPE html>`), donde `&apos;`
+                        // es válida; ninguna entidad `&#…;` puede aparecer (la prueba de aceptación lo exige, para
+                        // no confundir un escape real con una tilde o una eñe convertida a numérica).
+                        sb.Append("&apos;");
+                        break;
+                    default:
+                        sb.Append(c);
+                        break;
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private static string Numero(int valor)
+        {
+            return valor.ToString(CultureInfo.InvariantCulture);
         }
     }
 }
