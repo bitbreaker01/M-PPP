@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.ServiceModel;
 using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Query;
 
 namespace Sanic.Mppp.Plugins.Tests.Dobles
@@ -44,44 +48,142 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
     /// </summary>
     public sealed class OrganizationServiceEnMemoria : IOrganizationService
     {
+        // Un diccionario por entidad lógica; adentro, por id. Un List<Guid> paralelo guarda el orden de alta
+        // porque Dictionary no promete orden estable frente a los Delete (y RetrieveMultiple sin Orders explícitos
+        // tiene que devolver en orden de alta, como una tabla real recorrida por rowid).
+        private readonly Dictionary<string, Dictionary<Guid, Entity>> _porEntidad = new Dictionary<string, Dictionary<Guid, Entity>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<Guid>> _ordenPorEntidad = new Dictionary<string, List<Guid>>(StringComparer.Ordinal);
+        private readonly List<LlamadaRegistrada> _llamadas = new List<LlamadaRegistrada>();
+        private readonly ReadOnlyCollection<LlamadaRegistrada> _llamadasSoloLectura;
+
+        public OrganizationServiceEnMemoria()
+        {
+            _llamadasSoloLectura = new ReadOnlyCollection<LlamadaRegistrada>(_llamadas);
+        }
+
         /// <summary>Todas las llamadas recibidas, en orden. Lista de solo lectura sobre la real: se ve crecer.</summary>
-        public IReadOnlyList<LlamadaRegistrada> Llamadas => throw new NotImplementedException();
+        public IReadOnlyList<LlamadaRegistrada> Llamadas => _llamadasSoloLectura;
 
         /// <summary>Copias de lo guardado en esa entidad, en orden de alta. Vacío si no hay.</summary>
         public IList<Entity> Registros(string logicalName)
         {
-            throw new NotImplementedException();
+            if (logicalName == null)
+            {
+                throw new ArgumentNullException(nameof(logicalName));
+            }
+
+            if (!_ordenPorEntidad.TryGetValue(logicalName, out var orden))
+            {
+                return new List<Entity>();
+            }
+
+            var tabla = _porEntidad[logicalName];
+            return orden.Select(id => Clonar(tabla[id])).ToList();
         }
 
         /// <summary>Guarda una copia sin registrar llamada: para armar el estado inicial de una prueba. Asigna id si viene vacío.</summary>
         public Guid Sembrar(Entity entidad)
         {
-            throw new NotImplementedException();
+            if (entidad == null)
+            {
+                throw new ArgumentNullException(nameof(entidad));
+            }
+
+            var id = entidad.Id != Guid.Empty ? entidad.Id : Guid.NewGuid();
+            var copia = Clonar(entidad);
+            copia.Id = id;
+
+            var tabla = ObtenerOCrearTabla(entidad.LogicalName);
+            var orden = ObtenerOCrearOrden(entidad.LogicalName);
+            if (!tabla.ContainsKey(id))
+            {
+                orden.Add(id);
+            }
+
+            tabla[id] = copia;
+            return id;
         }
 
         public Guid Create(Entity entity)
         {
-            throw new NotImplementedException();
+            if (entity == null)
+            {
+                throw new ArgumentNullException(nameof(entity));
+            }
+
+            var id = CrearInterno(entity);
+            RegistrarLlamada("Create", entity.LogicalName);
+            return id;
         }
 
         public Entity Retrieve(string entityName, Guid id, ColumnSet columnSet)
         {
-            throw new NotImplementedException();
+            if (entityName == null)
+            {
+                throw new ArgumentNullException(nameof(entityName));
+            }
+
+            if (columnSet == null)
+            {
+                throw new ArgumentNullException(nameof(columnSet));
+            }
+
+            var registro = ProyectarColumnas(BuscarObligatorio(entityName, id), columnSet);
+            RegistrarLlamada("Retrieve", entityName);
+            return registro;
         }
 
         public void Update(Entity entity)
         {
-            throw new NotImplementedException();
+            if (entity == null)
+            {
+                throw new ArgumentNullException(nameof(entity));
+            }
+
+            ActualizarInterno(entity);
+            RegistrarLlamada("Update", entity.LogicalName);
         }
 
         public void Delete(string entityName, Guid id)
         {
-            throw new NotImplementedException();
+            if (entityName == null)
+            {
+                throw new ArgumentNullException(nameof(entityName));
+            }
+
+            BorrarInterno(entityName, id);
+            RegistrarLlamada("Delete", entityName);
         }
 
         public OrganizationResponse Execute(OrganizationRequest request)
         {
-            throw new NotImplementedException();
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            OrganizationResponse respuesta;
+            string entidad;
+            switch (request)
+            {
+                case ExecuteMultipleRequest lote:
+                    respuesta = EjecutarLote(lote);
+                    entidad = null;
+                    break;
+                case ExecuteTransactionRequest tx:
+                    respuesta = EjecutarTransaccion(tx);
+                    entidad = null;
+                    break;
+                default:
+                    respuesta = ResolverRequest(request);
+                    entidad = EntidadDe(request);
+                    break;
+            }
+
+            // El lote y la transacción cuentan como UNA llamada: los requests que resuelven adentro (vía ResolverRequest)
+            // nunca pasan por acá, así que no se registran aparte (diseno/03 §8, contrato del doble).
+            RegistrarLlamada(request.GetType().Name, entidad);
+            return respuesta;
         }
 
         public void Associate(string entityName, Guid entityId, Relationship relationship, EntityReferenceCollection relatedEntities)
@@ -96,7 +198,533 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
 
         public EntityCollection RetrieveMultiple(QueryBase query)
         {
-            throw new NotImplementedException();
+            if (query == null)
+            {
+                throw new ArgumentNullException(nameof(query));
+            }
+
+            var consulta = RequerirQueryExpression(query);
+            var resultado = ConsultarInterno(consulta);
+            RegistrarLlamada("RetrieveMultiple", consulta.EntityName);
+            return resultado;
+        }
+
+        // ------------------------------------------------------------------ Implementación interna (sin registrar llamada;
+        // la usan tanto los métodos públicos como Execute/ExecuteMultiple/ExecuteTransaction, para que un request dentro
+        // de un lote no cuente como llamada aparte).
+
+        private Guid CrearInterno(Entity entity)
+        {
+            var id = entity.Id != Guid.Empty ? entity.Id : Guid.NewGuid();
+            var tabla = ObtenerOCrearTabla(entity.LogicalName);
+            if (tabla.ContainsKey(id))
+            {
+                throw Falla($"Ya existe un registro de '{entity.LogicalName}' con id {id}.");
+            }
+
+            var copia = Clonar(entity);
+            copia.Id = id;
+            tabla[id] = copia;
+            ObtenerOCrearOrden(entity.LogicalName).Add(id);
+            return id;
+        }
+
+        private void ActualizarInterno(Entity entity)
+        {
+            var registro = BuscarObligatorio(entity.LogicalName, entity.Id);
+            foreach (var atributo in entity.Attributes)
+            {
+                registro[atributo.Key] = ClonarValor(atributo.Value);
+            }
+        }
+
+        private void BorrarInterno(string entityName, Guid id)
+        {
+            BuscarObligatorio(entityName, id);
+            _porEntidad[entityName].Remove(id);
+            _ordenPorEntidad[entityName].Remove(id);
+        }
+
+        private OrganizationResponse ResolverRequest(OrganizationRequest request)
+        {
+            switch (request)
+            {
+                case CreateRequest r:
+                    {
+                        var id = CrearInterno(r.Target);
+                        var resp = new CreateResponse();
+                        resp.Results["id"] = id;
+                        return resp;
+                    }
+
+                case RetrieveRequest r:
+                    {
+                        var registro = r.Target.KeyAttributes != null && r.Target.KeyAttributes.Count > 0
+                            ? BuscarPorClave(r.Target.LogicalName, r.Target.KeyAttributes)
+                            : BuscarObligatorio(r.Target.LogicalName, r.Target.Id);
+                        var resp = new RetrieveResponse();
+                        resp.Results["Entity"] = ProyectarColumnas(registro, r.ColumnSet ?? new ColumnSet(true));
+                        return resp;
+                    }
+
+                case UpdateRequest r:
+                    ActualizarInterno(r.Target);
+                    return new UpdateResponse();
+
+                case DeleteRequest r:
+                    BorrarInterno(r.Target.LogicalName, r.Target.Id);
+                    return new DeleteResponse();
+
+                case RetrieveMultipleRequest r:
+                    {
+                        var consulta = RequerirQueryExpression(r.Query);
+                        var resp = new RetrieveMultipleResponse();
+                        resp.Results["EntityCollection"] = ConsultarInterno(consulta);
+                        return resp;
+                    }
+
+                default:
+                    throw new NotSupportedException($"El doble no simula el request '{request.RequestName}': no está entre los pocos mensajes que el código de M-PPP usa (diseno/03 §8).");
+            }
+        }
+
+        private static string EntidadDe(OrganizationRequest request)
+        {
+            switch (request)
+            {
+                case CreateRequest r: return r.Target?.LogicalName;
+                case RetrieveRequest r: return r.Target?.LogicalName;
+                case UpdateRequest r: return r.Target?.LogicalName;
+                case DeleteRequest r: return r.Target?.LogicalName;
+                case RetrieveMultipleRequest r: return (r.Query as QueryExpression)?.EntityName;
+                default: return null;
+            }
+        }
+
+        private ExecuteMultipleResponse EjecutarLote(ExecuteMultipleRequest lote)
+        {
+            var items = new ExecuteMultipleResponseItemCollection();
+            for (var i = 0; i < lote.Requests.Count; i++)
+            {
+                try
+                {
+                    var respuesta = ResolverRequest(lote.Requests[i]);
+                    if (lote.Settings.ReturnResponses)
+                    {
+                        items.Add(new ExecuteMultipleResponseItem { RequestIndex = i, Response = respuesta });
+                    }
+                }
+                catch (FaultException<OrganizationServiceFault> ex)
+                {
+                    items.Add(new ExecuteMultipleResponseItem { RequestIndex = i, Fault = ex.Detail });
+                    if (!lote.Settings.ContinueOnError)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            var salida = new ExecuteMultipleResponse();
+            salida.Results["Responses"] = items;
+            // IsFaulted no se calcula solo del lado del cliente (Results es un diccionario plano, como con "id" en
+            // CreateResponse): lo calcula el servidor real y acá lo simulamos a partir de los ítems con Fault.
+            salida.Results["IsFaulted"] = items.Any(i => i.Fault != null);
+            return salida;
+        }
+
+        private ExecuteTransactionResponse EjecutarTransaccion(ExecuteTransactionRequest tx)
+        {
+            var respaldo = CopiarEstado();
+            var respuestas = new OrganizationResponseCollection();
+            try
+            {
+                foreach (var request in tx.Requests)
+                {
+                    var respuesta = ResolverRequest(request);
+                    if (tx.ReturnResponses == true)
+                    {
+                        respuestas.Add(respuesta);
+                    }
+                }
+            }
+            catch (FaultException<OrganizationServiceFault>)
+            {
+                RestaurarEstado(respaldo);
+                throw;
+            }
+
+            var salida = new ExecuteTransactionResponse();
+            salida.Results["Responses"] = respuestas;
+            return salida;
+        }
+
+        // ------------------------------------------------------------------ Almacén: acceso, clonado y respaldo/restauración
+
+        private Dictionary<Guid, Entity> ObtenerOCrearTabla(string logicalName)
+        {
+            if (!_porEntidad.TryGetValue(logicalName, out var tabla))
+            {
+                tabla = new Dictionary<Guid, Entity>();
+                _porEntidad[logicalName] = tabla;
+            }
+
+            return tabla;
+        }
+
+        private List<Guid> ObtenerOCrearOrden(string logicalName)
+        {
+            if (!_ordenPorEntidad.TryGetValue(logicalName, out var orden))
+            {
+                orden = new List<Guid>();
+                _ordenPorEntidad[logicalName] = orden;
+            }
+
+            return orden;
+        }
+
+        private Entity BuscarObligatorio(string entityName, Guid id)
+        {
+            if (_porEntidad.TryGetValue(entityName, out var tabla) && tabla.TryGetValue(id, out var registro))
+            {
+                return registro;
+            }
+
+            throw Falla($"No existe el registro '{entityName}' con id {id}.");
+        }
+
+        private Entity BuscarPorClave(string logicalName, KeyAttributeCollection claves)
+        {
+            if (_porEntidad.TryGetValue(logicalName, out var tabla))
+            {
+                foreach (var registro in tabla.Values)
+                {
+                    var coincide = true;
+                    foreach (var clave in claves)
+                    {
+                        if (!registro.Contains(clave.Key) || !ValoresIguales(Normalizar(registro[clave.Key]), Normalizar(clave.Value)))
+                        {
+                            coincide = false;
+                            break;
+                        }
+                    }
+
+                    if (coincide)
+                    {
+                        return registro;
+                    }
+                }
+            }
+
+            throw Falla($"No existe el registro '{logicalName}' con esa clave alternativa.");
+        }
+
+        private (Dictionary<string, Dictionary<Guid, Entity>> Tablas, Dictionary<string, List<Guid>> Ordenes) CopiarEstado()
+        {
+            var tablas = new Dictionary<string, Dictionary<Guid, Entity>>(StringComparer.Ordinal);
+            foreach (var porTabla in _porEntidad)
+            {
+                var copiaTabla = new Dictionary<Guid, Entity>();
+                foreach (var registro in porTabla.Value)
+                {
+                    copiaTabla[registro.Key] = Clonar(registro.Value);
+                }
+
+                tablas[porTabla.Key] = copiaTabla;
+            }
+
+            var ordenes = new Dictionary<string, List<Guid>>(StringComparer.Ordinal);
+            foreach (var porOrden in _ordenPorEntidad)
+            {
+                ordenes[porOrden.Key] = new List<Guid>(porOrden.Value);
+            }
+
+            return (tablas, ordenes);
+        }
+
+        private void RestaurarEstado((Dictionary<string, Dictionary<Guid, Entity>> Tablas, Dictionary<string, List<Guid>> Ordenes) respaldo)
+        {
+            _porEntidad.Clear();
+            foreach (var porTabla in respaldo.Tablas)
+            {
+                _porEntidad[porTabla.Key] = porTabla.Value;
+            }
+
+            _ordenPorEntidad.Clear();
+            foreach (var porOrden in respaldo.Ordenes)
+            {
+                _ordenPorEntidad[porOrden.Key] = porOrden.Value;
+            }
+        }
+
+        private static Entity Clonar(Entity entidad)
+        {
+            var copia = new Entity(entidad.LogicalName, entidad.Id);
+            foreach (var atributo in entidad.Attributes)
+            {
+                copia[atributo.Key] = ClonarValor(atributo.Value);
+            }
+
+            return copia;
+        }
+
+        private static object ClonarValor(object valor)
+        {
+            switch (valor)
+            {
+                case null:
+                    return null;
+                case OptionSetValue optionSet:
+                    return new OptionSetValue(optionSet.Value);
+                case EntityReference referencia:
+                    var copiaReferencia = new EntityReference(referencia.LogicalName, referencia.Id) { Name = referencia.Name };
+                    if (referencia.KeyAttributes != null)
+                    {
+                        foreach (var clave in referencia.KeyAttributes)
+                        {
+                            copiaReferencia.KeyAttributes[clave.Key] = clave.Value;
+                        }
+                    }
+
+                    return copiaReferencia;
+                case Money dinero:
+                    return new Money(dinero.Value);
+                case Entity anidada:
+                    return Clonar(anidada);
+                case EntityReferenceCollection coleccion:
+                    var copiaColeccion = new EntityReferenceCollection();
+                    foreach (var referenciaHija in coleccion)
+                    {
+                        copiaColeccion.Add((EntityReference)ClonarValor(referenciaHija));
+                    }
+
+                    return copiaColeccion;
+                default:
+                    // Strings, numéricos, bool, Guid, DateTime, enums: inmutables, se comparten sin riesgo de mutación cruzada.
+                    return valor;
+            }
+        }
+
+        private static Entity ProyectarColumnas(Entity origen, ColumnSet columnSet)
+        {
+            var copia = Clonar(origen);
+            if (columnSet.AllColumns)
+            {
+                return copia;
+            }
+
+            var proyectada = new Entity(copia.LogicalName, copia.Id);
+            foreach (var columna in columnSet.Columns)
+            {
+                if (copia.Contains(columna))
+                {
+                    proyectada[columna] = copia[columna];
+                }
+            }
+
+            return proyectada;
+        }
+
+        // ------------------------------------------------------------------ RetrieveMultiple: filtro, orden, columnas y top
+
+        private static QueryExpression RequerirQueryExpression(QueryBase query)
+        {
+            if (query is QueryExpression consulta)
+            {
+                return consulta;
+            }
+
+            throw new NotSupportedException($"El doble solo simula RetrieveMultiple con QueryExpression, no con '{query.GetType().Name}'.");
+        }
+
+        private EntityCollection ConsultarInterno(QueryExpression query)
+        {
+            if (query.LinkEntities != null && query.LinkEntities.Count > 0)
+            {
+                throw new NotSupportedException("El doble no simula LinkEntities: armá la consulta sin join (diseno/03 §8).");
+            }
+
+            if (query.PageInfo != null && (query.PageInfo.Count > 0 || query.PageInfo.PageNumber > 1 || !string.IsNullOrEmpty(query.PageInfo.PagingCookie)))
+            {
+                throw new NotSupportedException("El doble no simula paginación (PageInfo): traé todo con TopCount o filtrá más (diseno/03 §8).");
+            }
+
+            var candidatos = _porEntidad.TryGetValue(query.EntityName, out var tabla)
+                ? (IEnumerable<Entity>)tabla.Values
+                : Array.Empty<Entity>();
+
+            var filtrados = candidatos.Where(e => CumpleFiltro(e, query.Criteria));
+
+            IEnumerable<Entity> ordenados;
+            if (query.Orders != null && query.Orders.Count > 0)
+            {
+                ordenados = OrdenarPor(filtrados, query.Orders);
+            }
+            else
+            {
+                // Sin Orders explícitos: orden de alta, como una tabla recorrida por rowid.
+                var orden = _ordenPorEntidad.TryGetValue(query.EntityName, out var listaOrden) ? listaOrden : new List<Guid>();
+                ordenados = filtrados.OrderBy(e => orden.IndexOf(e.Id));
+            }
+
+            if (query.TopCount.HasValue)
+            {
+                ordenados = ordenados.Take(query.TopCount.Value);
+            }
+
+            var columnSet = query.ColumnSet ?? new ColumnSet(true);
+            var resultado = new EntityCollection { EntityName = query.EntityName };
+            resultado.Entities.AddRange(ordenados.Select(e => ProyectarColumnas(e, columnSet)));
+            return resultado;
+        }
+
+        private static bool CumpleFiltro(Entity entidad, FilterExpression filtro)
+        {
+            if (filtro == null)
+            {
+                return true;
+            }
+
+            var resultados = new List<bool>();
+            if (filtro.Conditions != null)
+            {
+                resultados.AddRange(filtro.Conditions.Select(c => CumpleCondicion(entidad, c)));
+            }
+
+            if (filtro.Filters != null)
+            {
+                resultados.AddRange(filtro.Filters.Select(f => CumpleFiltro(entidad, f)));
+            }
+
+            if (resultados.Count == 0)
+            {
+                return true;
+            }
+
+            return filtro.FilterOperator == LogicalOperator.Or ? resultados.Any(x => x) : resultados.All(x => x);
+        }
+
+        private static bool CumpleCondicion(Entity entidad, ConditionExpression condicion)
+        {
+            var valorEntidad = entidad.Contains(condicion.AttributeName) ? entidad[condicion.AttributeName] : null;
+            var normalizadoEntidad = Normalizar(valorEntidad);
+
+            switch (condicion.Operator)
+            {
+                case ConditionOperator.Equal:
+                    return ValoresIguales(normalizadoEntidad, Normalizar(ValorUnico(condicion)));
+                case ConditionOperator.NotEqual:
+                    return !ValoresIguales(normalizadoEntidad, Normalizar(ValorUnico(condicion)));
+                case ConditionOperator.Null:
+                    return valorEntidad == null;
+                case ConditionOperator.NotNull:
+                    return valorEntidad != null;
+                case ConditionOperator.In:
+                    return AplanarValores(condicion.Values).Any(v => ValoresIguales(normalizadoEntidad, Normalizar(v)));
+                default:
+                    throw new NotSupportedException($"El doble no simula el operador '{condicion.Operator}' (atributo '{condicion.AttributeName}'; diseno/03 §8).");
+            }
+        }
+
+        private static object ValorUnico(ConditionExpression condicion) => condicion.Values.Count > 0 ? condicion.Values[0] : null;
+
+        private static IEnumerable<object> AplanarValores(IEnumerable<object> valores)
+        {
+            foreach (var valor in valores)
+            {
+                if (valor is object[] anidado)
+                {
+                    foreach (var interno in anidado)
+                    {
+                        yield return interno;
+                    }
+                }
+                else
+                {
+                    yield return valor;
+                }
+            }
+        }
+
+        private static object Normalizar(object valor)
+        {
+            switch (valor)
+            {
+                case null: return null;
+                case OptionSetValue optionSet: return optionSet.Value;
+                case EntityReference referencia: return referencia.Id;
+                case Money dinero: return dinero.Value;
+                default: return valor;
+            }
+        }
+
+        private static bool ValoresIguales(object a, object b)
+        {
+            if (a == null || b == null)
+            {
+                return a == null && b == null;
+            }
+
+            return a.Equals(b);
+        }
+
+        private static IEnumerable<Entity> OrdenarPor(IEnumerable<Entity> entidades, IEnumerable<OrderExpression> orders)
+        {
+            IOrderedEnumerable<Entity> ordenado = null;
+            foreach (var orden in orders)
+            {
+                object Clave(Entity e) => Normalizar(e.Contains(orden.AttributeName) ? e[orden.AttributeName] : null);
+
+                if (ordenado == null)
+                {
+                    ordenado = orden.OrderType == OrderType.Descending
+                        ? entidades.OrderByDescending(Clave, ComparadorNulosPrimero.Instancia)
+                        : entidades.OrderBy(Clave, ComparadorNulosPrimero.Instancia);
+                }
+                else
+                {
+                    ordenado = orden.OrderType == OrderType.Descending
+                        ? ordenado.ThenByDescending(Clave, ComparadorNulosPrimero.Instancia)
+                        : ordenado.ThenBy(Clave, ComparadorNulosPrimero.Instancia);
+                }
+            }
+
+            return ordenado ?? entidades;
+        }
+
+        private void RegistrarLlamada(string operacion, string entidad)
+        {
+            _llamadas.Add(new LlamadaRegistrada(operacion, entidad));
+        }
+
+        private static FaultException<OrganizationServiceFault> Falla(string mensaje)
+        {
+            return new FaultException<OrganizationServiceFault>(new OrganizationServiceFault { Message = mensaje }, new FaultReason(mensaje));
+        }
+
+        /// <summary>Comparer<object>.Default no acepta nulos: este wrapper los trata como "menor que cualquier valor" (diseno/03 §8, Orders).</summary>
+        private sealed class ComparadorNulosPrimero : IComparer<object>
+        {
+            public static readonly ComparadorNulosPrimero Instancia = new ComparadorNulosPrimero();
+
+            public int Compare(object x, object y)
+            {
+                if (x == null && y == null)
+                {
+                    return 0;
+                }
+
+                if (x == null)
+                {
+                    return -1;
+                }
+
+                if (y == null)
+                {
+                    return 1;
+                }
+
+                return Comparer<object>.Default.Compare(x, y);
+            }
         }
     }
 }
