@@ -52,6 +52,8 @@ La matriz de obligatoriedad arranca con **todo obligatorio salvo Referencia** (D
 
 ## B. Verificaciones contra el entorno
 
+- **El acuse y la respuesta final en clientes de correo reales (revisión de 7.4, 2026-09-21).** El cuerpo es un documento HTML completo con estilos inline que Power Automate mete en un *Reply to email*. Antes de producción, enviar un acuse de prueba y mirarlo en Outlook de escritorio (motor de Word: bordes de tabla con `border-collapse`, apóstrofos), Outlook web y Gmail. Enmascarado: un carácter fuera del plano básico (emoji) en la cuenta podría cortarse a la mitad al enmascarar; riesgo aceptado, una cuenta bancaria no trae emojis.
+
 - **Serializador JSON y `Regex` en el sandbox real (revisión de código, 2026-09-21).** Las pruebas corren en net10 contra el ensamblado net462: `DataContractJsonSerializer` se ejecuta con la implementación de net10, nunca con la de .NET Framework del sandbox. En el PRIMER despliegue del plugin (P-09) hacer una prueba de humo en Dev que cargue los parámetros reales (`plantilla.estructura`, `plantilla.listas`, `plantilla.obligatoriedad`, `lectura.limites`) y valide una solicitud de punta a punta. Si una forma del JSON se lee distinto, aparece ahí.
 
 Todas hechas el 2026-09-20 y asentadas en `01-convenciones.md` §7. Queda una sola, que se cierra al construir el primer flujo: si Power Automate respeta la columna `uniquename` en un cloud flow.
