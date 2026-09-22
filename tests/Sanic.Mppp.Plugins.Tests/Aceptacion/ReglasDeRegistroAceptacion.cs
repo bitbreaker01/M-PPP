@@ -530,14 +530,15 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         [Fact]
         public void Los_textos_por_defecto_son_los_que_aprobo_el_negocio_cortos_directos_y_sin_citar_valores()
         {
+            // Los campos se nombran en el orden de la plantilla (CamposDeFila.Todos()), no en el orden en que se prueban.
             var catalogos = Catalogos(ParametrosDePlantillaAceptacion.ObligatoriedadInicial);
             string Texto(string codigo, FilaEnValidacion fila) => MensajeAlCliente.Componer(null, Suelta(codigo, fila), codigo);
 
-            Assert.Equal("Uno o más valores no son válidos: Banco, Moneda.", Texto(ReglasDeRegistro.ListasValidas, Fila(catalogos, ("banco", "BAK"), ("moneda", "Dolarez"))));
-            Assert.Equal("Revise el largo o el formato de: No. Cuenta, Nombre del beneficiario.", Texto(ReglasDeRegistro.LargosYFormato, Fila(catalogos, ("numeroCuenta", "12A"), ("nombreBeneficiario", new string('n', 45)))));
+            Assert.Equal("Uno o más valores no son válidos: Moneda, Banco.", Texto(ReglasDeRegistro.ListasValidas, Fila(catalogos, ("banco", "BAK"), ("moneda", "Dolarez"))));
+            Assert.Equal("Revise el largo o el formato de: Nombre del beneficiario, No. Cuenta.", Texto(ReglasDeRegistro.LargosYFormato, Fila(catalogos, ("numeroCuenta", "12A"), ("nombreBeneficiario", new string('n', 45)))));
             Assert.Equal("El plan no existe o no está activo.", Texto(ReglasDeRegistro.PlanExiste, Fila(catalogos, ("numeroPlan", "9999"))));
             Assert.Equal("El plan 0042 solo admite la clasificación ACH.", Texto(ReglasDeRegistro.Formato11SoloAch, Fila(catalogos, ("clasificacion", "CK"))));
-            Assert.Equal("Faltan datos obligatorios: No. Cuenta, Moneda.", Texto(ReglasDeRegistro.Obligatoriedad, Fila(catalogos, ("numeroCuenta", null), ("moneda", null))));
+            Assert.Equal("Faltan datos obligatorios: Moneda, No. Cuenta.", Texto(ReglasDeRegistro.Obligatoriedad, Fila(catalogos, ("numeroCuenta", null), ("moneda", null))));
             Assert.Equal("Para el plan 0042, la cuenta debe tener solo dígitos y el banco debe ser válido.", Texto(ReglasDeRegistro.ReferenciaFormato11, Fila(catalogos, ("numeroCuenta", "12A"))));
             Assert.Equal("La moneda no es la del plan 0042.", Texto(ReglasDeRegistro.MonedaDelPlan, Fila(catalogos, ("moneda", "COR"))));
             Assert.Equal("Su correo no está autorizado sobre el plan 00A1.", Texto(ReglasDeRegistro.AutorizacionCorreoPlan, Fila(catalogos, ("numeroPlan", "A1"))));
