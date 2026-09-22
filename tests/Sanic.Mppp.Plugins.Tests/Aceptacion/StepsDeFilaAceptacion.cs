@@ -28,7 +28,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
                 Guid Rol(string nombre) => Svc.Sembrar(new Entity(TablasNativas.Rol) { ["name"] = nombre });
                 var rolEjecutivo = Rol("sr_mppp_ejecutivo");
                 var rolSupervisor = Rol("sr_mppp_supervisor");
-                var rolRpa = Rol("sr_mppp_servicio_de_ingesta");
+                var rolRpa = Rol("sr_mppp_rpa"); // D-44: rol propio del usuario de aplicación del RPA (fase 2), no el de la cuenta de servicio de los flujos
 
                 Ejecutivo = Usuario("Eje Cutivo", rolEjecutivo);
                 Supervisor = Usuario("Super Visor", rolSupervisor);
@@ -220,12 +220,21 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         [Fact]
         public void Aprobando_como_system_el_rol_sale_de_quien_aprueba_y_la_segregacion_se_sigue_exigiendo()
         {
-            var m = new Mundo(EstadoDeLaFila.Digitada, digitadaPor: Guid.NewGuid(), rpaPuedeAprobar: "si");
+            // 03 §4: la excepción del RPA es para aprobar lo que ÉL MISMO digitó, con `rpa.puedeaprobar` en `si`.
+            var m = new Mundo(EstadoDeLaFila.Digitada, rpaPuedeAprobar: "si");
             m.Ctx.Contexto.Depth = 2;
             var system = m.Svc.Sembrar(new Entity(TablasNativas.Usuario) { ["fullname"] = "SYSTEM" });
 
-            var target = m.Correr(new TransicionDeFilaStep(), system, EstadoDeLaFila.Aprobada, ajustarTarget: t => t["sanic_aprobadapor"] = new EntityReference(TablasNativas.Usuario, m.Rpa));
+            var target = m.Correr(new TransicionDeFilaStep(), system, EstadoDeLaFila.Aprobada, digitadaPor: m.Rpa,
+                ajustarTarget: t => t["sanic_aprobadapor"] = new EntityReference(TablasNativas.Usuario, m.Rpa));
             Assert.Equal(m.Rpa, target.GetAttributeValue<EntityReference>("sanic_aprobadapor").Id);
+
+            // Y el RPA NO puede aprobar lo que digitó otro: no es supervisor.
+            var deOtro = new Mundo(EstadoDeLaFila.Digitada, digitadaPor: Guid.NewGuid(), rpaPuedeAprobar: "si");
+            deOtro.Ctx.Contexto.Depth = 2;
+            var otroSystemMas = deOtro.Svc.Sembrar(new Entity(TablasNativas.Usuario) { ["fullname"] = "SYSTEM" });
+            Assert.Throws<InvalidPluginExecutionException>(() => deOtro.Correr(new TransicionDeFilaStep(), otroSystemMas, EstadoDeLaFila.Aprobada,
+                ajustarTarget: t => t["sanic_aprobadapor"] = new EntityReference(TablasNativas.Usuario, deOtro.Rpa)));
 
             // Sin nadie en el Target no se asume ningún rol: la transición se rechaza.
             var sinIdentidad = new Mundo(EstadoDeLaFila.Digitada, digitadaPor: Guid.NewGuid());

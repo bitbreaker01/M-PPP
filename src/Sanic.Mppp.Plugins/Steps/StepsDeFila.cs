@@ -17,7 +17,10 @@ namespace Sanic.Mppp.Plugins.Steps
     internal static class PlomeriaDeFila
     {
         private const string RolSupervisor = "sr_mppp_supervisor";
-        private const string RolServicioDeIngesta = "sr_mppp_servicio_de_ingesta";
+        // D-44: el usuario de aplicación del RPA tiene su propio rol, distinto del de la cuenta de servicio de los flujos.
+        // Ese rol es de FASE 2 y todavía no existe en el entorno: hasta que se cree con este nombre, ninguna transición del RPA
+        // es posible, que es lo correcto en fase 1.
+        private const string RolRpa = "sr_mppp_rpa";
 
         /// <summary>La primera pre-image que trae `columna` (03 §4: "el estado de origen sale de la PRE-IMAGE, nunca del Target", sea cual sea la clave con la que la registraron).</summary>
         internal static Entity ImagenQueTrae(IPluginExecutionContext contexto, string columna)
@@ -40,7 +43,7 @@ namespace Sanic.Mppp.Plugins.Steps
         internal static RolDeActor DeterminarRoles(IOrganizationService servicio, Guid actorId)
         {
             var consultaRoles = new QueryExpression(TablasNativas.Rol) { ColumnSet = new ColumnSet("name") };
-            consultaRoles.Criteria.AddCondition("name", ConditionOperator.In, TablasNativas.RolEjecutivo, RolSupervisor, RolServicioDeIngesta);
+            consultaRoles.Criteria.AddCondition("name", ConditionOperator.In, TablasNativas.RolEjecutivo, RolSupervisor, RolRpa);
             var roles = servicio.RetrieveMultiple(consultaRoles).Entities;
             if (roles.Count == 0)
             {
@@ -79,7 +82,7 @@ namespace Sanic.Mppp.Plugins.Steps
                 return RolDeActor.Supervisor;
             }
 
-            if (string.Equals(nombre, RolServicioDeIngesta, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(nombre, RolRpa, StringComparison.OrdinalIgnoreCase))
             {
                 return RolDeActor.Rpa;
             }
@@ -99,6 +102,36 @@ namespace Sanic.Mppp.Plugins.Steps
         {
             var usuario = servicio.Retrieve(TablasNativas.Usuario, usuarioId, new ColumnSet("fullname"));
             return usuario.GetAttributeValue<string>("fullname");
+        }
+
+        /// <summary>
+        /// El usuario cuyos roles de negocio hay que resolver para autorizar la transición (revisión de código,
+        /// 2026-09-21, spike C-05 parte B): si NO es código de servidor, o si es código de servidor sin anidar
+        /// (identidad de aplicación en profundidad 1: es quien llama de verdad), es `InitiatingUserId`. Si es código
+        /// de servidor ANIDADO (profundidad mayor que 1: la Custom API del RPA escribiendo como SYSTEM, donde
+        /// `InitiatingUserId` vale SYSTEM en todos los niveles), se confía en la identidad que la Custom API ya
+        /// grabó: `sanic_aprobadapor` del `Target` si la transición va a Aprobada, `sanic_digitadapor` del `Target`
+        /// si va a Digitada, o el `sanic_digitadapor` de la PRE-IMAGE para cualquier otro caso. Si ahí tampoco hay
+        /// nadie, `null`: no se asume ningún actor y la transición se rechaza sola por falta de rol.
+        /// </summary>
+        internal static Guid? ResolverIdentidadDelActor(IPluginExecutionContext contexto, bool esCodigoDeServidor, Entity target, Entity preImagen, EstadoDeLaFila hacia)
+        {
+            if (!esCodigoDeServidor || contexto.Depth <= 1)
+            {
+                return contexto.InitiatingUserId;
+            }
+
+            if (hacia == EstadoDeLaFila.Aprobada)
+            {
+                return target.GetAttributeValue<EntityReference>("sanic_aprobadapor")?.Id;
+            }
+
+            if (hacia == EstadoDeLaFila.Digitada)
+            {
+                return target.GetAttributeValue<EntityReference>("sanic_digitadapor")?.Id;
+            }
+
+            return preImagen.GetAttributeValue<EntityReference>("sanic_digitadapor")?.Id;
         }
     }
 
@@ -147,14 +180,17 @@ namespace Sanic.Mppp.Plugins.Steps
             var digitadaPorPrevio = preImagen.GetAttributeValue<EntityReference>("sanic_digitadapor")?.Id;
 
             var esCodigoDeServidor = BaseDeStep.EsCodigoDeServidor(contexto, servicio);
-            var roles = PlomeriaDeFila.DeterminarRoles(servicio, contexto.InitiatingUserId);
+            // El actor para roles y para la segregación de funciones es el mismo usuario confiado, nunca SYSTEM
+            // (revisión de código, 2026-09-21): ver el contrato arriba y PlomeriaDeFila.ResolverIdentidadDelActor.
+            var actorId = PlomeriaDeFila.ResolverIdentidadDelActor(contexto, esCodigoDeServidor, target, preImagen, hacia);
+            var roles = actorId.HasValue ? PlomeriaDeFila.DeterminarRoles(servicio, actorId.Value) : RolDeActor.Ninguno;
             var rpaPuedeAprobar = PlomeriaDeFila.LeerRpaPuedeAprobar(servicio);
 
             var pedido = new PedidoDeTransicion
             {
                 Desde = desde,
                 Hacia = hacia,
-                Actor = new Actor(contexto.InitiatingUserId, roles),
+                Actor = new Actor(actorId ?? Guid.Empty, roles),
                 Mensaje = target.Contains("sanic_mensaje") ? target["sanic_mensaje"] as string : null,
                 DigitadaPor = digitadaPorPrevio,
                 RpaPuedeAprobar = rpaPuedeAprobar,
@@ -243,24 +279,12 @@ namespace Sanic.Mppp.Plugins.Steps
             var hacia = (EstadoDeLaFila)target.GetAttributeValue<OptionSetValue>("sanic_estado").Value;
             var solicitudId = preImagen.GetAttributeValue<EntityReference>("sanic_solicitudid").Id;
             var numeroFila = preImagen.GetAttributeValue<int>("sanic_numerofila");
-            var digitadaPorPrevio = preImagen.GetAttributeValue<EntityReference>("sanic_digitadapor")?.Id;
 
-            // El evento de Bitácora sale de la MISMA máquina de estados que ya autorizó la transición en la pre-operación
-            // (Dominio.TransicionesDeFila.Evaluar es la única fuente de verdad; orden del constructor).
-            var roles = PlomeriaDeFila.DeterminarRoles(servicio, contexto.InitiatingUserId);
-            var rpaPuedeAprobar = PlomeriaDeFila.LeerRpaPuedeAprobar(servicio);
-            var pedido = new PedidoDeTransicion
-            {
-                Desde = desde,
-                Hacia = hacia,
-                Actor = new Actor(contexto.InitiatingUserId, roles),
-                Mensaje = target.Contains("sanic_mensaje") ? target["sanic_mensaje"] as string : null,
-                DigitadaPor = digitadaPorPrevio,
-                RpaPuedeAprobar = rpaPuedeAprobar,
-            };
-
-            var resultado = TransicionesDeFila.Evaluar(pedido);
-            if (!resultado.Permitida || resultado.Evento == null)
+            // El evento de Bitácora es un dato fijo del par (Desde, Hacia): la pre-operación ya autorizó esta misma
+            // transición, así que acá no hace falta resolver roles ni leer `rpa.puedeaprobar` de nuevo (revisión de
+            // código, 2026-09-21; Dominio.TransicionesDeFila.EventoPara mira la misma tabla que Evaluar).
+            var evento = TransicionesDeFila.EventoPara(desde, hacia);
+            if (evento == null)
             {
                 // La pre-operación ya validó esta misma transición: llegar acá sin evento es un error de programación.
                 throw new InvalidPluginExecutionException("No se pudo determinar el evento de Bitácora de la transición.");
@@ -268,7 +292,7 @@ namespace Sanic.Mppp.Plugins.Steps
 
             var solicitudes = new SolicitudesDataverse(servicio);
             var actorTexto = PlomeriaDeFila.NombreDeQuienActua(servicio, contexto.InitiatingUserId);
-            solicitudes.RegistrarEvento(solicitudId, contexto.OperationCreatedOn, resultado.Evento.Value, OrigenDelEvento.Plugin, numeroFila, actorTexto, null);
+            solicitudes.RegistrarEvento(solicitudId, contexto.OperationCreatedOn, evento.Value, OrigenDelEvento.Plugin, numeroFila, actorTexto, null);
 
             // Consulta 1 (filas de la Solicitud): la fila que se acaba de transicionar todavía figura en la base con su
             // estado ANTERIOR en el doble de pruebas (no vuelve a aplicar el Update); se refleja el nuevo estado acá,
