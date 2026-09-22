@@ -207,6 +207,21 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         }
 
         [Fact]
+        public void Tambien_se_recortan_la_version_de_parametros_y_el_codigo_de_regla()
+        {
+            // Re-revisión, 2026-09-21: una constante Largo… declarada sin un Recortar que la use es un recorte que falta.
+            var svc = new OrganizationServiceEnMemoria();
+            var id = Sembrar(svc);
+            var repo = new SolicitudesDataverse(svc);
+            repo.CerrarValidacion(id, new CierreDeValidacion { Estado = EstadoDeLaSolicitud.Rechazada, FechaValidada = Fecha, AcuseContenido = "x", VersionParametros = new string('v', 500) });
+            Assert.Equal(TablasHistorico.LargoVersionParametros, ((string)svc.Retrieve(TablasHistorico.Solicitud, id, new ColumnSet(true))["sanic_versionparametros"]).Length);
+
+            repo.GuardarResultados(id, new[] { new ResultadoDeRegla(new string('C', 80), 1, ResultadoDeLaRegla.Cumplida, null, EfectoDeLaRegla.Rechaza) }, new Dictionary<string, Guid>(), Fecha);
+            Assert.Equal(TablasHistorico.LargoReglaCodigo, ((string)svc.Registros(TablasHistorico.ResultadoRegla).Single()["sanic_reglacodigo"]).Length);
+            Assert.Equal((200, 50), (TablasHistorico.LargoVersionParametros, TablasHistorico.LargoReglaCodigo));
+        }
+
+        [Fact]
         public void Un_recorte_nunca_parte_un_par_subrogado()
         {
             var svc = new OrganizationServiceEnMemoria();

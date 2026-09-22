@@ -18,7 +18,7 @@ namespace Sanic.Mppp.Plugins.Datos
 
         /// <summary>Largos de las columnas de texto que se escriben (diseno/02 §3): todo texto se recorta a esto antes de mandarse.</summary>
         public const int LargoNumeroPlan = 4, LargoNombreBeneficiario = 200, LargoNumeroIdentificacion = 100, LargoNumeroCuenta = 100,
-            LargoReferencia = 100, LargoMensaje = 4000, LargoRazon = 2000, LargoMotivoClasificacion = 300, LargoActor = 200, LargoDetalle = 10000, LargoVersionParametros = 200;
+            LargoReferencia = 100, LargoMensaje = 4000, LargoRazon = 2000, LargoMotivoClasificacion = 300, LargoActor = 200, LargoDetalle = 10000, LargoVersionParametros = 200, LargoReglaCodigo = 50;
     }
 
     /// <summary>Lo que el plugin liviano y el de validación leen de una Solicitud (diseno/02 §3.1). Sin SDK hacia afuera.</summary>
