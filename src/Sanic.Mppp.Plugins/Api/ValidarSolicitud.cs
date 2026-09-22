@@ -95,15 +95,11 @@ namespace Sanic.Mppp.Plugins.Api
             var solicitud = _solicitudes.Leer(solicitudId);
 
             // Paso 1 (diseno/03 §1): idempotencia. Fuera de Ingresada se devuelve lo guardado, sin tocar nada más: UNA
-            // sola llamada a Dataverse en todo el camino (la Leer() de arriba).
-            //
-            // NOTA (tropiezo candidato, ver reporte): SolicitudLeida (Datos/Solicitudes.cs) no trae sanic_filastotales/
-            // filasvalidas/filasrechazadas, así que acá no se pueden devolver esos tres contadores ya guardados sin una
-            // segunda lectura (que rompería la regla de "una sola llamada" que fija la prueba de aceptación). Se devuelven
-            // en cero: es lo único que se puede hacer sin tocar un archivo fuera del alcance de esta pieza.
+            // sola llamada a Dataverse en todo el camino (la Leer() de arriba, que ahora trae también los tres
+            // contadores ya guardados — commit a63ed82).
             if (solicitud.Estado != EstadoDeLaSolicitud.Ingresada)
             {
-                return new ResultadoDeValidacion(solicitud.Estado, true, 0, 0, 0,
+                return new ResultadoDeValidacion(solicitud.Estado, true, solicitud.FilasTotales, solicitud.FilasValidas, solicitud.FilasRechazadas,
                     string.Format(CultureInfo.InvariantCulture, "Solicitud {0}: ya procesada (estado {1}).", solicitud.Numero, solicitud.Estado));
             }
 
