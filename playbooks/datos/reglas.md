@@ -166,10 +166,11 @@ comprueba con un assert antes de escribir el playbook.
       "sanic_efecto": {
         "choice": "sanic_mppp_ch_efectoregla",
         "etiqueta": "Rechaza"
-      }
+      },
+      "sanic_mensajecliente": "El plan {plan} no existe o usted no está autorizado sobre él."
     },
     {
-      "sanic_codigo": "FORMATO_11_SOLO_ACH",
+      "sanic_codigo": "AUTORIZACION_CORREO_PLAN",
       "sanic_nivel": {
         "choice": "sanic_mppp_ch_nivelregla",
         "etiqueta": "Registro"
@@ -179,10 +180,11 @@ comprueba con un assert antes de escribir el playbook.
         "choice": "sanic_mppp_ch_efectoregla",
         "etiqueta": "Rechaza"
       },
-      "sanic_dependede": "PLAN_EXISTE,LISTAS_VALIDAS"
+      "sanic_dependede": "PLAN_EXISTE",
+      "sanic_mensajecliente": "El plan {plan} no existe o usted no está autorizado sobre él."
     },
     {
-      "sanic_codigo": "OBLIGATORIEDAD",
+      "sanic_codigo": "FORMATO_11_SOLO_ACH",
       "sanic_nivel": {
         "choice": "sanic_mppp_ch_nivelregla",
         "etiqueta": "Registro"
@@ -192,10 +194,10 @@ comprueba con un assert antes de escribir el playbook.
         "choice": "sanic_mppp_ch_efectoregla",
         "etiqueta": "Rechaza"
       },
-      "sanic_dependede": "PLAN_EXISTE,LISTAS_VALIDAS"
+      "sanic_dependede": "AUTORIZACION_CORREO_PLAN,LISTAS_VALIDAS"
     },
     {
-      "sanic_codigo": "MONEDA_DEL_PLAN",
+      "sanic_codigo": "OBLIGATORIEDAD",
       "sanic_nivel": {
         "choice": "sanic_mppp_ch_nivelregla",
         "etiqueta": "Registro"
@@ -205,10 +207,10 @@ comprueba con un assert antes de escribir el playbook.
         "choice": "sanic_mppp_ch_efectoregla",
         "etiqueta": "Rechaza"
       },
-      "sanic_dependede": "PLAN_EXISTE,LISTAS_VALIDAS"
+      "sanic_dependede": "AUTORIZACION_CORREO_PLAN,LISTAS_VALIDAS"
     },
     {
-      "sanic_codigo": "AUTORIZACION_CORREO_PLAN",
+      "sanic_codigo": "MONEDA_DEL_PLAN",
       "sanic_nivel": {
         "choice": "sanic_mppp_ch_nivelregla",
         "etiqueta": "Registro"
@@ -218,7 +220,7 @@ comprueba con un assert antes de escribir el playbook.
         "choice": "sanic_mppp_ch_efectoregla",
         "etiqueta": "Rechaza"
       },
-      "sanic_dependede": "PLAN_EXISTE"
+      "sanic_dependede": "AUTORIZACION_CORREO_PLAN,LISTAS_VALIDAS"
     },
     {
       "sanic_codigo": "REFERENCIA_FORMATO_11",

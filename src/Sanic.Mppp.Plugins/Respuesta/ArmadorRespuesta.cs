@@ -132,8 +132,20 @@ namespace Sanic.Mppp.Plugins.Respuesta
             {
                 case EstadoDeLaFila.RechazadaEnValidacion:
                     return "Rechazada en validación";
+
+                // MISMA palabra que RechazadaEnValidacion, a propósito (2026-09-24). Adentro son dos estados
+                // distintos y el banco los ve distintos; para el CLIENTE tienen que ser indistinguibles.
+                //
+                // Si no, queda un oráculo de enumeración: quien está autorizado sobre UN solo plan manda una
+                // plantilla con códigos candidatos y lee esta columna para saber cuáles existen — "Sin
+                // autorización" significa "ese plan existe y no es tuyo"; "Rechazada en validación" significa
+                // "no existe". Con 100 filas por correo son 100 sondeos, y los códigos siguen convenciones
+                // (PR06, PR10, PR11…), así que adivinarlos es barato.
+                //
+                // Se probó contra el entorno: unificar el mensaje de PLAN_EXISTE y AUTORIZACION_CORREO_PLAN
+                // no alcanzaba, porque esta columna seguía separando los dos casos.
                 case EstadoDeLaFila.SinAutorizacion:
-                    return "Sin autorización";
+                    return "Rechazada en validación";
                 case EstadoDeLaFila.Validada:
                     return "Validada";
                 case EstadoDeLaFila.Digitada:

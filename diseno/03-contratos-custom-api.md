@@ -65,6 +65,30 @@ Los nombres de la tabla son el `uniquename`; `name` y `displayname` siguen `01-c
    - `AUTORIZACION_CORREO_PLAN` (depende de `PLAN_EXISTE`): el remitente tiene una **autorización vigente** sobre ese plan (RF-02): todo activo (`02` §2.4; la evidencia no cuenta, D-42). Un solo mensaje, que nombra el plan: "Su correo no está autorizado sobre el plan X".
    - Estado de la fila: falla `AUTORIZACION_CORREO_PLAN` → **Sin autorización**, **gane o no** también otra regla con efecto Rechaza: Sin autorización tiene prioridad sobre Rechazada en validación, y `sanic_mensaje` lleva igual **todos** los motivos que fallaron (D-14). Si no falla `AUTORIZACION_CORREO_PLAN` pero falla cualquier otra con efecto Rechaza → **Rechazada en validación**; ninguna falla → **Validada**. Una regla Omitida no cuenta como falla por sí misma: la fila ya quedó rechazada por la regla que la bloqueó.
    - **No se validan duplicados dentro de la plantilla** (DD-12): el control está en AS400.
+
+> **Cerrado el 2026-09-24: fuga de información por los mensajes al cliente.**
+>
+> Hasta esa fecha, un remitente autorizado sobre **un solo plan** podía enumerar el catálogo de planes del
+> banco. El sistema respondía distinto según el caso —*"El plan no existe o no está activo"* contra *"Su correo
+> no está autorizado sobre el plan X"*— y, peor, `AUTORIZACION_CORREO_PLAN` se evaluaba **después** de
+> `FORMATO_11_SOLO_ACH`, `OBLIGATORIEDAD` y `MONEDA_DEL_PLAN`, así que una fila sobre un plan ajeno igual
+> recibía los motivos de esas reglas. Probado en Dev: una fila para un plan ajeno con la moneda equivocada
+> devolvía *"La moneda no es la del plan PRNA. Su correo no está autorizado sobre el plan PRNA."* — o sea, la
+> existencia del plan **y su moneda**. Con 100 filas por correo son 100 sondeos, y los códigos de plan siguen
+> convenciones que hacen barato adivinarlos.
+>
+> Tres cambios, dos de ellos **solo configuración**:
+> 1. `AUTORIZACION_CORREO_PLAN` pasa al orden **40**, antes que las tres reglas que hablan del plan, y esas
+>    tres pasan a **depender de ella**: sin permiso quedan Omitidas y no dicen nada.
+> 2. `PLAN_EXISTE` y `AUTORIZACION_CORREO_PLAN` comparten el mismo `sanic_mensajecliente`:
+>    *"El plan {plan} no existe o usted no está autorizado sobre él."*
+> 3. `ArmadorRespuesta.EstadoParaElCliente` devuelve **la misma palabra** para `SinAutorizacion` y
+>    `RechazadaEnValidacion`. Sin esto la corrección quedaba a medias: el mensaje era uniforme pero la columna
+>    **Resultado** seguía separando los dos casos. Adentro los dos estados siguen siendo distintos.
+>
+> **Lo que cuesta**: un cliente que escriba mal un código de plan recibe un mensaje más vago. Es el mismo
+> intercambio que hace un formulario de login al decir "usuario o contraseña incorrectos".
+
 6. Catálogos cargados **una vez** por ejecución: planes por código (una consulta con `In`) y autorizaciones del remitente (un número FIJO de consultas: hasta cuatro, una por tabla —Autorizado, AutorizacionPlan, Plan, Cliente— encadenadas con `In`, para que "todo activo" se compruebe sin un join que el doble de pruebas no simula; revisión de código, 2026-09-21). Nunca una consulta por fila (N+1). Alta de filas y resultados **una por una con `Create`**: Microsoft desaconseja los mensajes de lote (`ExecuteMultiple`, `ExecuteTransaction`) dentro de un plugin, que ya corre en la transacción y no tiene latencia de red que ahorrar (Learn, "Don't use batch request types in plug-ins"; revisión de código, 2026-09-21).
 7. Armar el contenido del acuse (`sanic_acusecontenido`, DD-08) fila por fila. Contadores (`filastotales`/`filasvalidas`/`filasrechazadas`), estado resultante — **Rechazada** si ninguna fila quedó Validada (mismo texto del paso 4, DD-09), si no **En proceso** —, `fechavalidada`, Bitácora. `sanic_fechaacuseiniciado`/`sanic_fechaacuseenviado` no los toca esta API: los marca `MPPP-ENV` al enviar (§6).
 

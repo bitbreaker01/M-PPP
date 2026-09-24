@@ -80,7 +80,12 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             }
 
             Assert.Equal("Validada", ArmadorRespuesta.EstadoParaElCliente(EstadoDeLaFila.Validada));
-            Assert.Equal("Sin autorización", ArmadorRespuesta.EstadoParaElCliente(EstadoDeLaFila.SinAutorizacion));
+            // Sin autorización y Rechazada en validación se le dicen al cliente CON LA MISMA PALABRA
+            // (2026-09-24). Adentro son dos estados distintos; para el cliente no pueden serlo, o la columna
+            // "Resultado" queda como oráculo: "Sin autorización" delataría que ese plan existe y es de otro.
+            Assert.Equal("Rechazada en validación", ArmadorRespuesta.EstadoParaElCliente(EstadoDeLaFila.SinAutorizacion));
+            Assert.Equal(ArmadorRespuesta.EstadoParaElCliente(EstadoDeLaFila.RechazadaEnValidacion),
+                         ArmadorRespuesta.EstadoParaElCliente(EstadoDeLaFila.SinAutorizacion));
             Assert.Throws<ArgumentException>(() => ArmadorRespuesta.EstadoParaElCliente((EstadoDeLaFila)1));
         }
 
@@ -103,7 +108,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.True(posiciones[0] < posiciones[1] && posiciones[1] < posiciones[2]);
 
             Assert.Contains("Rechazada en validación", texto);
-            Assert.Contains("Sin autorización", texto);
+            Assert.Contains("Rechazada en validación", texto);  // ver arriba: misma palabra para los dos rechazos
             Assert.Contains("********9012", texto);
             Assert.Contains("0042", texto);
             Assert.Contains("Juan Perez", texto);
