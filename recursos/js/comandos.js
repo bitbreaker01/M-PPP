@@ -54,7 +54,8 @@ Sanic.Mppp.Comandos = (function () {
     var FILA = {
         tabla: "sanic_mppp_tbl_fila",
         columna: "sanic_estado",
-        mensaje: "sanic_mensaje",
+        mensaje: "sanic_mensaje",          // lo lee el cliente
+        notaInterna: "sanic_notainterna",  // lo lee el ejecutivo; no sale del banco
         VALIDADA: 159460003,
         DIGITADA: 159460004,
         APROBADA: 159460005,
@@ -550,7 +551,15 @@ Sanic.Mppp.Comandos = (function () {
         devolver: function (ids, control) {
             // Devolver deja la fila otra vez en Validada, con el mensaje del
             // supervisor: es lo que la deja visible en "Devueltas".
-            return ejecutarConMotivo("Devolver", FILA.tabla, FILA.mensaje,
+            /*
+             * Escribe en `sanic_notainterna`, NO en `sanic_mensaje` (2026-09-24).
+             * La devolucion es un supervisor escribiendole al ejecutivo; el cliente
+             * no tiene nada que ver. `sanic_mensaje` es la columna que el correo
+             * muestra como "Motivos", y hasta ese dia la nota salia ahi: en correos
+             * ya enviados, una fila APROBADA le llego al cliente con el motivo
+             * "Devuelta".
+             */
+            return ejecutarConMotivo("Devolver", FILA.tabla, FILA.notaInterna,
                 cambioDe(FILA, FILA.VALIDADA), ids, control);
         },
         revisado: function (ids, control) {

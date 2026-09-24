@@ -14,7 +14,7 @@ User-owned es una decisión por BP-PP-013 (irreversibilidad de la propiedad), **
 
 El hueco que esto deja: el Ejecutivo y el Supervisor **necesitan `W` sobre Fila** para cambiar el estado, y `W` en Dataverse es sobre la fila entera: con ese privilegio podrían editar el número de cuenta. Se cierra con un control técnico, no con el formulario:
 
-> **Lista blanca de columnas** (step PreOperation en `Update` de Fila, sin filtro de atributos): si quien llama no es SYSTEM ni una identidad de aplicación de la solución, el `Target` solo puede traer `sanic_estado` y `sanic_mensaje`. Cualquier otra columna → error. Un formulario de solo lectura es cosmética; esto es el control. Ya no existe `sanic_usuarioas400aprobador`: el usuario que marca Aprobada es el aprobador de AS400 (`03-contratos-custom-api.md` §4), así que no hace falta una columna extra en la lista blanca.
+> **Lista blanca de columnas** (step PreOperation en `Update` de Fila, sin filtro de atributos): si quien llama no es SYSTEM ni una identidad de aplicación de la solución, el `Target` solo puede traer `sanic_estado`, `sanic_mensaje` y `sanic_notainterna` (esta última desde el 2026-09-24: es la nota del supervisor al ejecutivo al devolver, y nunca sale en el correo al cliente). Cualquier otra columna → error. Un formulario de solo lectura es cosmética; esto es el control. Ya no existe `sanic_usuarioas400aprobador`: el usuario que marca Aprobada es el aprobador de AS400 (`03-contratos-custom-api.md` §4), así que no hace falta una columna extra en la lista blanca.
 
 Mismo criterio en Solicitud para los humanos: solo `sanic_requiererevision` (el botón "Revisado", `05` §5) y `sanic_estadoprocesamiento` (No reconocida → Cerrada/Descartada).
 

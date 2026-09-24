@@ -273,6 +273,9 @@ namespace Sanic.Mppp.Plugins.Steps
                 Hacia = hacia,
                 Actor = new Actor(actorId ?? Guid.Empty, roles),
                 Mensaje = target.Contains("sanic_mensaje") ? target["sanic_mensaje"] as string : null,
+                // La nota de la devolución viaja en su propia columna y NUNCA sale en el correo al cliente
+                // (2026-09-24). Ver `PedidoDeTransicion.NotaInterna`.
+                NotaInterna = target.Contains("sanic_notainterna") ? target["sanic_notainterna"] as string : null,
                 DigitadaPor = digitadaPorPrevio,
                 RpaPuedeAprobar = rpaPuedeAprobar,
             };

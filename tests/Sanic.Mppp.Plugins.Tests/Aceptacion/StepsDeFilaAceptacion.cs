@@ -233,7 +233,8 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         public void Devolver_limpia_a_quien_habia_digitado()
         {
             var m = new Mundo(EstadoDeLaFila.Digitada, digitadaPor: Guid.NewGuid());
-            var target = m.Correr(new TransicionDeFilaStep(), m.Supervisor, EstadoDeLaFila.Validada, mensaje: "Falta el nombre completo");
+            var target = m.Correr(new TransicionDeFilaStep(), m.Supervisor, EstadoDeLaFila.Validada,
+                ajustarTarget: e => e["sanic_notainterna"] = "Falta el nombre completo");
             Assert.True(target.Contains("sanic_digitadapor"));
             Assert.Null(target["sanic_digitadapor"]);
             Assert.Null(target["sanic_fechadigitada"]);

@@ -179,7 +179,17 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     {
       "nombre": "sanic_mensaje",
       "displayname": "Mensaje",
-      "descripcion": "Motivos de las reglas de registro que fallaron, y después el motivo de una anulación o de una devolución.",
+      "descripcion": "Lo que va a LEER EL CLIENTE en su correo: motivos de las reglas que fallaron, y el motivo de un rechazo en AS400 o de una anulacion. La nota de la devolucion NO va aca desde el 2026-09-24: va en sanic_notainterna.",
+      "tipo": "memo",
+      "requerida": false,
+      "protegida": false,
+      "auditoria": false,
+      "largo": 4000
+    },
+    {
+      "nombre": "sanic_notainterna",
+      "displayname": "Nota interna",
+      "descripcion": "Lo que el supervisor le escribe al ejecutivo al devolver una fila. NUNCA sale en el correo al cliente. Agregada el 2026-09-24: antes la devolucion escribia en sanic_mensaje, que es la columna que el correo muestra como Motivos, y en correos ya enviados una fila APROBADA le llego al cliente con el motivo Devuelta.",
       "tipo": "memo",
       "requerida": false,
       "protegida": false,

@@ -16,7 +16,7 @@ Reglas citadas: BP-PP-091, 093, 094, 095, 100, 186. Requisitos: RF-03, RF-11 a R
 | DA-06 | **Se ocultan todos los comandos genéricos que no se usan**, en cada tabla: Eliminar, Asignar, Compartir, Flujo, Enviar vínculo, Combinar, y "Nuevo" donde el alta no es de una persona (Solicitud, Fila, ResultadoRegla, Bitácora). | Es lo que más ensucia una model-driven y lo más barato de arreglar. Además, varios de esos comandos ofrecen acciones que la matriz de privilegios no permite. |
 | DA-08 | **Notificaciones dentro de la app desde la fase 1** (campana de la model-driven, tabla nativa `appnotification`). Las crea el código de servidor, no los botones: la Custom API de validación y el plugin posterior a la transición. **Una por solicitud y por tanda, nunca una por fila.** | Decisión del aprobador. Avisos: al ejecutivo del cliente, cuando una solicitud suya deja filas por digitar; a los supervisores, cuando una solicitud pasa a tener filas por aprobar; al ejecutivo que digitó, cuando le devuelven filas; a todos los ejecutivos, cuando un correo va a Por clasificar; a ejecutivos y supervisores, cuando una solicitud queda para revisar. Cada aviso abre la vista o la solicitud que corresponde. Es nativo: no agrega dependencias ni licencias. |
 | DA-09 | **Toda pantalla se valida primero en un mockup HTML 100 % funcional** (`diseno/mockups/`), con datos ficticios, antes de construir nada. | Estándar del aprobador para cualquier Power App (BP-PP-102): probar la interfaz y dar opinión cuesta minutos en un mockup y días en la plataforma. |
-| DA-07 | **La lógica no vive en los botones.** Un botón solo cambia `sanic_estado` (y `sanic_mensaje`); que la transición sea válida, quién puede hacerla y la segregación de funciones los decide el plugin (`03` §4). | BP-PP-051. Un usuario que llame al Web API sin pasar por la app encuentra las mismas reglas. La visibilidad de cada botón según el rol es comodidad, no seguridad. |
+| DA-07 | **La lógica no vive en los botones.** Un botón solo cambia `sanic_estado` (y `sanic_mensaje` o `sanic_notainterna`, según a quién vaya dirigido el texto); que la transición sea válida, quién puede hacerla y la segregación de funciones los decide el plugin (`03` §4). | BP-PP-051. Un usuario que llame al Web API sin pasar por la app encuentra las mismas reglas. La visibilidad de cada botón según el rol es comodidad, no seguridad. |
 
 ## 1. La app
 
@@ -110,7 +110,7 @@ En la grilla principal de Filas, en la subgrilla de Filas de la Solicitud y en e
 | **Rechazada en AS400** | Ejecutivo | Validada o Digitada | motivo (diálogo) | Estado → Rechazada en AS400 + mensaje |
 | **Anular** | Ejecutivo | Validada o Digitada | motivo (diálogo) | Estado → Anulada + mensaje |
 | **Aprobar** | Supervisor | Digitada | confirmación con la cantidad | Estado → Aprobada |
-| **Devolver** | Supervisor | Digitada | motivo (diálogo) | Estado → Validada + mensaje |
+| **Devolver** | Supervisor | Digitada | nota interna (diálogo) | Estado → Validada + `sanic_notainterna`. **La nota NO sale en el correo al cliente** (2026-09-24) |
 | **Atendido** · **Descartar** | Ejecutivo | Solicitud No reconocida o No es correo nuevo | confirmación | Estado → Cerrada · Descartada. Lo que nadie clasifica en 30 días pasa solo a Vencida (`07` DF-09) |
 | **Revisado** | Ejecutivo, Supervisor | Solicitud con `requiererevision` | confirmación | Apaga `requiererevision`. El step `RevisionAtendidaStep` deja el **motivo que había escrito la máquina** en la Bitácora, con quién y cuándo, y limpia `sanic_motivorevision` |
 

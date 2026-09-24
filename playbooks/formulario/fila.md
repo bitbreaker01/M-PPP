@@ -60,7 +60,8 @@ ni classid: la herramienta los resuelve contra la metadata de la tabla.
     {
       "titulo": "Resultado",
       "campos": [
-        "sanic_mensaje"
+        "sanic_mensaje",
+        "sanic_notainterna"
       ]
     },
     {

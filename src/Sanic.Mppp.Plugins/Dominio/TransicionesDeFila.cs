@@ -12,8 +12,19 @@ namespace Sanic.Mppp.Plugins.Dominio
 
         public Actor Actor { get; set; }
 
-        /// <summary>`sanic_mensaje`. Obligatorio en rechazar, anular y devolver.</summary>
+        /// <summary>`sanic_mensaje`: lo que va a LEER EL CLIENTE en su correo. Obligatorio en rechazar y anular.</summary>
         public string Mensaje { get; set; }
+
+        /// <summary>
+        /// `sanic_notainterna`: lo que el supervisor le escribe al ejecutivo al devolver una fila. Obligatorio
+        /// en devolver, y NUNCA sale en el correo al cliente.
+        ///
+        /// Existe desde el 2026-09-24 porque hasta entonces la devolución escribía en `sanic_mensaje`, que es
+        /// la columna que el correo muestra como "Motivos". Consecuencia real, vista en correos ya enviados:
+        /// una fila que terminó APROBADA le llegó al cliente con el motivo "Devuelta". Una nota de trabajo
+        /// entre dos personas del banco no es asunto del cliente.
+        /// </summary>
+        public string NotaInterna { get; set; }
 
         /// <summary>`sanic_digitadapor` de la fila ANTES del cambio. Decide la segregación de funciones al aprobar.</summary>
         public Guid? DigitadaPor { get; set; }
@@ -63,14 +74,25 @@ namespace Sanic.Mppp.Plugins.Dominio
 
         private const string MensajeRolNoAutorizado = "El rol de quien llama no puede hacer esta transición.";
         private const string MensajeFaltaMensaje = "Esta transición exige un mensaje que explique el motivo.";
+        private const string MensajeFaltaNota = "Devolver exige una nota que le explique al ejecutivo qué corregir.";
         private const string MensajeAmbosRoles = "Un usuario con los roles de Ejecutivo y de Supervisor no puede hacer ninguna transición (D-25).";
         private const string MensajeSinDigitador = "No se puede aprobar una fila sin saber quién la digitó.";
         private const string MensajeMismoDigitador = "Quien digitó la fila no puede aprobarla: falta la segregación de funciones.";
 
         /// <summary>Una fila de la tabla de diseno/03 §4: desde, hacia (la clave), quién autoriza, si exige mensaje, efecto y evento.</summary>
+        /// <summary>Qué texto exige la transición, y por lo tanto QUIÉN lo va a leer.</summary>
+        public enum TextoExigido
+        {
+            Ninguno = 0,
+            /// <summary>`sanic_mensaje`: lo lee el cliente en su correo.</summary>
+            MensajeAlCliente = 1,
+            /// <summary>`sanic_notainterna`: lo lee el ejecutivo. No sale del banco.</summary>
+            NotaInterna = 2,
+        }
+
         private sealed class DefinicionDeTransicion
         {
-            public bool RequiereMensaje;
+            public TextoExigido Exige;
 
             public EfectoDeTransicion Efecto;
 
@@ -126,49 +148,49 @@ namespace Sanic.Mppp.Plugins.Dominio
             {
                 [(EstadoDeLaFila.Validada, EstadoDeLaFila.Digitada)] = new DefinicionDeTransicion
                 {
-                    RequiereMensaje = false,
+                    Exige = TextoExigido.Ninguno,
                     Efecto = EfectoDeTransicion.RegistrarDigitacion,
                     Evento = EventoDeBitacora.FilaDigitada,
                     Autorizar = AutorizarQuienDigita,
                 },
                 [(EstadoDeLaFila.Validada, EstadoDeLaFila.RechazadaEnAS400)] = new DefinicionDeTransicion
                 {
-                    RequiereMensaje = true,
+                    Exige = TextoExigido.MensajeAlCliente,
                     Efecto = EfectoDeTransicion.Ninguno,
                     Evento = EventoDeBitacora.FilaRechazadaEnAS400,
                     Autorizar = AutorizarQuienDigita,
                 },
                 [(EstadoDeLaFila.Digitada, EstadoDeLaFila.RechazadaEnAS400)] = new DefinicionDeTransicion
                 {
-                    RequiereMensaje = true,
+                    Exige = TextoExigido.MensajeAlCliente,
                     Efecto = EfectoDeTransicion.Ninguno,
                     Evento = EventoDeBitacora.FilaRechazadaEnAS400,
                     Autorizar = AutorizarQuienDigita,
                 },
                 [(EstadoDeLaFila.Validada, EstadoDeLaFila.Anulada)] = new DefinicionDeTransicion
                 {
-                    RequiereMensaje = true,
+                    Exige = TextoExigido.MensajeAlCliente,
                     Efecto = EfectoDeTransicion.Ninguno,
                     Evento = EventoDeBitacora.FilaAnulada,
                     Autorizar = AutorizarAnular,
                 },
                 [(EstadoDeLaFila.Digitada, EstadoDeLaFila.Anulada)] = new DefinicionDeTransicion
                 {
-                    RequiereMensaje = true,
+                    Exige = TextoExigido.MensajeAlCliente,
                     Efecto = EfectoDeTransicion.Ninguno,
                     Evento = EventoDeBitacora.FilaAnulada,
                     Autorizar = AutorizarAnular,
                 },
                 [(EstadoDeLaFila.Digitada, EstadoDeLaFila.Aprobada)] = new DefinicionDeTransicion
                 {
-                    RequiereMensaje = false,
+                    Exige = TextoExigido.Ninguno,
                     Efecto = EfectoDeTransicion.RegistrarAprobacion,
                     Evento = EventoDeBitacora.FilaAprobada,
                     Autorizar = AutorizarAprobar,
                 },
                 [(EstadoDeLaFila.Digitada, EstadoDeLaFila.Validada)] = new DefinicionDeTransicion
                 {
-                    RequiereMensaje = true,
+                    Exige = TextoExigido.NotaInterna,
                     Efecto = EfectoDeTransicion.LimpiarDigitacion,
                     Evento = EventoDeBitacora.FilaDevuelta,
                     Autorizar = AutorizarDevolver,
@@ -212,9 +234,14 @@ namespace Sanic.Mppp.Plugins.Dominio
                 return new ResultadoDeTransicion(false, motivoDeRechazo, EfectoDeTransicion.Ninguno, null);
             }
 
-            if (definicion.RequiereMensaje && string.IsNullOrWhiteSpace(pedido.Mensaje))
+            if (definicion.Exige == TextoExigido.MensajeAlCliente && string.IsNullOrWhiteSpace(pedido.Mensaje))
             {
                 return new ResultadoDeTransicion(false, MensajeFaltaMensaje, EfectoDeTransicion.Ninguno, null);
+            }
+
+            if (definicion.Exige == TextoExigido.NotaInterna && string.IsNullOrWhiteSpace(pedido.NotaInterna))
+            {
+                return new ResultadoDeTransicion(false, MensajeFaltaNota, EfectoDeTransicion.Ninguno, null);
             }
 
             return new ResultadoDeTransicion(true, null, definicion.Efecto, definicion.Evento);

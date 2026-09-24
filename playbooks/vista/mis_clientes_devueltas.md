@@ -90,7 +90,7 @@ desde las columnas, el orden y el filtro.
       "ancho": 110
     },
     {
-      "nombre": "sanic_mensaje",
+      "nombre": "sanic_notainterna",
       "ancho": 300
     }
   ],
@@ -115,7 +115,7 @@ desde las columnas, el orden y el filtro.
         ]
       },
       {
-        "columna": "sanic_mensaje",
+        "columna": "sanic_notainterna",
         "operador": "not-null"
       },
       {

@@ -260,12 +260,23 @@ def recorrido_completo(ent, t):
         return
 
     e, b, _ = ent.como("supervisor", "PATCH", f"{FILA}({oid})", {"sanic_estado": VALIDADA})
-    t.caso("Devolver sin motivo se rechaza", e == 400 and "mensaje" in recorte(b, 400).lower(),
+    t.caso("Devolver sin nota interna se rechaza", e == 400 and "nota" in recorte(b, 400).lower(),
            f"HTTP {e} · {recorte(b)}")
 
+    # La devolucion es del supervisor al ejecutivo: el mensaje AL CLIENTE no sirve para devolver.
     e, b, _ = ent.como("supervisor", "PATCH", f"{FILA}({oid})",
-                       {"sanic_estado": VALIDADA, "sanic_mensaje": "Prueba automatizada: devuelta"})
-    t.caso("El supervisor devuelve con motivo", e == 204, f"HTTP {e} · {recorte(b)}")
+                       {"sanic_estado": VALIDADA, "sanic_mensaje": "esto lo leeria el cliente"})
+    t.caso("El mensaje al cliente NO sirve para devolver", e == 400, f"HTTP {e} · {recorte(b)}")
+
+    e, b, _ = ent.como("supervisor", "PATCH", f"{FILA}({oid})",
+                       {"sanic_estado": VALIDADA, "sanic_notainterna": "Prueba automatizada: devuelta"})
+    t.caso("El supervisor devuelve con nota interna", e == 204, f"HTTP {e} · {recorte(b)}")
+
+    # Lo que motiva todo el cambio: la nota del supervisor NUNCA puede terminar en el correo al cliente.
+    e, b, _ = ent.dv.call("GET", f"{FILA}({oid})?$select=sanic_mensaje,sanic_notainterna")
+    t.caso("La nota interna no toco el mensaje que lee el cliente",
+           not (b.get("sanic_mensaje") or "").strip() and bool(b.get("sanic_notainterna")),
+           f"mensaje={b.get('sanic_mensaje')!r} · nota={b.get('sanic_notainterna')!r}")
 
     e, b, _ = ent.dv.call("GET", f"{FILA}({oid})?$select=sanic_estado,_sanic_digitadapor_value")
     t.caso("Al devolver se olvida quién digitó",

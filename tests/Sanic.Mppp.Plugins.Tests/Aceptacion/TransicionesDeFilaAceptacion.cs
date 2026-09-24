@@ -17,11 +17,13 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         private static readonly Guid Bot = Guid.Parse("cccccccc-0000-0000-0000-000000000003");
 
         private static ResultadoDeTransicion Evaluar(EstadoDeLaFila desde, EstadoDeLaFila hacia, RolDeActor roles, Guid? quien = null,
-                                                     string mensaje = null, Guid? digitadaPor = null, bool rpaPuedeAprobar = false)
+                                                     string mensaje = null, Guid? digitadaPor = null, bool rpaPuedeAprobar = false,
+                                                     string notaInterna = null)
         {
             return TransicionesDeFila.Evaluar(new PedidoDeTransicion
             {
                 Desde = desde, Hacia = hacia, Actor = new Actor(quien ?? Ana, roles), Mensaje = mensaje, DigitadaPor = digitadaPor, RpaPuedeAprobar = rpaPuedeAprobar,
+                NotaInterna = notaInterna,
             });
         }
 
@@ -147,15 +149,23 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Rechazada(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.Aprobada, RolDeActor.Supervisor, quien: Ana, digitadaPor: Ana, rpaPuedeAprobar: true));
         }
 
-        // ---- Digitada -> Validada: devolver, solo el supervisor, con mensaje ----
+        /// <summary>
+        /// Devolver exige una NOTA INTERNA, no el mensaje al cliente (2026-09-24). La devolución es un
+        /// supervisor escribiéndole al ejecutivo; el cliente no tiene nada que ver. Hasta ese día las dos
+        /// cosas iban a `sanic_mensaje`, que es la columna que el correo muestra como "Motivos", y en
+        /// correos ya enviados una fila APROBADA le llegó al cliente con el motivo "Devuelta".
+        /// </summary>
         [Fact]
-        public void Devolver_lo_hace_el_supervisor_con_mensaje_y_limpia_la_digitacion()
+        public void Devolver_lo_hace_el_supervisor_con_una_nota_interna_y_limpia_la_digitacion()
         {
-            Permitida(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.Validada, RolDeActor.Supervisor, quien: Beto, mensaje: "La cuenta no coincide", digitadaPor: Ana),
+            Permitida(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.Validada, RolDeActor.Supervisor, quien: Beto, notaInterna: "La cuenta no coincide", digitadaPor: Ana),
                       EfectoDeTransicion.LimpiarDigitacion, EventoDeBitacora.FilaDevuelta);
-            Rechazada(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.Validada, RolDeActor.Supervisor, quien: Beto, mensaje: null, digitadaPor: Ana), "mensaje");
-            Rechazada(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.Validada, RolDeActor.Ejecutivo, mensaje: "x", digitadaPor: Ana));
-            Rechazada(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.Validada, RolDeActor.Rpa, mensaje: "x", digitadaPor: Ana));
+            // Sin nota no se devuelve...
+            Rechazada(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.Validada, RolDeActor.Supervisor, quien: Beto, notaInterna: null, digitadaPor: Ana), "nota");
+            // ...y el mensaje al cliente NO sirve para devolver: son dos textos distintos, con dos lectores distintos.
+            Rechazada(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.Validada, RolDeActor.Supervisor, quien: Beto, mensaje: "esto lo leeria el cliente", digitadaPor: Ana), "nota");
+            Rechazada(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.Validada, RolDeActor.Ejecutivo, notaInterna: "x", digitadaPor: Ana));
+            Rechazada(Evaluar(EstadoDeLaFila.Digitada, EstadoDeLaFila.Validada, RolDeActor.Rpa, notaInterna: "x", digitadaPor: Ana));
         }
 
         // ---- D-25: Ejecutivo y Supervisor son excluyentes por usuario ----
