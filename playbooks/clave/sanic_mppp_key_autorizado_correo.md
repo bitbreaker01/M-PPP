@@ -1,5 +1,6 @@
-# Playbook: clave alternativa · sanic_mppp_key_autorizado_cliente_nombre
+# Playbook: clave · sanic_mppp_key_autorizado_correo
 
+**Reemplaza a `sanic_mppp_key_autorizado_cliente_nombre` (2026-09-24).** El correo dejo de pertenecer a un cliente, asi que la clave pasa a ser el correo SOLO: unico en toda la tabla.
 ## 1. Identidad
 
 ```json
@@ -28,17 +29,16 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
 ```json
 {
   "tipo": "clave",
-  "nombre": "sanic_mppp_key_autorizado_cliente_nombre",
-  "displayname": "KEY - MPPP - Autorizado - Cliente y correo",
+  "nombre": "sanic_mppp_key_autorizado_correo",
+  "displayname": "KEY - MPPP - Autorizado - Correo",
   "tabla": "sanic_mppp_tbl_autorizado",
   "columnas": [
-    "sanic_clienteid",
     "sanic_nombre"
   ]
 }
 ```
 
-Una clave alternativa sobre `sanic_mppp_tbl_autorizado`: la plataforma no admite dos registros con la misma combinación de `sanic_clienteid` · `sanic_nombre`.
+Una clave alternativa sobre `sanic_mppp_tbl_autorizado`: la plataforma no admite dos registros con el mismo `sanic_nombre` (el correo). **Único en toda la tabla.**
 
 Valores vacíos:
 
@@ -48,7 +48,7 @@ Decisiones que este playbook toma y el diseño no traía:
 
 | Decisión | Valor | Por qué |
 |---|---|---|
-| Nombre visible de la clave | «KEY - MPPP - Autorizado - Cliente y correo» | El inventario trae el nombre lógico; el visible sigue el patrón `KEY - MPPP - Tabla - Campos` (`01` §2) |
+| Nombre visible de la clave | «KEY - MPPP - Autorizado - Correo» | El inventario trae el nombre lógico; el visible sigue el patrón `KEY - MPPP - Tabla - Campos` (`01` §2) |
 
 Viene del diseño, no lo decide este playbook:
 
@@ -74,20 +74,20 @@ Si alguna falla: estado `bloqueado`, no se crea nada.
 Receta: `power-platform-construir`, `references/modelo-datos/patrones.md` §2.4 "Clave alternativa". Herramienta del proyecto: `herramientas/construir/clave.py`. El índice de la clave se arma en segundo plano y tarda unos dos minutos aun con la tabla vacía: la herramienta espera hasta verlo `Active`.
 
 ```
-python3 herramientas/construir/clave.py playbooks/clave/sanic_mppp_key_autorizado_cliente_nombre.md
+python3 herramientas/construir/clave.py playbooks/clave/sanic_mppp_key_autorizado_correo.md
 ```
 
 ## 5. Verificación
 
 ```
-python3 herramientas/construir/clave.py playbooks/clave/sanic_mppp_key_autorizado_cliente_nombre.md --solo-verificar
-python3 herramientas/construir/muestra_clave.py playbooks/clave/sanic_mppp_key_autorizado_cliente_nombre.md --guardar
+python3 herramientas/construir/clave.py playbooks/clave/sanic_mppp_key_autorizado_correo.md --solo-verificar
+python3 herramientas/construir/muestra_clave.py playbooks/clave/sanic_mppp_key_autorizado_correo.md --guardar
 python3 herramientas/construir/tabla.py playbooks/tabla/sanic_mppp_tbl_autorizado.md --solo-verificar
 ```
 
 | # | Comprobación | Esperado |
 |---|---|---|
-| 1 | `GET EntityDefinitions(LogicalName='sanic_mppp_tbl_autorizado')/Keys(LogicalName='sanic_mppp_key_autorizado_cliente_nombre')` | 200 · `IsManaged = false` · nombre visible «KEY - MPPP - Autorizado - Cliente y correo» en 1033, sin etiquetas en otro idioma |
+| 1 | `GET EntityDefinitions(LogicalName='sanic_mppp_tbl_autorizado')/Keys(LogicalName='sanic_mppp_key_autorizado_correo')` | 200 · `IsManaged = false` · nombre visible «KEY - MPPP - Autorizado - Correo» en 1033, sin etiquetas en otro idioma |
 | 2 | Columnas de la clave (`KeyAttributes`, sin importar el orden) | `sanic_clienteid` · `sanic_nombre` |
 | 3 | Índice (`EntityKeyIndexStatus`) | `Active` |
 | 4 | Pertenencia a la solución | la de la tabla: `sanic_mppp_tbl_autorizado` está una vez en la solución de la sección 1, con todos sus subcomponentes (una clave no es un componente propio) |

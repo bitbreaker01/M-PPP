@@ -95,7 +95,8 @@ La validación normaliza lo que escribe el cliente antes de buscar el plan: `12`
 | Columna | Tipo | Req | Nota |
 |---|---|---|---|
 | `sanic_nombre` | T(320) | S | **Es el correo** (BP-PP-192: la columna primaria es la clave de negocio validada). Guardado sin espacios y en minúscula. La clave no distingue mayúsculas de todos modos (verificado en el spike C-05 parte B: `ABC` y `abc` chocan). |
-| `sanic_clienteid` | L:cliente | S | Borrado restringido. **Clave** `sanic_mppp_key_autorizado_cliente_nombre` = cliente + correo. |
+| `sanic_nombrecontacto` | T(100) | S | **Agregada el 2026-09-24.** Nombre de la persona dueña del correo; informativo. Quien identifica es el correo. |
+| ~~`sanic_clienteid`~~ | — | — | **ELIMINADA el 2026-09-24.** El correo no pertenece a un cliente: a qué planes toca lo dice Autorizacion, y el cliente sale del plan. La clave pasó a ser `sanic_mppp_key_autorizado_correo` = el correo solo. |
 
 Un mismo correo puede estar bajo varias empresas: la vista de búsqueda muestra también la columna Cliente para distinguir los renglones.
 

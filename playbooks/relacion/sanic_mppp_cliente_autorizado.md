@@ -1,4 +1,7 @@
-# Playbook: relación · sanic_mppp_cliente_autorizado
+# Playbook: relación · sanic_mppp_cliente_autorizado — ELIMINADA
+
+> **Eliminado el 2026-09-24.** El correo autorizado dejó de pertenecer a un cliente: a qué planes puede tocar lo dice la tabla Autorizacion, y el cliente sale del **plan**. La consulta que valida los correos entrantes (`CatalogosDataverse.PlanesAutorizadosDe`) nunca usó este lookup — encadena Autorizado → AutorizacionPlan → Plan → Cliente —, así que sacarlo no tocó el motor de validación. **Se pierde** el control que impedía autorizar un correo sobre el plan de otro cliente: aceptado a sabiendas, el correo es libre.
+
 
 ## 1. Identidad
 

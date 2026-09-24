@@ -16,11 +16,8 @@ namespace Sanic.Mppp.Plugins.Steps
     /// </summary>
     internal static class PlomeriaDeFila
     {
-        private const string RolSupervisor = "sr_mppp_supervisor";
-        // D-44: el usuario de aplicación del RPA tiene su propio rol, distinto del de la cuenta de servicio de los flujos.
-        // Ese rol es de FASE 2 y todavía no existe en el entorno: hasta que se cree con este nombre, ninguna transición del RPA
-        // es posible, que es lo correcto en fase 1.
-        private const string RolRpa = "sr_mppp_rpa";
+        // Los tres nombres viven en `TablasNativas` y en ningún otro lado: tenerlos duplicados acá
+        // fue lo que permitió que dos de ellos quedaran con un valor que el entorno no conoce.
 
         /// <summary>La primera pre-image que trae `columna` (03 §4: "el estado de origen sale de la PRE-IMAGE, nunca del Target", sea cual sea la clave con la que la registraron).</summary>
         internal static Entity ImagenQueTrae(IPluginExecutionContext contexto, string columna)
@@ -43,11 +40,19 @@ namespace Sanic.Mppp.Plugins.Steps
         internal static RolDeActor DeterminarRoles(IOrganizationService servicio, Guid actorId)
         {
             var consultaRoles = new QueryExpression(TablasNativas.Rol) { ColumnSet = new ColumnSet("name") };
-            consultaRoles.Criteria.AddCondition("name", ConditionOperator.In, TablasNativas.RolEjecutivo, RolSupervisor, RolRpa);
+            consultaRoles.Criteria.AddCondition(
+                "name", ConditionOperator.In, TablasNativas.RolEjecutivo, TablasNativas.RolSupervisor, TablasNativas.RolRpa);
             var roles = servicio.RetrieveMultiple(consultaRoles).Entities;
             if (roles.Count == 0)
             {
-                return RolDeActor.Ninguno;
+                // Que NINGUNO de los tres roles exista en el entorno no es "este usuario no tiene rol":
+                // es la solución mal instalada, y lo arregla un administrador en minutos. Se dice, en vez
+                // de devolver `Ninguno` y dejar que el mensaje culpe al usuario. Confundir las dos cosas
+                // fue lo que escondió el defecto de los nombres durante todo el 2026-09-23.
+                throw new InvalidPluginExecutionException(
+                    $"Los roles de MPPP no están instalados en este entorno: no existe ninguno llamado "
+                    + $"'{TablasNativas.RolEjecutivo}', '{TablasNativas.RolSupervisor}' ni '{TablasNativas.RolRpa}'. "
+                    + "Sin ellos no se puede autorizar ninguna transición. Avisá al administrador del entorno.");
             }
 
             var nombrePorRoleId = roles.ToDictionary(r => r.Id, r => r.GetAttributeValue<string>("name"));
@@ -60,7 +65,7 @@ namespace Sanic.Mppp.Plugins.Steps
             var resultado = RolDeActor.Ninguno;
             foreach (var asignacion in asignaciones)
             {
-                var roleId = asignacion.GetAttributeValue<EntityReference>("roleid")?.Id;
+                var roleId = IdDeLaAsignacion(asignacion);
                 if (roleId.HasValue && nombrePorRoleId.TryGetValue(roleId.Value, out var nombre))
                 {
                     resultado |= NombreARol(nombre);
@@ -70,6 +75,35 @@ namespace Sanic.Mppp.Plugins.Steps
             return resultado;
         }
 
+        /// <summary>
+        /// El `roleid` de una fila de `systemuserroles`, venga como venga.
+        ///
+        /// `systemuserroles` es una **intersect entity** (la N:N entre usuario y rol), y en Dataverse
+        /// real sus columnas son `Uniqueidentifier` crudos, NO lookups: leerlas como
+        /// `EntityReference` revienta con "Unable to cast object of type 'System.Guid'". Hasta el
+        /// 2026-09-23 se leían como `EntityReference` y las pruebas pasaban porque el doble en
+        /// memoria las sembraba así. El bug estuvo tapado por el `return` temprano de arriba: hasta
+        /// que los nombres de rol no coincidieron, esta línea nunca llegó a ejecutarse en el entorno.
+        ///
+        /// Se aceptan los dos tipos a propósito: según cómo se consulte la relación, el SDK puede
+        /// devolver una cosa u otra, y acá el costo de equivocarse es que nadie pueda trabajar.
+        /// </summary>
+        private static Guid? IdDeLaAsignacion(Entity asignacion)
+        {
+            if (!asignacion.Contains("roleid"))
+            {
+                return null;
+            }
+
+            var crudo = asignacion["roleid"];
+            if (crudo is Guid id)
+            {
+                return id;
+            }
+
+            return (crudo as EntityReference)?.Id;
+        }
+
         private static RolDeActor NombreARol(string nombre)
         {
             if (string.Equals(nombre, TablasNativas.RolEjecutivo, StringComparison.OrdinalIgnoreCase))
@@ -77,12 +111,12 @@ namespace Sanic.Mppp.Plugins.Steps
                 return RolDeActor.Ejecutivo;
             }
 
-            if (string.Equals(nombre, RolSupervisor, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(nombre, TablasNativas.RolSupervisor, StringComparison.OrdinalIgnoreCase))
             {
                 return RolDeActor.Supervisor;
             }
 
-            if (string.Equals(nombre, RolRpa, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(nombre, TablasNativas.RolRpa, StringComparison.OrdinalIgnoreCase))
             {
                 return RolDeActor.Rpa;
             }
@@ -96,6 +130,53 @@ namespace Sanic.Mppp.Plugins.Steps
             var parametro = new CatalogosDataverse(servicio).Parametro(TransicionDeFilaStep.ParametroRpaPuedeAprobar);
             return parametro != null && string.Equals(parametro.Valor, "si", StringComparison.OrdinalIgnoreCase);
         }
+
+        /// <summary>
+        /// Toma el bloqueo exclusivo de la Solicitud antes de mirar sus filas.
+        ///
+        /// **Por qué.** Este step decide si cierra la Solicitud mirando el estado de TODAS sus filas.
+        /// Cuando dos filas de la misma Solicitud se aprueban al mismo tiempo —el ribbon las manda en
+        /// paralelo, y dos supervisores pueden hacerlo desde dos máquinas— cada transacción lee las
+        /// filas ANTES de que la otra confirme, las dos ven "todavía queda alguna abierta" y **ninguna
+        /// cierra**. Pasó en Dev el 2026-09-23 con MPPP-00001008: tres filas aprobadas, Solicitud en
+        /// proceso, y nadie atrás para darse cuenta.
+        ///
+        /// **Cómo.** Es el patrón que Microsoft documenta como *"Approach 3: Pre-lock in a plug-in
+        /// transaction"* (Learn, Scalable Customization Design, ejemplo de autonumeración): se escribe
+        /// un valor de marcador en una columna técnica de la fila compartida, lo que **pide y toma un
+        /// lock exclusivo de escritura sobre esa fila**. La segunda transacción espera a que la primera
+        /// confirme, y entonces sí lee el estado real. El VALOR escrito no lo lee nadie: lo único que
+        /// importa es el lock.
+        ///
+        /// **Qué cuesta.** Serializa las transiciones de filas de LA MISMA Solicitud. Filas de
+        /// solicitudes distintas no se estorban. Learn avisa que el pre-lock se paga con contención y
+        /// recomienda tomarlo lo más tarde posible dentro de la transacción: por eso va acá, en el
+        /// PostOperation y justo antes de la lectura, y no al principio del pipeline.
+        ///
+        /// Las dos alternativas que se descartaron: serializar en el cliente (no resuelve dos usuarios
+        /// a la vez) y cerrar por barrido periódico (difiere el cierre siempre). El barrido queda como
+        /// red de seguridad, no como el mecanismo.
+        /// </summary>
+        internal static void TomarElBloqueoDeLaSolicitud(IOrganizationService servicio, Guid solicitudId, IPluginExecutionContext contexto)
+        {
+            servicio.Update(new Entity(TablasHistorico.Solicitud, solicitudId)
+            {
+                ["sanic_bloqueodecierre"] = AhoraUtc(contexto),
+            });
+        }
+
+        /// <summary>
+        /// La fecha de la operación, marcada como UTC.
+        ///
+        /// `OperationCreatedOn` VIENE en UTC, pero el SDK lo entrega con `Kind = Unspecified`, y
+        /// `SolicitudesDataverse` exige `Kind = Utc` a propósito: una fecha con otro Kind se
+        /// guardaría corrida en una columna de hora local, en silencio. Las dos Custom API ya
+        /// hacían este `SpecifyKind`; los steps de Fila usaban el valor crudo y reventaban con
+        /// "La fecha tiene que venir en UTC" la primera vez que una transición llegó a ejecutarse
+        /// de verdad en el entorno (2026-09-23). Ahora sale de un solo lugar.
+        /// </summary>
+        internal static DateTime AhoraUtc(IPluginExecutionContext contexto) =>
+            DateTime.SpecifyKind(contexto.OperationCreatedOn, DateTimeKind.Utc);
 
         /// <summary>`sanic_actortexto` (D-21): el `fullname` de quien inicia, con una consulta.</summary>
         internal static string NombreDeQuienActua(IOrganizationService servicio, Guid usuarioId)
@@ -236,7 +317,7 @@ namespace Sanic.Mppp.Plugins.Steps
 
                 if (!target.Contains(columnaFecha))
                 {
-                    target[columnaFecha] = contexto.OperationCreatedOn;
+                    target[columnaFecha] = PlomeriaDeFila.AhoraUtc(contexto);
                 }
 
                 return;
@@ -244,7 +325,7 @@ namespace Sanic.Mppp.Plugins.Steps
 
             // "Si quien llama NO es SYSTEM ... se ignoran y se pisan con InitiatingUserId y la hora actual" (03 §4).
             target[columnaUsuario] = new EntityReference(TablasNativas.Usuario, contexto.InitiatingUserId);
-            target[columnaFecha] = contexto.OperationCreatedOn;
+            target[columnaFecha] = PlomeriaDeFila.AhoraUtc(contexto);
         }
     }
 
@@ -292,14 +373,16 @@ namespace Sanic.Mppp.Plugins.Steps
 
             var solicitudes = new SolicitudesDataverse(servicio);
             var actorTexto = PlomeriaDeFila.NombreDeQuienActua(servicio, contexto.InitiatingUserId);
-            solicitudes.RegistrarEvento(solicitudId, contexto.OperationCreatedOn, evento.Value, OrigenDelEvento.Plugin, numeroFila, actorTexto, null);
+            solicitudes.RegistrarEvento(solicitudId, PlomeriaDeFila.AhoraUtc(contexto), evento.Value, OrigenDelEvento.Plugin, numeroFila, actorTexto, null);
+
+            PlomeriaDeFila.TomarElBloqueoDeLaSolicitud(servicio, solicitudId, contexto);
 
             // Consulta 1 (filas de la Solicitud): la fila que se acaba de transicionar todavía figura en la base con su
             // estado ANTERIOR en el doble de pruebas (no vuelve a aplicar el Update); se refleja el nuevo estado acá,
             // como ya lo tiene la plataforma real en PostOperation (diseno/03 §8).
             var filas = LeerFilasDeLaSolicitud(servicio, solicitudId, target.Id, hacia);
 
-            var solicitud = solicitudes.Leer(solicitudId); // Consulta 2 (la Solicitud).
+            var solicitud = solicitudes.Leer(solicitudId); // Consulta 2 (la Solicitud), ya bajo el bloqueo.
             if (!CierreDeSolicitud.CorrespondeProcesar(solicitud.Estado, filas.Select(f => f.Estado)))
             {
                 return;
@@ -316,11 +399,11 @@ namespace Sanic.Mppp.Plugins.Steps
 
             var entidadSolicitud = new Entity(TablasHistorico.Solicitud, solicitudId);
             entidadSolicitud["sanic_estadoprocesamiento"] = new OptionSetValue((int)EstadoDeLaSolicitud.Procesada);
-            entidadSolicitud["sanic_fechaprocesada"] = contexto.OperationCreatedOn;
+            entidadSolicitud["sanic_fechaprocesada"] = PlomeriaDeFila.AhoraUtc(contexto);
             entidadSolicitud["sanic_respuestafinalcontenido"] = respuesta;
             servicio.Update(entidadSolicitud);
 
-            solicitudes.RegistrarEvento(solicitudId, contexto.OperationCreatedOn, EventoDeBitacora.Procesada, OrigenDelEvento.Plugin, 0, null, null);
+            solicitudes.RegistrarEvento(solicitudId, PlomeriaDeFila.AhoraUtc(contexto), EventoDeBitacora.Procesada, OrigenDelEvento.Plugin, 0, null, null);
         }
 
         private static IList<FilaParaCierre> LeerFilasDeLaSolicitud(IOrganizationService servicio, Guid solicitudId, Guid filaQueTransiciono, EstadoDeLaFila haciaLaFilaQueTransiciono)
@@ -431,7 +514,66 @@ namespace Sanic.Mppp.Plugins.Steps
             // Descartada es el evento propio de esa transición.
             var evento = hacia == EstadoDeLaSolicitud.Cerrada ? EventoDeBitacora.NoReconocidaAtendida : EventoDeBitacora.Descartada;
             var actorTexto = PlomeriaDeFila.NombreDeQuienActua(servicio, contexto.InitiatingUserId);
-            new SolicitudesDataverse(servicio).RegistrarEvento(target.Id, contexto.OperationCreatedOn, evento, OrigenDelEvento.Plugin, 0, actorTexto, null);
+            new SolicitudesDataverse(servicio).RegistrarEvento(target.Id, PlomeriaDeFila.AhoraUtc(contexto), evento, OrigenDelEvento.Plugin, 0, actorTexto, null);
+        }
+    }
+
+    /// <summary>
+    /// El boton "Revisado" (`05` §5): cuando una persona apaga `sanic_requiererevision`, este step deja el
+    /// motivo en la Bitacora y limpia la columna. `Update` de Solicitud, PreOperation, filtro
+    /// `sanic_requiererevision`, con pre-imagen de la marca y del motivo.
+    ///
+    /// **De donde sale el motivo.** `sanic_motivorevision` NO la escribe la persona: la escriben los flujos,
+    /// para explicar por que hizo falta revisar ("Validacion fallida 3 veces", "Envio iniciado sin
+    /// confirmar"). Es lo que el operador LEE en la vista "Para revisar". Por eso el boton no pide texto: si
+    /// lo pidiera, la nota pisaria el diagnostico justo cuando se lo va a atender.
+    ///
+    /// Hasta el 2026-09-23 el comando SI pedia texto y lo escribia en esa columna, y no funcionaba: la lista
+    /// blanca no admite `sanic_motivorevision` de una persona ("No se puede guardar: la(s) columna(s)
+    /// sanic_motivorevision no esta(n) permitida(s)"). Ademas, el plugin que segun `05` §5 y el plan de
+    /// pruebas "pasa la nota a la Bitacora" NO EXISTIA: este es. Se resolvio como el mockup aprobado el
+    /// 2026-09-20, que no pide texto.
+    ///
+    /// La columna se limpia agregandola al `Target`, no con una escritura aparte: la lista blanca corre en
+    /// orden 0 y ya termino, asi que agregar una columna despues no la esquiva — la persona sigue sin poder
+    /// mandarla ella.
+    /// </summary>
+    public sealed class RevisionAtendidaStep : IPlugin
+    {
+        public const string Marca = "sanic_requiererevision";
+        public const string Motivo = "sanic_motivorevision";
+
+        public void Execute(IServiceProvider serviceProvider)
+        {
+            if (!PlomeriaDePlataforma.Preparar(serviceProvider, out var contexto, out var servicio, out var target))
+            {
+                return;
+            }
+
+            if (!string.Equals(target.LogicalName, TablasHistorico.Solicitud, StringComparison.Ordinal) || !target.Contains(Marca))
+            {
+                return;
+            }
+
+            var preImagen = PlomeriaDeFila.ImagenQueTrae(contexto, Marca);
+            var estaba = preImagen.GetAttributeValue<bool>(Marca);
+            var queda = target.GetAttributeValue<bool>(Marca);
+
+            // Solo el apagado. Prenderla es asunto de los flujos, que ya escriben su propio evento.
+            if (!estaba || queda)
+            {
+                return;
+            }
+
+            var motivo = preImagen.GetAttributeValue<string>(Motivo);
+            var actorTexto = PlomeriaDeFila.NombreDeQuienActua(servicio, contexto.InitiatingUserId);
+            new SolicitudesDataverse(servicio).RegistrarEvento(
+                target.Id, PlomeriaDeFila.AhoraUtc(contexto), EventoDeBitacora.RevisionAtendida,
+                OrigenDelEvento.Plugin, 0, actorTexto, motivo);
+
+            // Se limpia para que la proxima vez que la marca se prenda, el motivo que se lea sea el nuevo y
+            // no el de la vez anterior.
+            target[Motivo] = null;
         }
     }
 }

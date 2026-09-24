@@ -2,7 +2,9 @@
 
 Proyecto: 2026-001-referencias-planes-pago · Etapa 3 · Estado: **revisado con el aprobador el 2026-09-18**
 
-Reglas citadas: BP-PP-051, 052, 053, 055, 057, 060. Todas las Custom API: **unbound**, `AllowedCustomProcessingStepType = None`, `IsPrivate = true`, plugin de respaldo en el paquete `Sanic.Mppp.Plugins`. Sin llamadas HTTP salientes (D-22, BP-PP-052).
+Reglas citadas: BP-PP-051, 052, 053, 055, 057, 060. Todas las Custom API: **unbound**, `AllowedCustomProcessingStepType = None`, **`IsPrivate = false` mientras la solución sea unmanaged** (se pone en `true` recién al empaquetarla managed para terceros), plugin de respaldo en el paquete `Sanic.Mppp.Plugins`. Sin llamadas HTTP salientes (D-22, BP-PP-052).
+
+*(Corregido el 2026-09-22: decía `IsPrivate = true`, y eso **impide activar los flujos que llaman a la API**. `IsPrivate` bloquea que la Custom API aparezca en el documento `$metadata`, y de ahí la lee el conector de Dataverse para resolver una unbound action: con `true`, Power Automate falla con `GetMetadataForUnboundActionInput ... NotFound`. Además **no es una medida de seguridad**: Learn dice textual que "setting this property doesn't mean that other developers can't use your message if they know about it" — la seguridad real es `ExecutePrivilegeName`, que en las dos API es `prvCreatesanic_mppp_tbl_solicitud`. Microsoft recomienda dejarlo en `false` en desarrollo y ponerlo en `true` recién antes de shippear una solución managed. Ver [Create and use custom APIs](https://learn.microsoft.com/power-apps/developer/data-platform/custom-api#when-to-make-your-custom-api-private).)*
 
 **Quién puede ejecutarlas** (D-9, decisión del aprobador del 2026-09-21). La plataforma gobierna la ejecución de una Custom API con `ExecutePrivilegeName`, que tiene que nombrar un privilegio **que ya exista**: no se puede crear uno a medida. Las dos de fase 1 (`clasificarcorreo` y `validarsolicitud`) llevan `ExecutePrivilegeName = prvCreatesanic_mppp_tbl_solicitud`: en fase 1 el único rol con `C` sobre Solicitud es `SR - MPPP - Servicio de ingesta` (`04` §3), y quien puede dar de alta una solicitud puede clasificarla y validarla. En fase 3 el rol Histórico también tendrá ese privilegio: se acepta o se revisa al diseñar esa fase. Las dos de fase 2 (RPA) quedan por decidir: el RPA solo tiene lecturas que comparte con el Ejecutivo, así que hará falta una comprobación dentro del plugin o una tabla marcadora.
 
@@ -165,10 +167,43 @@ Step: `Update` de `sanic_mppp_tbl_fila`, **PreOperation**, síncrono, filtering 
 | Step | Mensaje / etapa | Qué hace |
 |---|---|---|
 | Lista blanca de columnas | Update de Fila y de Solicitud · PreOperation · **sin** filtro de atributos · orden 0 | Si quien llama es un humano, el `Target` solo puede traer las columnas permitidas (`04-matriz-privilegios.md` §1). Es el control que compensa que `W` en Dataverse sea sobre la fila entera |
-| Integridad de AutorizacionPlan | Create y Update · PreOperation | Cliente del Plan = Cliente del Autorizado |
+| ~~Integridad de AutorizacionPlan~~ | — | **ELIMINADO el 2026-09-24**: el Autorizado ya no tiene cliente, así que la regla no tenía qué comparar |
 | Nombre calculado | Create · PreOperation en Plan, AutorizacionPlan y Fila (Bitácora, Regla y ResultadoRegla llevan primaria autonumérica, `02` DD-20) | Completa `sanic_nombre`. **No** aplica a Autorizado ni a Parametro: en esas dos tablas la columna primaria es la clave de negocio (correo, código), no un valor calculado (BP-PP-192) |
 | Normalizar y validar | Create y Update de Cliente, Plan, Autorizado y Parametro · PreOperation | Cliente: `sanic_cifbac` solo dígitos, relleno con ceros a 9; `sanic_cifcom` en mayúscula, `^[A-Z0-9 ]{9}\d{3}$`. Plan: `sanic_codigo` en mayúscula, relleno con ceros a 4, `^[A-Z0-9]{4}$`. Autorizado: `sanic_nombre` (correo) sin espacios, en minúscula, con formato de correo válido. Parametro: `sanic_nombre` (código) en minúscula, separado por puntos |
-| Atender correo por clasificar | Update de Solicitud, filtro `sanic_estadoprocesamiento` · PreOperation | Solo No reconocida o No es correo nuevo → Cerrada / Descartada; ya no completa columnas propias — quién atendió y cuándo queda en la Bitácora, con `sanic_actortexto` |
+| Atender correo por clasificar | Update de Solicitud, filtro `sanic_estadoprocesamiento` · PreOperation · **con pre-image** (`sanic_estadoprocesamiento`) | Solo No reconocida o No es correo nuevo → Cerrada / Descartada; ya no completa columnas propias — quién atendió y cuándo queda en la Bitácora, con `sanic_actortexto` |
+
+### 5.1 Lista cerrada de steps a registrar (P-09, inventario 8.2)
+
+Las filas de arriba y las de §4 describen el COMPORTAMIENTO; cada una se expande en un `sdkmessageprocessingstep` por cada par (mensaje, tabla). Esta es la lista cerrada, contrastada contra las clases de `src/Sanic.Mppp.Plugins/Steps/` — son **20**. (El inventario decía "~17"; la expansión real dio 18 el 2026-09-22, y ese mismo día se detectó que faltaban los dos de la tabla Regla, que el inventario 7.10 pedía y no estaban en el código.) Todos síncronos, en el paquete `Sanic.Mppp.Plugins`.
+
+| # | Clase (`Sanic.Mppp.Plugins.Steps.*`) | Mensaje | Tabla | Etapa | Orden | Filtro de atributos | Pre-image |
+|---|---|---|---|---|---|---|---|
+| 1 | `ListaBlancaStep` | Update | `sanic_mppp_tbl_fila` | PreOperation | 0 | — (sin filtro, a propósito) | — |
+| 2 | `ListaBlancaStep` | Update | `sanic_mppp_tbl_solicitud` | PreOperation | 0 | — (sin filtro, a propósito) | — |
+| 3 | `NormalizarYValidarStep` | Create | `sanic_mppp_tbl_cliente` | PreOperation | 10 | — | — |
+| 4 | `NormalizarYValidarStep` | Update | `sanic_mppp_tbl_cliente` | PreOperation | 10 | `sanic_cifbac,sanic_cifcom` | — |
+| 5 | `NormalizarYValidarStep` | Create | `sanic_mppp_tbl_plan` | PreOperation | 10 | — | — |
+| 6 | `NormalizarYValidarStep` | Update | `sanic_mppp_tbl_plan` | PreOperation | 10 | `sanic_codigo` | — |
+| 7 | `NormalizarYValidarStep` | Create | `sanic_mppp_tbl_autorizado` | PreOperation | 10 | — | — |
+| 8 | `NormalizarYValidarStep` | Update | `sanic_mppp_tbl_autorizado` | PreOperation | 10 | `sanic_nombre` | — |
+| 9 | `NormalizarYValidarStep` | Create | `sanic_mppp_tbl_parametro` | PreOperation | 10 | — | — |
+| 10 | `NormalizarYValidarStep` | Update | `sanic_mppp_tbl_parametro` | PreOperation | 10 | `sanic_nombre` | — |
+| 11 | `NombreCalculadoStep` | Create | `sanic_mppp_tbl_plan` | PreOperation | 20 | — | — |
+| 12 | `NombreCalculadoStep` | Create | `sanic_mppp_tbl_autorizacionplan` | PreOperation | 20 | — | — |
+| 13 | `NombreCalculadoStep` | Create | `sanic_mppp_tbl_fila` | PreOperation | 20 | — | — |
+| 16 | `TransicionDeFilaStep` | Update | `sanic_mppp_tbl_fila` | PreOperation | 1 | `sanic_estado` | `sanic_estado,sanic_digitadapor,sanic_solicitudid` |
+| 17 | `PostTransicionDeFilaStep` | Update | `sanic_mppp_tbl_fila` | PostOperation | 10 | `sanic_estado` | `sanic_estado,sanic_solicitudid,sanic_numerofila` |
+| 18 | `AtenderPorClasificarStep` | Update | `sanic_mppp_tbl_solicitud` | PreOperation | 10 | `sanic_estadoprocesamiento` | `sanic_estadoprocesamiento` |
+| 19 | `IntegridadDeReglaStep` | Create | `sanic_mppp_tbl_regla` | PreOperation | 30 | — | — |
+| 20 | `IntegridadDeReglaStep` | Update | `sanic_mppp_tbl_regla` | PreOperation | 30 | `sanic_codigo,sanic_nivel,sanic_orden,sanic_dependede,sanic_efecto,statecode` | `sanic_codigo,sanic_nivel,sanic_orden,sanic_dependede,sanic_efecto,statecode` |
+
+Notas que fija esta tabla y no estaban antes:
+
+- **Los dos de la tabla Regla (#19 y #20) son el control PREVENTIVO del catálogo** (D-13, D-14, D-20; inventario 7.10). El motor ya falla cerrado en tiempo de ejecución, así que un catálogo malo no corrompe datos; lo que estos dos evitan es que alguien lo guarde y recién se entere cuando dejan de procesarse las solicitudes. El de `Update` lleva pre-image porque un `Update` parcial trae una sola columna y la regla hay que validarla entera. Faltaban: se detectaron el 2026-09-22, al cargar las 15 reglas semilla.
+- **Cuatro steps llevan pre-image, no uno**: #16, #17, #18 y #20. El de atender por clasificar (#18) lee el estado de ORIGEN de la pre-image, igual que los dos de Fila: sin imagen registrada revienta. Estaba en el código desde 7.12 y faltaba acá.
+- **El orden importa en Fila/Update**: lista blanca (0) corre antes que la transición (1), para que una persona no pueda colar una columna prohibida aprovechando un cambio de estado legítimo.
+- **La lista blanca va sin filtro de atributos a propósito**: filtrar sería dejar pasar justamente los `Update` que traen columnas que nadie declaró.
+- **`Upsert`, `UpdateMultiple` y `CreateMultiple` NO evitan el control, y no hacen falta steps extra** (cerrado el 2026-09-22 con cita de Learn; ver `PENDIENTES.md` §B). Dataverse funde los pipelines: un step sobre `Update` se ejecuta también en un `UpdateMultiple`, una vez por entidad, y un `Upsert` sobre una tabla estándar llama `Create` o `Update` según exista el registro. **Ojo**: en una tabla **elástica** esto NO vale — `Upsert` ahí no dispara ningún evento. Si alguna vez se convierte una de estas tablas a elástica, la lista blanca se cae en silencio.
 
 ## 6. Máquina de estados de la Solicitud
 

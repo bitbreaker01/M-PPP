@@ -1,0 +1,395 @@
+{
+  "triggers": {
+    "Cuando_lo_llama_un_flujo": {
+      "type": "Request",
+      "kind": "Button",
+      "inputs": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "title": "MessageId",
+              "type": "string",
+              "x-ms-dynamically-added": true,
+              "description": "Identificador de Outlook del mensaje a ingerir.",
+              "x-ms-content-hint": "TEXT"
+            },
+            "text_1": {
+              "title": "Origen",
+              "type": "string",
+              "x-ms-dynamically-added": true,
+              "description": "Valor de la opcion 'origen' del flujo que llama: 159460001 (MPPP-REC) o 159460005 (MPPP-VIG).",
+              "x-ms-content-hint": "TEXT"
+            }
+          },
+          "required": ["text", "text_1"]
+        }
+      }
+    }
+  },
+  "actions": {
+    "Init_adjuntos": {
+      "runAfter": {},
+      "type": "InitializeVariable",
+      "inputs": { "variables": [{ "name": "adjuntos", "type": "array", "value": [] }] }
+    },
+
+    "Init_excels": {
+      "runAfter": { "Init_adjuntos": ["Succeeded"] },
+      "type": "InitializeVariable",
+      "inputs": { "variables": [{ "name": "excels", "type": "array", "value": [] }] }
+    },
+
+    "Ingerir": {
+      "runAfter": { "Init_excels": ["Succeeded"] },
+      "type": "Scope",
+      "actions": {
+        "Leer_el_correo": {
+          "runAfter": {},
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:outlook@@",
+              "operationId": "GetEmailV2",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+            },
+            "parameters": {
+              "messageId": "@triggerBody()['text']",
+              "includeAttachments": true,
+              "mailboxAddress": "@parameters('@@ev:sanic_mppp_ev_buzoningesta@@')"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+          }
+        },
+
+        "Clave_del_correo": {
+          "runAfter": { "Leer_el_correo": ["Succeeded"] },
+          "type": "Compose",
+          "inputs": "@take(replace(replace(coalesce(outputs('Leer_el_correo')?['body/internetMessageId'], ''), '<', ''), '>', ''), 450)"
+        },
+
+        "Por_cada_adjunto": {
+          "runAfter": { "Clave_del_correo": ["Succeeded"] },
+          "type": "Foreach",
+          "foreach": "@coalesce(outputs('Leer_el_correo')?['body/attachments'], json('[]'))",
+          "runtimeConfiguration": { "concurrency": { "repetitions": 1 } },
+          "actions": {
+            "No_es_en_linea": {
+              "runAfter": {},
+              "type": "If",
+              "expression": {
+                "and": [{ "not": { "equals": ["@items('Por_cada_adjunto')?['isInline']", true] } }]
+              },
+              "actions": {
+                "Sumar_adjunto": {
+                  "runAfter": {},
+                  "type": "AppendToArrayVariable",
+                  "inputs": { "name": "adjuntos", "value": "@items('Por_cada_adjunto')" }
+                },
+                "Es_un_excel": {
+                  "runAfter": { "Sumar_adjunto": ["Succeeded"] },
+                  "type": "If",
+                  "expression": {
+                    "and": [{
+                      "endsWith": [
+                        "@toLower(coalesce(items('Por_cada_adjunto')?['name'], ''))",
+                        ".xlsx"
+                      ]
+                    }]
+                  },
+                  "actions": {
+                    "Sumar_excel": {
+                      "runAfter": {},
+                      "type": "AppendToArrayVariable",
+                      "inputs": { "name": "excels", "value": "@items('Por_cada_adjunto')" }
+                    }
+                  },
+                  "else": { "actions": {} }
+                }
+              },
+              "else": { "actions": {} }
+            }
+          }
+        },
+
+        "Crear_la_solicitud": {
+          "runAfter": { "Por_cada_adjunto": ["Succeeded"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "CreateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_solicituds",
+              "item/sanic_messageid": "@outputs('Clave_del_correo')",
+              "item/sanic_remitente": "@outputs('Leer_el_correo')?['body/from']",
+              "item/sanic_asunto": "@outputs('Leer_el_correo')?['body/subject']",
+              "item/sanic_fecharecibido": "@outputs('Leer_el_correo')?['body/receivedDateTime']",
+              "item/sanic_fechaingresada": "@utcNow()",
+              "item/sanic_estadoprocesamiento": 159460001,
+              "item/sanic_cantidadadjuntos": "@length(variables('adjuntos'))",
+              "item/sanic_cantidadexcel": "@length(variables('excels'))"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+
+        "Buscar_la_que_ya_existia": {
+          "runAfter": { "Crear_la_solicitud": ["Failed"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "ListRecords",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_solicituds",
+              "$filter": "@concat('sanic_messageid eq ''', outputs('Clave_del_correo'), '''')",
+              "$select": "sanic_mppp_tbl_solicitudid",
+              "$top": 1
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+          }
+        },
+
+        "Solicitud": {
+          "runAfter": {
+            "Crear_la_solicitud": ["Succeeded"],
+            "Buscar_la_que_ya_existia": ["Succeeded", "Skipped"]
+          },
+          "type": "Compose",
+          "inputs": "@if(equals(outputs('Crear_la_solicitud')?['statusCode'], 204), outputs('Crear_la_solicitud')?['body/sanic_mppp_tbl_solicitudid'], coalesce(outputs('Crear_la_solicitud')?['body/sanic_mppp_tbl_solicitudid'], first(coalesce(outputs('Buscar_la_que_ya_existia')?['body/value'], json('[]')))?['sanic_mppp_tbl_solicitudid']))"
+        },
+
+        "Exportar_el_correo": {
+          "runAfter": { "Solicitud": ["Succeeded"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:outlook@@",
+              "operationId": "ExportEmail_V2",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+            },
+            "parameters": {
+              "messageId": "@triggerBody()['text']",
+              "mailboxAddress": "@parameters('@@ev:sanic_mppp_ev_buzoningesta@@')"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+          }
+        },
+
+        "Guardar_el_correo_crudo": {
+          "runAfter": { "Exportar_el_correo": ["Succeeded"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "UpdateEntityFileImageFieldContent",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_solicituds",
+              "recordId": "@outputs('Solicitud')",
+              "fileImageFieldName": "sanic_correocrudo",
+              "item": "@body('Exportar_el_correo')",
+              "x-ms-file-name": "correo.eml"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+          }
+        },
+
+        "Hay_exactamente_un_excel": {
+          "runAfter": { "Guardar_el_correo_crudo": ["Succeeded"] },
+          "type": "If",
+          "expression": {
+            "and": [{ "equals": ["@length(variables('excels'))", 1] }]
+          },
+          "actions": {
+            "Guardar_el_excel": {
+              "runAfter": {},
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "@@conr:dataverse@@",
+                  "operationId": "UpdateEntityFileImageFieldContent",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "sanic_mppp_tbl_solicituds",
+                  "recordId": "@outputs('Solicitud')",
+                  "fileImageFieldName": "sanic_exceloriginal",
+                  "item": "@base64ToBinary(first(variables('excels'))?['contentBytes'])",
+                  "x-ms-file-name": "@first(variables('excels'))?['name']"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+              }
+            }
+          },
+          "else": { "actions": {} }
+        },
+
+        "Mover_el_correo": {
+          "runAfter": { "Hay_exactamente_un_excel": ["Succeeded"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:outlook@@",
+              "operationId": "MoveV2",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+            },
+            "parameters": {
+              "messageId": "@triggerBody()['text']",
+              "folderPath": "@parameters('@@ev:sanic_mppp_ev_carpetaprocesados@@')",
+              "mailboxAddress": "@parameters('@@ev:sanic_mppp_ev_buzoningesta@@')"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+          }
+        },
+
+        "Guardar_el_identificador_nuevo": {
+          "runAfter": { "Mover_el_correo": ["Succeeded", "Failed"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "UpdateOnlyRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_solicituds",
+              "recordId": "@outputs('Solicitud')",
+              "item/sanic_outlookmessageid": "@coalesce(outputs('Mover_el_correo')?['body/id'], triggerBody()['text'])"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+          }
+        },
+
+        "Clasificar_el_correo": {
+          "runAfter": { "Guardar_el_identificador_nuevo": ["Succeeded", "Failed"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "PerformUnboundAction",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "actionName": "sanic_mppp_capi_clasificarcorreo",
+              "item/solicitudid": "@outputs('Solicitud')"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+
+        "Bitacora_ingresada": {
+          "runAfter": { "Clasificar_el_correo": ["Succeeded"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "CreateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_bitacoras",
+              "item/sanic_evento": 159460001,
+              "item/sanic_origen": "@int(triggerBody()['text_1'])",
+              "item/sanic_fechaevento": "@utcNow()",
+              "item/sanic_actortexto": "Cuenta de servicio",
+              "item/sanic_solicitudid@odata.bind": "@concat('/sanic_mppp_tbl_solicituds(', outputs('Solicitud'), ')')"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+
+        "Hay_que_validar": {
+          "runAfter": { "Bitacora_ingresada": ["Succeeded"] },
+          "type": "If",
+          "expression": {
+            "and": [{ "equals": ["@outputs('Clasificar_el_correo')?['body/procesar']", true] }]
+          },
+          "actions": {
+            "Validar_la_solicitud": {
+              "runAfter": {},
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "@@conr:dataverse@@",
+                  "operationId": "PerformUnboundAction",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "actionName": "sanic_mppp_capi_validarsolicitud",
+                  "item/solicitudid": "@outputs('Solicitud')"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            }
+          },
+          "else": { "actions": {} }
+        }
+      }
+    },
+
+    "Si_algo_fallo": {
+      "runAfter": { "Ingerir": ["Failed", "TimedOut"] },
+      "type": "Scope",
+      "actions": {
+        "Bitacora_error": {
+          "runAfter": {},
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "CreateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_bitacoras",
+              "item/sanic_evento": 159460017,
+              "item/sanic_origen": "@int(triggerBody()['text_1'])",
+              "item/sanic_fechaevento": "@utcNow()",
+              "item/sanic_actortexto": "Cuenta de servicio",
+              "item/sanic_detalle": "Fallo la ingesta del correo. El detalle de que accion fallo esta en el historial de ejecuciones del flujo, no aca: la Bitacora no lleva el cuerpo del correo ni datos de la plantilla."
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      }
+    },
+
+    "Responder_al_flujo_que_llamo": {
+      "runAfter": {
+        "Ingerir": ["Succeeded"],
+        "Si_algo_fallo": ["Succeeded", "Skipped", "Failed"]
+      },
+      "type": "Response",
+      "kind": "PowerApp",
+      "inputs": {
+        "statusCode": 200,
+        "schema": {
+          "type": "object",
+          "properties": {
+            "solicitudid": { "title": "SolicitudId", "x-ms-dynamically-added": true, "type": "string" },
+            "resultado": { "title": "Resultado", "x-ms-dynamically-added": true, "type": "string" }
+          },
+          "additionalProperties": {}
+        },
+        "body": {
+          "solicitudid": "@coalesce(outputs('Solicitud'), '')",
+          "resultado": "@if(empty(coalesce(outputs('Solicitud'), '')), 'error', if(equals(outputs('Crear_la_solicitud')?['statusCode'], 204), 'creada', 'ya_existia'))"
+        }
+      }
+    }
+  }
+}

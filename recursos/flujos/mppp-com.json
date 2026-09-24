@@ -1,0 +1,43 @@
+{
+  "triggers": {
+    "Cuando_cambia_el_estado_de_una_solicitud": {
+      "type": "OpenApiConnectionWebhook",
+      "splitOn": "@triggerOutputs()?['body/value']",
+      "runtimeConfiguration": {
+        "concurrency": {
+          "runs": 1
+        }
+      },
+      "inputs": {
+        "host": {
+          "connectionName": "@@conr:dataverse@@",
+          "operationId": "SubscribeWebhookTrigger",
+          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+        },
+        "parameters": {
+          "subscriptionRequest/message": 4,
+          "subscriptionRequest/entityname": "sanic_mppp_tbl_solicitud",
+          "subscriptionRequest/scope": 4,
+          "subscriptionRequest/filteringattributes": "sanic_estadoprocesamiento",
+          "subscriptionRequest/filterexpression": "sanic_estadoprocesamiento eq 159460005 or sanic_estadoprocesamiento eq 159460004 or sanic_estadoprocesamiento eq 159460006"
+        },
+        "authentication": "@parameters('$authentication')"
+      }
+    }
+  },
+  "actions": {
+    "Enviar_la_comunicacion": {
+      "runAfter": {},
+      "type": "Workflow",
+      "inputs": {
+        "host": {
+          "workflowReferenceName": "@@flujo:Cloud Flow - MPPP - ENV - Enviar comunicacion al cliente@@"
+        },
+        "body": {
+          "text": "@triggerOutputs()?['body/sanic_mppp_tbl_solicitudid']",
+          "text_1": "159460003"
+        }
+      }
+    }
+  }
+}

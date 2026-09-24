@@ -244,10 +244,10 @@ namespace Sanic.Mppp.Plugins.Datos
 
         // ------------------------------------------------------------------ helpers de PlanesAutorizadosDe
 
-        private List<Guid> IdsActivosPorCondicion(string tabla, string columna, ConditionOperator operador, object valor)
+        private List<Guid> IdsActivosPorCondicion(string tabla, string columna, ConditionOperator operador, params object[] valores)
         {
             var consulta = new QueryExpression(tabla) { ColumnSet = new ColumnSet() };
-            consulta.Criteria.AddCondition(columna, operador, valor);
+            consulta.Criteria.AddCondition(columna, operador, valores);
             consulta.Criteria.AddCondition(ColumnaEstado, ConditionOperator.Equal, Tablas.Activo);
             return _servicio.RetrieveMultiple(consulta).Entities.Select(e => e.Id).ToList();
         }

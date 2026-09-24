@@ -17,18 +17,67 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
     {
         private static readonly DateTime Ahora = new DateTime(2026, 9, 21, 19, 0, 0, DateTimeKind.Utc);
 
+        /// <summary>
+        /// Los nombres de los roles son un CONTRATO CON EL ENTORNO, no un detalle interno: el
+        /// plugin los usa para buscar en la tabla `role` por su columna `name`, y si no coinciden
+        /// exactamente no encuentra nada y nadie puede hacer ninguna transición.
+        ///
+        /// Esta prueba no puede comprobar que el rol exista en el entorno — eso solo lo dice el
+        /// entorno, y para eso está `herramientas/pruebas/verificar_roles.py`. Lo que sí hace es
+        /// congelar el valor: cambiarlo tiene que ser un acto deliberado, no un descuido. El
+        /// 2026-09-23 las constantes decían `sr_mppp_ejecutivo` (el nombre del ARCHIVO del
+        /// playbook) mientras el entorno tenía `SR - MPPP - Ejecutivo`, y las 793 pruebas pasaban.
+        /// </summary>
+        [Theory]
+        [InlineData("SR - MPPP - Ejecutivo")]
+        [InlineData("SR - MPPP - Supervisor")]
+        [InlineData("SR - MPPP - RPA")]
+        public void Los_nombres_de_rol_son_los_que_declara_el_diseno(string esperado)
+        {
+            var declarados = new[] { TablasNativas.RolEjecutivo, TablasNativas.RolSupervisor, TablasNativas.RolRpa };
+            Assert.Contains(esperado, declarados);
+        }
+
+        /// <summary>
+        /// Que los roles NO ESTÉN en el entorno y que el usuario NO TENGA rol son dos problemas
+        /// distintos y tienen que decirlo: el primero es una solución mal instalada y lo arregla
+        /// un administrador en minutos; el segundo es una autorización denegada y está bien que
+        /// ocurra. Hasta el 2026-09-23 los dos daban "El rol de quien llama no puede hacer esta
+        /// transición", y por eso el defecto de los nombres nos mandó a buscar propagación de
+        /// caché y asignaciones de permisos durante horas.
+        /// </summary>
+        [Fact]
+        public void Si_los_roles_no_estan_instalados_el_error_lo_dice_en_vez_de_culpar_al_usuario()
+        {
+            var m = new Mundo(conRoles: false);
+
+            var ex = Assert.Throws<InvalidPluginExecutionException>(
+                () => m.Correr(new TransicionDeFilaStep(), m.Ejecutivo, EstadoDeLaFila.Digitada));
+
+            Assert.Contains("no están instalados", ex.Message);
+            Assert.Contains(TablasNativas.RolEjecutivo, ex.Message);
+            Assert.DoesNotContain("El rol de quien llama", ex.Message);
+        }
+
         private sealed class Mundo
         {
             public readonly OrganizationServiceEnMemoria Svc = new OrganizationServiceEnMemoria();
             public readonly ContextoDePluginSimulado Ctx;
             public Guid SolicitudId, FilaId, Ejecutivo, Supervisor, Rpa;
 
-            public Mundo(EstadoDeLaFila estadoActual = EstadoDeLaFila.Validada, EstadoDeLaSolicitud estadoSolicitud = EstadoDeLaSolicitud.EnProceso, Guid? digitadaPor = null, string rpaPuedeAprobar = "no")
+            public Mundo(EstadoDeLaFila estadoActual = EstadoDeLaFila.Validada, EstadoDeLaSolicitud estadoSolicitud = EstadoDeLaSolicitud.EnProceso, Guid? digitadaPor = null, string rpaPuedeAprobar = "no", bool conRoles = true)
             {
-                Guid Rol(string nombre) => Svc.Sembrar(new Entity(TablasNativas.Rol) { ["name"] = nombre });
-                var rolEjecutivo = Rol("sr_mppp_ejecutivo");
-                var rolSupervisor = Rol("sr_mppp_supervisor");
-                var rolRpa = Rol("sr_mppp_rpa"); // D-44: rol propio del usuario de aplicación del RPA (fase 2), no el de la cuenta de servicio de los flujos
+                // Los nombres salen de las CONSTANTES, nunca de literales repetidos acá.
+                // Hasta el 2026-09-23 este doble sembraba "sr_mppp_ejecutivo" a mano, el mismo
+                // string equivocado que usaba el código, así que la prueba se verificaba contra
+                // sí misma y las 793 pasaban mientras en el entorno NINGUNA transición de Fila
+                // se podía autorizar. Un literal repetido en la prueba no valida nada: confirma.
+                Guid Rol(string nombre) => conRoles
+                    ? Svc.Sembrar(new Entity(TablasNativas.Rol) { ["name"] = nombre })
+                    : Guid.NewGuid();   // `conRoles: false` simula una solución mal instalada
+                var rolEjecutivo = Rol(TablasNativas.RolEjecutivo);
+                var rolSupervisor = Rol(TablasNativas.RolSupervisor);
+                var rolRpa = Rol(TablasNativas.RolRpa); // D-44: rol propio del usuario de aplicación del RPA (fase 2), no el de la cuenta de servicio de los flujos
 
                 Ejecutivo = Usuario("Eje Cutivo", rolEjecutivo);
                 Supervisor = Usuario("Super Visor", rolSupervisor);
@@ -57,7 +106,11 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
                 }
 
                 var id = Svc.Sembrar(u);
-                Svc.Sembrar(new Entity(TablasNativas.UsuarioRol) { ["systemuserid"] = new EntityReference(TablasNativas.Usuario, id), ["roleid"] = new EntityReference(TablasNativas.Rol, rol) });
+                // `systemuserroles` es una intersect entity: en Dataverse REAL sus columnas son
+                // `Uniqueidentifier` crudos, no lookups. Este doble las sembraba como
+                // `EntityReference` y por eso las pruebas no vieron que el código las leyera mal.
+                // Un doble que modela algo distinto de la plataforma no prueba: consuela.
+                Svc.Sembrar(new Entity(TablasNativas.UsuarioRol) { ["systemuserid"] = id, ["roleid"] = rol });
                 return id;
             }
 
@@ -268,7 +321,40 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             m.Svc.Sembrar(m.Fila(2, EstadoDeLaFila.Validada));
             var antes = m.Svc.Llamadas.Count;
             m.Correr(new PostTransicionDeFilaStep(), m.Supervisor, EstadoDeLaFila.Aprobada);
-            Assert.InRange(m.Svc.Llamadas.Count - antes, 1, 5);
+            // 6 desde el 2026-09-23: la sexta es el Update que toma el bloqueo de la Solicitud
+            // (ver Los_datos_de_cierre_se_leen_DESPUES_de_tomar_el_bloqueo). Sigue sin preguntar roles.
+            Assert.InRange(m.Svc.Llamadas.Count - antes, 1, 6);
+        }
+
+        /// <summary>
+        /// El pre-lock sirve por el ORDEN, no por existir: si el `Update` que toma el bloqueo de la
+        /// Solicitud se hiciera DESPUÉS de leer las filas, dos transacciones simultáneas volverían a
+        /// leer las dos el mismo estado a medias y ninguna cerraría — exactamente el defecto que este
+        /// patrón vino a arreglar (MPPP-00001008, 2026-09-23).
+        ///
+        /// Nada más en el código obliga a ese orden: son dos líneas seguidas que alguien puede
+        /// reordenar sin que nada se queje. Por eso se fija acá.
+        /// </summary>
+        [Fact]
+        public void Los_datos_de_cierre_se_leen_DESPUES_de_tomar_el_bloqueo()
+        {
+            var m = new Mundo(EstadoDeLaFila.Digitada, digitadaPor: Guid.NewGuid());
+            m.Svc.Sembrar(m.Fila(2, EstadoDeLaFila.Validada));
+            var antes = m.Svc.Llamadas.Count;
+
+            m.Correr(new PostTransicionDeFilaStep(), m.Supervisor, EstadoDeLaFila.Aprobada);
+
+            var despues = m.Svc.Llamadas.Skip(antes).ToList();
+            var bloqueo = despues.FindIndex(
+                l => l.Operacion == "Update" && l.Entidad == TablasHistorico.Solicitud);
+            var lecturaDeFilas = despues.FindIndex(
+                l => l.Operacion == "RetrieveMultiple" && l.Entidad == TablasHistorico.Fila);
+
+            Assert.True(bloqueo >= 0, "el step tiene que tomar el bloqueo de la Solicitud");
+            Assert.True(lecturaDeFilas >= 0, "el step tiene que leer las filas de la Solicitud");
+            Assert.True(bloqueo < lecturaDeFilas,
+                $"el bloqueo se toma en la posición {bloqueo} y las filas se leen en la {lecturaDeFilas}: "
+                + "leer antes de bloquear deja pasar la condición de carrera que el pre-lock evita.");
         }
 
         [Fact]
@@ -351,6 +437,32 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             return (ctx, svc, id);
         }
 
+        private static (ContextoDePluginSimulado ctx, OrganizationServiceEnMemoria svc, Guid id) SolicitudConRevision(
+            bool estaba, bool queda, string motivo)
+        {
+            var svc = new OrganizationServiceEnMemoria();
+            var usuarioId = svc.Sembrar(new Entity(TablasNativas.Usuario) { ["fullname"] = "Ana Ejecutiva" });
+            var id = svc.Sembrar(new Entity(TablasHistorico.Solicitud)
+            {
+                ["sanic_nombre"] = "MPPP-00000123",
+                ["sanic_estadoprocesamiento"] = new OptionSetValue((int)EstadoDeLaSolicitud.EnProceso),
+                [RevisionAtendidaStep.Marca] = estaba,
+                [RevisionAtendidaStep.Motivo] = motivo,
+            });
+            var ctx = new ContextoDePluginSimulado(svc, Ahora);
+            ctx.Contexto.MessageName = "Update";
+            ctx.Contexto.InitiatingUserId = usuarioId;
+            ctx.Contexto.UserId = usuarioId;
+            ctx.Contexto.InputParameters["Target"] =
+                new Entity(TablasHistorico.Solicitud, id) { [RevisionAtendidaStep.Marca] = queda };
+            ctx.Contexto.PreEntityImages["PreImage"] = new Entity(TablasHistorico.Solicitud, id)
+            {
+                [RevisionAtendidaStep.Marca] = estaba,
+                [RevisionAtendidaStep.Motivo] = motivo,
+            };
+            return (ctx, svc, id);
+        }
+
         [Theory]
         [InlineData(EstadoDeLaSolicitud.NoReconocida, EstadoDeLaSolicitud.Cerrada)]
         [InlineData(EstadoDeLaSolicitud.NoReconocida, EstadoDeLaSolicitud.Descartada)]
@@ -360,6 +472,46 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         {
             var (ctx, _, _) = Solicitud(desde, hacia);
             new AtenderPorClasificarStep().Execute(ctx);
+        }
+
+        /// <summary>
+        /// El boton "Revisado" (`05` §5). Contrato: al apagar la marca, el motivo que habia escrito la
+        /// MAQUINA queda en la Bitacora con quien y cuando, y la columna se limpia. El operador no escribe
+        /// nada: `sanic_motivorevision` es lo que el LEE.
+        /// </summary>
+        [Fact]
+        public void Apagar_la_marca_de_revision_deja_el_motivo_en_la_bitacora_y_limpia_la_columna()
+        {
+            var (ctx, svc, id) = SolicitudConRevision(estaba: true, queda: false,
+                motivo: "Validacion fallida 3 veces.");
+
+            new RevisionAtendidaStep().Execute(ctx);
+
+            var evento = Assert.Single(svc.Registros(TablasHistorico.Bitacora));
+            Assert.Equal((int)EventoDeBitacora.RevisionAtendida, evento.GetAttributeValue<OptionSetValue>("sanic_evento").Value);
+            Assert.Equal("Validacion fallida 3 veces.", evento.GetAttributeValue<string>("sanic_detalle"));
+            Assert.False(string.IsNullOrWhiteSpace(evento.GetAttributeValue<string>("sanic_actortexto")));
+
+            var target = (Entity)ctx.Contexto.InputParameters["Target"];
+            Assert.True(target.Contains(RevisionAtendidaStep.Motivo));
+            Assert.Null(target[RevisionAtendidaStep.Motivo]);
+            Assert.Equal(id, target.Id);
+        }
+
+        /// <summary>Prender la marca es asunto de los flujos, que ya escriben su propio evento: este step
+        /// no tiene que meterse ni dejar un renglon de mas en la Bitacora.</summary>
+        [Theory]
+        [InlineData(false, true)]   // la prende un flujo
+        [InlineData(true, true)]    // se guarda la solicitud sin cambiar la marca
+        [InlineData(false, false)]
+        public void Cualquier_otro_movimiento_de_la_marca_no_escribe_nada(bool estaba, bool queda)
+        {
+            var (ctx, svc, _) = SolicitudConRevision(estaba, queda, motivo: "Envio iniciado sin confirmar.");
+
+            new RevisionAtendidaStep().Execute(ctx);
+
+            Assert.Empty(svc.Registros(TablasHistorico.Bitacora));
+            Assert.False(((Entity)ctx.Contexto.InputParameters["Target"]).Contains(RevisionAtendidaStep.Motivo));
         }
 
         [Theory]

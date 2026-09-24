@@ -18,11 +18,11 @@ Mecanismo de creación: **Web API de Dataverse**, con una herramienta versionada
 | P-06 Column security profile | 1 (2 columnas) | | | |
 | P-07 Security role | 5 | 1 | 1 | |
 | P-08 Código de plugins (C#, TDD) | 1 paquete, ~10 clases | +2 clases | | namespace y nombre de clase |
-| P-09 Registro de Custom API y steps | 2 API (11 parámetros), ~17 steps | 2 API | | nombre de API y de parámetros |
+| P-09 Registro de Custom API y steps | 2 API (11 parámetros), **20** steps | 2 API | | nombre de API y de parámetros |
 | P-10 Datos semilla | 12 parámetros, 15 reglas | 1 parámetro | 2 parámetros | |
 | P-11 Environment variable y connection reference | 2 + 2 | | +2 | nombre |
 | P-12 Cloud flow | 5 (3 con disparador, 2 hijos) | | | |
-| P-13 App model-driven: app, sitemap, ~19 vistas, 9 formularios, 8 comandos, ~10 íconos | ver §12 | | página custom de la bandeja (v1.1) | |
+| P-13 App model-driven: app, sitemap, **17** vistas, **8** formularios, 8 comandos (clásicos, por `ImportSolution`), **22** íconos | ver §12 | | página custom de la bandeja (v1.1) | |
 | P-15 Página custom (canvas, **no la construye un agente solo**) | 1: diálogo de motivo | | | |
 | P-14 Identidades y puesta en marcha | cuenta de servicio, buzón | usuario de aplicación del RPA | usuario de aplicación e infraestructura Azure | |
 
@@ -71,6 +71,7 @@ Todas user-owned. El orden respeta los lookups: una tabla se crea después de la
 | 3.9 | `sanic_mppp_tbl_resultadoregla` | 7 | | | choices 2.9, 2.11 | 1 |
 | 3.10 | `sanic_mppp_tbl_bitacora` | 7 | | | choices 2.12, 2.13 | 1 |
 | 3.11 | `sanic_mppp_tbl_corridahistorico` | por definir | | | | 3 |
+| 3.12 | `sanic_mppp_tbl_motivoaccion` | 2 | | | | 1 |
 
 ## 4. Relaciones — P-04
 
@@ -79,7 +80,7 @@ Cada una crea su columna lookup. `P` = parental (borrado en cascada), `R` = refe
 | # | Relación | Lookup que crea | Tipo |
 |---|---|---|---|
 | 4.1 | cliente → plan | `plan.sanic_clienteid` | R |
-| 4.2 | cliente → autorizado | `autorizado.sanic_clienteid` | R |
+| 4.2 | ~~cliente → autorizado~~ | **ELIMINADA el 2026-09-24** | — |
 | 4.3 | autorizado → autorizacionplan | `autorizacionplan.sanic_autorizadoid` | R |
 | 4.4 | plan → autorizacionplan | `autorizacionplan.sanic_planid` | R |
 | 4.5 | solicitud → fila | `fila.sanic_solicitudid` | **P** |
@@ -99,7 +100,7 @@ Después de las relaciones, porque varias incluyen un lookup. La activación del
 | 5.1 | `sanic_mppp_key_cliente_cifbac` | cifbac |
 | 5.2 | `sanic_mppp_key_cliente_cifcom` | cifcom |
 | 5.3 | `sanic_mppp_key_plan_codigo` | codigo |
-| 5.4 | `sanic_mppp_key_autorizado_cliente_nombre` | clienteid + nombre |
+| 5.4 | `sanic_mppp_key_autorizado_correo` | nombre (el correo) — **solo, desde el 2026-09-24** |
 | 5.5 | `sanic_mppp_key_autorizacionplan_autorizado_plan` | autorizadoid + planid |
 | 5.6 | `sanic_mppp_key_parametro_nombre_version` | nombre + version |
 | 5.7 | `sanic_mppp_key_regla_codigo` | codigo |
@@ -147,7 +148,7 @@ Un solo paquete, `sanic_mppp_pkg_plugins` (`Sanic.Mppp.Plugins`). Se construye p
 |---|---|---|---|---|
 | 8.0 | Custom API | `sanic_mppp_capi_clasificarcorreo` (1 parámetro de entrada, 3 de salida) | 7.6b | 1 |
 | 8.1 | Custom API | `sanic_mppp_capi_validarsolicitud` (1 parámetro de entrada, 6 de salida) | 7.7 | 1 |
-| 8.2 | Steps | Uno por cada mensaje y tabla de 7.8 a 7.12 (~17), con su etapa, orden, atributos de filtro e imágenes | paquete registrado | 1 |
+| 8.2 | Steps | Uno por cada mensaje y tabla de 7.8 a 7.12: **18**, con su etapa, orden, atributos de filtro e imágenes. Lista cerrada en `03-contratos-custom-api.md` §5.1 (antes decía "~17"; la expansión real contra el código da 18, y sube a 20 si Dev admite registrar sobre `Upsert`) | paquete registrado | 1 |
 | 8.3 | Custom API | `sanic_mppp_capi_obtenerfilaspendientes` | 7.13 | 2 |
 | 8.4 | Custom API | `sanic_mppp_capi_registrarresultadorpa` | 7.13 | 2 |
 
@@ -186,12 +187,12 @@ Desaparece el Flow B de la definición (`07` DF-01). Los hijos se construyen ant
 
 | # | Componente | Cantidad | Depende de |
 |---|---|---|---|
-| 12.1 | Íconos SVG (web resources) | ~10 | |
-| 12.2 | Vistas | ~19 | tablas y relaciones. Incluye las dos de AutorizacionPlan para subgrillas: "correos autorizados sobre un plan" y "planes que puede modificar un correo", más "Autorizaciones sin evidencia" (`05` §formularios) |
-| 12.3 | Formularios principales | 9 | tablas, vistas (subgrillas) |
-| 12.4 | Página custom: diálogo de motivo | 1 | tabla 3.8 · **se arma en Power Apps Studio** |
-| 12.5 | Comandos propios | 8 | 12.4, plugin de transición 7.9 |
-| 12.6 | Ocultamiento de comandos genéricos | 10 tablas | |
+| 12.1 | Íconos SVG (web resources) | **22** | **Lista cerrada el 2026-09-22** (antes "~10", una estimación). 13 para las entradas del sitemap (incluida Devueltas, agregada ese día), **8 para los comandos** y 1 para la app. Los 8 de comandos no son adorno: son cinco botones de transición que aparecen juntos sobre datos de pago de un banco, y equivocarse de botón es irreversible. Dibujados a mano en `recursos/svg/`, monocromos con `currentColor`, sin depender de descargas ni de rutas internas de Microsoft |
+| 12.2 | Vistas | **17** | tablas y relaciones. Incluye las dos de AutorizacionPlan para subgrillas: "correos autorizados sobre un plan" y "planes que puede modificar un correo", más "Autorizaciones sin evidencia" (`05` §formularios) **Lista cerrada el 2026-09-22 en `05` §vistas** (antes "~19", un numero que no se podia reconstruir): cada catalogo lleva UNA vista "Activos"; la de busqueda rapida no se cuenta. |
+| 12.3 | Formularios principales | **8** | tablas, vistas (subgrillas) |
+| 12.4 | Formulario de creación rápida de `sanic_mppp_tbl_motivoaccion` (el diálogo de motivo) | 1 | tabla 3.12 · **DA-03 corregida el 2026-09-22: ya no es una página custom.** Una página custom abierta como diálogo no devuelve ningún valor al comando y no admite recibir varias filas, así que era incompatible con la acción masiva de DA-02. Se construye por API como cualquier otro formulario (`formulario.py`, `type` 7) |
+| 12.5 | Comandos propios | 8 | 12.4, tabla 3.12, plugin de transición 7.9, 12.1 (íconos). **Clásicos con web resource JavaScript** (DA-02 corregida el 2026-09-22): un comando moderno no se puede crear por API. Se construyen editando el `RibbonDiffXml` del `customizations.xml` e importando con la acción `ImportSolution` |
+| 12.6 | Ocultamiento de comandos genéricos | 10 tablas | Mismo mecanismo que 12.5 (`HideCustomAction` dentro del `RibbonDiffXml`). Son **6 comandos** (Eliminar, Asignar, Compartir, Flujo, Enviar vínculo, Combinar) en las 10 tablas, más "Nuevo" solo en Solicitud, Fila, ResultadoRegla y Bitácora (DA-06). El 10 cuenta TABLAS, no comandos |
 | 12.7 | Sitemap | 1 | 12.1, 12.2 |
 | 12.8 | App `sanic_mppp_mda_mantenimientoppp` | 1 | 12.2, 12.3, 12.7, roles 6.2–6.5 |
 | 12.9 | Página custom "bandeja de trabajo" | 1 | **versión 1.1**, fuera de la fase 1 |

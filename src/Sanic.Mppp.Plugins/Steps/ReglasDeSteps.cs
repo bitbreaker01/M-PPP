@@ -12,7 +12,8 @@ namespace Sanic.Mppp.Plugins.Steps
     ///  - una tabla que no está en la lista no se controla acá (el step no se registra sobre ella): devuelve vacío;
     ///  - los nombres de columna se comparan como los manda Dataverse (minúscula, ordinal);
     ///  - devuelve TODAS las columnas no permitidas, ordenadas, para que el mensaje del error las nombre a todas;
-    ///  - la columna primaria (`<tabla>id`) que el SDK incluye en el `Target` no cuenta como intento de escritura.
+    ///  - la columna primaria (`<tabla>id`) que el SDK incluye en el `Target` no cuenta como intento de escritura;
+    ///  - las columnas de auditoría que escribe la plataforma tampoco cuentan (ver <see cref="EscritasPorLaPlataforma"/>).
     /// </summary>
     public static class ListaBlancaDeColumnas
     {
@@ -22,6 +23,18 @@ namespace Sanic.Mppp.Plugins.Steps
         // diseno/04 §1: lo único que un humano puede mandar en el Target de cada tabla controlada.
         private static readonly string[] PermitidasEnFila = { "sanic_estado", "sanic_mensaje" };
         private static readonly string[] PermitidasEnSolicitud = { "sanic_requiererevision", "sanic_estadoprocesamiento" };
+
+        /// <summary>
+        /// Las agrega LA PLATAFORMA al `Target` en PreOperation de `Update`; ningún llamador las manda, y
+        /// ninguno podría: Learn las publica como columnas de solo lectura, con `IsValidForCreate` y
+        /// `IsValidForUpdate` en `false`. Rechazarlas es rechazar a la plataforma, no a la persona.
+        ///
+        /// Por qué esto no se vio hasta el 2026-09-23: todos los actores probados hasta entonces quedaban
+        /// exentos de la lista blanca (el service principal por su `applicationid`, el administrador por ser
+        /// `servicio.cuenta`, los plugins por su `Depth`). El primer humano que escribió una Fila desde la app
+        /// chocó con esto de entrada.
+        /// </summary>
+        private static readonly string[] EscritasPorLaPlataforma = { "modifiedby", "modifiedon", "modifiedonbehalfby" };
 
         /// <summary>Las columnas del `Target` que esa tabla NO admite de una persona. Vacío si todo está permitido.</summary>
         public static IList<string> ColumnasNoPermitidas(string tabla, IEnumerable<string> columnasDelTarget)
@@ -46,6 +59,9 @@ namespace Sanic.Mppp.Plugins.Steps
                 if (string.Equals(columna, primaria, StringComparison.Ordinal))
                     continue; // la primaria del Target no es un intento de escritura de la persona.
 
+                if (EsEscritaPorLaPlataforma(columna))
+                    continue; // tampoco lo es una columna de auditoría que puso la plataforma.
+
                 var esPermitida = false;
                 foreach (var permitida in permitidas)
                 {
@@ -61,6 +77,17 @@ namespace Sanic.Mppp.Plugins.Steps
             }
 
             return new List<string>(noPermitidas);
+        }
+
+        private static bool EsEscritaPorLaPlataforma(string columna)
+        {
+            foreach (var deLaPlataforma in EscritasPorLaPlataforma)
+            {
+                if (string.Equals(columna, deLaPlataforma, StringComparison.Ordinal))
+                    return true;
+            }
+
+            return false;
         }
     }
 

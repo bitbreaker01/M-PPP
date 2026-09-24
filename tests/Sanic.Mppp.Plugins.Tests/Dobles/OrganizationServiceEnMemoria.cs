@@ -746,7 +746,7 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
                 case ConditionOperator.NotNull:
                     return valorEntidad != null;
                 case ConditionOperator.In:
-                    return AplanarValores(condicion.Values).Any(v => ValoresIguales(normalizadoEntidad, Normalizar(v)));
+                    return ValoresDeIn(condicion).Any(v => ValoresIguales(normalizadoEntidad, Normalizar(v)));
                 default:
                     throw new NotSupportedException($"El doble no simula el operador '{condicion.Operator}' (atributo '{condicion.AttributeName}'; diseno/03 §8).");
             }
@@ -754,21 +754,28 @@ namespace Sanic.Mppp.Plugins.Tests.Dobles
 
         private static object ValorUnico(ConditionExpression condicion) => condicion.Values.Count > 0 ? condicion.Values[0] : null;
 
-        private static IEnumerable<object> AplanarValores(IEnumerable<object> valores)
+        /// <summary>
+        /// Los valores de un `In`, SIN aplanar. Antes este doble aplanaba los arreglos anidados, y esa permisividad
+        /// escondió un defecto real durante toda la construcción: un `In` al que se le pasa el arreglo entero como UN
+        /// valor pasaba verde acá y reventaba en Dataverse con *"expected argument(s) of type 'System.Guid' but
+        /// received 'System.Object[]'"* (prueba de humo en Dev, 2026-09-22).
+        ///
+        /// Un doble más permisivo que la plataforma es peor que no tener doble: da confianza falsa. Así que acá se
+        /// falla igual que allá, con el mismo mensaje.
+        /// </summary>
+        private static IEnumerable<object> ValoresDeIn(ConditionExpression condicion)
         {
-            foreach (var valor in valores)
+            foreach (var valor in condicion.Values)
             {
-                if (valor is object[] anidado)
+                if (valor is System.Collections.IEnumerable && !(valor is string))
                 {
-                    foreach (var interno in anidado)
-                    {
-                        yield return interno;
-                    }
+                    throw new InvalidOperationException(
+                        $"Condition for attribute '{condicion.AttributeName}': expected a scalar argument but received " +
+                        $"'{valor.GetType()}'. Un `In` recibe sus valores UNO POR UNO (el parámetro es `params object[]`), " +
+                        "nunca el arreglo entero como un solo valor. Dataverse rechaza esto mismo en tiempo de ejecución.");
                 }
-                else
-                {
-                    yield return valor;
-                }
+
+                yield return valor;
             }
         }
 

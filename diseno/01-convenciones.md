@@ -85,7 +85,7 @@ Ejemplo: `1.0.0.14` es el export 14 camino a la primera entrega; `1.1.0.3` la se
 |---|---|
 | Repositorio | este (`M-PPP`), rama `main` |
 | Solución .NET | `src/Sanic.Mppp.sln` |
-| Paquete de plugins (dependent assemblies, por Open XML SDK) | `Sanic.Mppp.Plugins` (.NET Framework 4.6.2, firmado); en Dataverse `sanic_mppp_pkg_plugins` |
+| Paquete de plugins (dependent assemblies, por Open XML SDK) | `Sanic.Mppp.Plugins` (.NET Framework 4.6.2, **sin firmar**); en Dataverse `sanic_mppp_pkg_plugins`. Se arma con `src/Sanic.Mppp.Plugins.Paquete` (`dotnet pack -c Release`) y se registra con `herramientas/construir/paquete_plugins.py`. No se firma: en un paquete no hace falta, porque los ensamblados se cargan por otro mecanismo (Learn, "Signed assemblies aren't required"), y firmar obligaría a firmar también todas sus dependencias. Corregido el 2026-09-22: esta fila decía "firmado", que contradecía el proyecto de empaquetado. |
 | Namespace raíz | `Sanic.Mppp.Plugins` — **inmutable tras el primer registro** (renombrar tipos rompe el registro en silencio) |
 | Frameworks de destino | Librerías: **`net462;net8.0`**. net462 es lo que ejecuta el sandbox de Dataverse; net8.0 existe solo para que los tests corran en el puesto de trabajo Linux, que no tiene `mono` (verificado 2026-09-18). Compilar net462 en Linux requiere `Microsoft.NETFramework.ReferenceAssemblies`. Prohibido usar APIs que no existan en net462. |
 | Tests | `Sanic.Mppp.Plugins.Tests` (`net8.0`, xUnit, Strict TDD). **Sin FakeXrmEasy**: sus versiones 2.x y 3.x exigen licencia comercial paga (`docs/licencias-terceros.md`). El dominio se prueba con tests unitarios puros; la capa que toca `IOrganizationService` se prueba con un **doble propio en memoria**, que vive en el proyecto de tests |

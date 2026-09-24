@@ -71,9 +71,14 @@ namespace Sanic.Mppp.Plugins.Api
         private readonly SolicitudesDataverse _solicitudes;
         private readonly CatalogosDataverse _catalogos;
         private readonly IArchivos _archivos;
-        private readonly ILectorPlantilla _lector;
+        private readonly Func<LimitesLectura, ILectorPlantilla> _lector;
 
-        public ValidarSolicitud(SolicitudesDataverse solicitudes, CatalogosDataverse catalogos, IArchivos archivos, ILectorPlantilla lector)
+        /// <summary>
+        /// El lector llega como FÁBRICA, no ya armado: sus topes salen de `lectura.limites`, que recién se conoce adentro
+        /// de <see cref="Ejecutar"/>. Armarlo afuera dejaría el tope de bytes descomprimidos (la defensa contra un zip
+        /// bomba, LP-02) clavado en su valor por defecto, ignorando el parámetro.
+        /// </summary>
+        public ValidarSolicitud(SolicitudesDataverse solicitudes, CatalogosDataverse catalogos, IArchivos archivos, Func<LimitesLectura, ILectorPlantilla> lector)
         {
             _solicitudes = solicitudes ?? throw new ArgumentNullException(nameof(solicitudes));
             _catalogos = catalogos ?? throw new ArgumentNullException(nameof(catalogos));
@@ -122,8 +127,9 @@ namespace Sanic.Mppp.Plugins.Api
                 pEstructura.Version, pListas.Version, pObligatoriedad.Version);
 
             // Paso 3 (diseno/03 §1 pasos 2 y 4): el sobre, con la plantilla leída A DEMANDA y una sola vez.
+            var lector = _lector(limites) ?? throw new InvalidOperationException("La fábrica de lector de plantilla devolvió nulo.");
             var sobre = new SobreEnValidacion(solicitud.CantidadAdjuntos, solicitud.CantidadExcel,
-                () => LeerPlantilla(solicitudId, limites, estructura));
+                () => LeerPlantilla(solicitudId, limites, estructura, lector));
 
             var reglasSolicitud = _catalogos.ReglasActivasConId(NivelDeLaRegla.Solicitud);
             var idsSolicitudPorCodigo = reglasSolicitud.ToDictionary(r => r.Definicion.Codigo, r => r.Id, StringComparer.Ordinal);
@@ -195,7 +201,7 @@ namespace Sanic.Mppp.Plugins.Api
         /// vuelve como un resultado de lectura inválido, para que sea la regla ESTRUCTURA_PLANTILLA la que no se cumpla,
         /// con un motivo para el cliente (diseno/03 §7).
         /// </summary>
-        private ResultadoLecturaPlantilla LeerPlantilla(Guid solicitudId, LimitesLectura limites, ConfiguracionPlantilla estructura)
+        private ResultadoLecturaPlantilla LeerPlantilla(Guid solicitudId, LimitesLectura limites, ConfiguracionPlantilla estructura, ILectorPlantilla lector)
         {
             byte[] excel;
             try
@@ -208,7 +214,7 @@ namespace Sanic.Mppp.Plugins.Api
                     "El archivo de Excel pesa más de lo permitido. Por favor, envíe un archivo más liviano.");
             }
 
-            return _lector.Leer(excel, estructura);
+            return lector.Leer(excel, estructura);
         }
 
         /// <summary>

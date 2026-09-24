@@ -31,7 +31,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
   "nombre": "sanic_mppp_tbl_autorizado",
   "displayname": "Autorizado",
   "displayname_plural": "Autorizados",
-  "descripcion": "Correo electrónico autorizado por una empresa cliente para pedir cambios en sus planes. Un mismo correo puede estar autorizado bajo más de una empresa.",
+  "descripcion": "Correo electrónico habilitado para pedir cambios en planes de pago. El correo NO pertenece a un cliente: a qué planes puede tocar lo dice la tabla Autorizacion, y el cliente sale del plan.",
   "propiedad": "usuario",
   "notas": false,
   "actividades": false,
@@ -39,12 +39,23 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
   "primaria": {
     "nombre": "sanic_nombre",
     "displayname": "Correo",
-    "descripcion": "Correo electrónico autorizado. Se guarda sin espacios y en minúscula. Con el cliente forma la clave alternativa.",
+    "descripcion": "Correo electrónico autorizado. Se guarda sin espacios y en minúscula. Es la clave alternativa: único en toda la tabla (2026-09-24).",
     "largo": 320,
     "requerida": true,
     "autonumerico": ""
   },
-  "columnas": []
+  "columnas": [
+    {
+      "nombre": "sanic_nombrecontacto",
+      "displayname": "Nombre",
+      "descripcion": "Nombre de la persona dueña del correo. Es informativo: quien identifica al autorizado es el correo, no el nombre (dos personas pueden llamarse igual).",
+      "tipo": "texto",
+      "largo": 100,
+      "requerida": true,
+      "protegida": false,
+      "auditoria": true
+    }
+  ]
 }
 ```
 
@@ -104,8 +115,10 @@ Se hacen todas las comprobaciones de la sección 5. Si todas pasan: `ya_existia`
 
 ## 8. Fuera de alcance
 
-- El lookup `sanic_clienteid` y la relación cliente → autorizado: inventario 4.2.
-- La clave alternativa `sanic_mppp_key_autorizado_cliente_nombre` (cliente + correo): inventario 5.4, después de la relación.
+- La clave alternativa `sanic_mppp_key_autorizado_correo` (el correo solo): inventario 5.4.
+- **El lookup `sanic_clienteid` y la relación cliente → autorizado se ELIMINARON el 2026-09-24**: un correo
+  autorizado no pertenece a un cliente. A qué planes puede tocar lo dice la tabla Autorizacion, y el cliente
+  sale del plan.
 - La normalización y validación del correo: plugin PreOperation, inventario 7.10.
 - La evidencia firmada **no** vive acá: es de cada autorización (`02` §2.4, excepción E-17).
 - Vistas, formulario y seguridad de la tabla: inventario 12 y 6.

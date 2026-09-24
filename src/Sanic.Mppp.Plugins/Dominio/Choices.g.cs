@@ -132,6 +132,8 @@ namespace Sanic.Mppp.Plugins.Dominio
         CorreoClasificado = 159460019,
         /// <summary>Vencida</summary>
         Vencida = 159460020,
+        /// <summary>Revision atendida</summary>
+        RevisionAtendida = 159460021,
     }
 
     /// <summary>Choice global <c>sanic_mppp_ch_gestion</c> (CH - MPPP - Gestion).</summary>

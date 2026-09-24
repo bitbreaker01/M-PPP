@@ -29,6 +29,40 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Equal(new[] { "sanic_requiererevision" }, ListaBlancaDeColumnas.ColumnasNoPermitidas(ListaBlancaDeColumnas.Fila, new[] { "sanic_requiererevision" }));
         }
 
+        /// <summary>
+        /// El Target que llega a PreOperation NO es el que mandó el navegador: la plataforma le agrega sus
+        /// columnas de auditoría. Defecto real del 2026-09-23: el primer humano que marcó una Fila como
+        /// Digitada desde la app recibió "la(s) columna(s) modifiedby, modifiedon, modifiedonbehalfby no
+        /// está(n) permitida(s)". Nunca había pasado porque todos los actores probados hasta entonces
+        /// quedaban EXENTOS de la lista blanca (service principal, la cuenta de servicio, los propios
+        /// plugins), así que este control jamás se había ejecutado contra una persona.
+        /// </summary>
+        [Fact]
+        public void Las_columnas_de_auditoria_de_la_plataforma_no_cuentan_como_intento_de_escritura()
+        {
+            var deLaPlataforma = new[] { "modifiedby", "modifiedon", "modifiedonbehalfby" };
+
+            // El caso exacto que falló: el comando manda sanic_estado y la plataforma agrega las suyas.
+            Assert.Empty(ListaBlancaDeColumnas.ColumnasNoPermitidas(
+                ListaBlancaDeColumnas.Fila, new[] { "sanic_estado" }.Concat(deLaPlataforma)));
+            Assert.Empty(ListaBlancaDeColumnas.ColumnasNoPermitidas(
+                ListaBlancaDeColumnas.Solicitud, new[] { "sanic_requiererevision" }.Concat(deLaPlataforma)));
+
+            // Y el control NO se debilita: una columna prohibida escondida entre las de auditoría sigue saliendo.
+            Assert.Equal(
+                new[] { "sanic_numerocuenta" },
+                ListaBlancaDeColumnas.ColumnasNoPermitidas(
+                    ListaBlancaDeColumnas.Fila,
+                    new[] { "modifiedby", "sanic_numerocuenta", "modifiedon", "sanic_estado", "modifiedonbehalfby" }));
+
+            // `createdby`/`createdon` NO se exceptúan: en un Update no las pone la plataforma, así que si
+            // alguien las manda es un intento de escritura y se rechaza.
+            Assert.Equal(
+                new[] { "createdby", "createdon" },
+                ListaBlancaDeColumnas.ColumnasNoPermitidas(
+                    ListaBlancaDeColumnas.Fila, new[] { "createdon", "sanic_estado", "createdby" }));
+        }
+
         [Fact]
         public void Una_tabla_que_no_se_controla_y_los_casos_de_borde()
         {

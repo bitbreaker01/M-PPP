@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Comunicación enviada al cliente</title>
+<!--
+  WR - MPPP - HTML - Comunicacion enviada
+
+  Muestra, TAL CUAL, el correo que la solución le envió al cliente: el acuse
+  (`sanic_acusecontenido`) y la respuesta final (`sanic_respuestafinalcontenido`).
+
+  **Por qué existe.** Las dos columnas guardan un documento HTML completo. En un
+  campo de formulario común se ve el markup crudo, que es ilegible justo cuando
+  más importa: cuando un cliente del banco reclama por lo que recibió.
+
+  **Por qué un iframe y no el editor de texto enriquecido.** El control nativo
+  SIEMPRE sanitiza el contenido en modo lectura (Learn, "rich text editor
+  control"): le quita `DOCTYPE`, `html`, `head` y `body`. Lo que se ve es
+  parecido, no idéntico. Acá el objetivo es ver el documento EXACTO, así que el
+  contenido va a un `iframe` con `srcdoc`.
+
+  **Seguridad.** El `iframe` va con `sandbox` VACÍO: sin scripts, sin formularios,
+  sin acceso al mismo origen, sin navegación. El contenido lo genera código
+  nuestro, pero igual se trata como no confiable: es defensa en profundidad, y
+  no cuesta nada.
+
+  No escribe: solo lee la Solicitud por `Xrm.WebApi`.
+-->
+<style>
+  :root { color-scheme: light dark; }
+  html, body { margin: 0; padding: 0; height: 100%; font-family: "Segoe UI", Arial, sans-serif; }
+  body { display: flex; flex-direction: column; font-size: 13px; }
+  .barra {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 8px; border-bottom: 1px solid #d1d1d1; background: #faf9f8;
+  }
+  button {
+    font: inherit; padding: 5px 12px; cursor: pointer;
+    border: 1px solid #8a8886; border-radius: 2px; background: #ffffff; color: #201f1e;
+  }
+  button[aria-pressed="true"] { background: #0078d4; border-color: #0078d4; color: #ffffff; }
+  button:disabled { cursor: default; opacity: .5; }
+  #estado { color: #605e5c; }
+  #vista { flex: 1 1 auto; width: 100%; border: 0; background: #ffffff; }
+  .aviso { padding: 16px; color: #605e5c; }
+</style>
+</head>
+<body>
+  <div class="barra">
+    <button id="btn-acuse" type="button" aria-pressed="false">Acuse</button>
+    <button id="btn-final" type="button" aria-pressed="false">Respuesta final</button>
+    <span id="estado">Cargando…</span>
+  </div>
+  <iframe id="vista" sandbox title="Contenido del correo enviado al cliente"></iframe>
+
+<script type="text/javascript">
+(function () {
+  "use strict";
+
+  var TABLA = "sanic_mppp_tbl_solicitud";
+  var COLUMNAS = {
+    acuse: { campo: "sanic_acusecontenido", enviado: "sanic_fechaacuseenviado", titulo: "Acuse" },
+    final: { campo: "sanic_respuestafinalcontenido", enviado: "sanic_fecharespuestafinalenviada",
+             titulo: "Respuesta final" }
+  };
+
+  var vista = document.getElementById("vista");
+  var estado = document.getElementById("estado");
+  var botones = { acuse: document.getElementById("btn-acuse"), final: document.getElementById("btn-final") };
+  var registro = null;
+
+  // El identificador llega por la cadena de consulta cuando el web resource se
+  // agrega al formulario pasando el registro. Puede venir entre llaves.
+  function idDelRegistro() {
+    var busqueda = window.location.search || "";
+    var partes = busqueda.replace("?", "").split("&");
+    var datos = {};
+    for (var i = 0; i < partes.length; i++) {
+      var par = partes[i].split("=");
+      if (par.length === 2) datos[decodeURIComponent(par[0])] = decodeURIComponent(par[1]);
+    }
+    // `data` puede traer a su vez pares codificados; se admite `id` en los dos lados.
+    var id = datos.id || datos.ID || "";
+    if (!id && datos.data) {
+      var internos = datos.data.split("&");
+      for (var j = 0; j < internos.length; j++) {
+        var p = internos[j].split("=");
+        if (p.length === 2 && p[0].toLowerCase() === "id") id = decodeURIComponent(p[1]);
+      }
+    }
+    return id.replace("{", "").replace("}", "");
+  }
+
+  function xrm() {
+    // Dentro de un formulario, el Xrm del contenedor.
+    if (window.parent && window.parent.Xrm) return window.parent.Xrm;
+    if (window.Xrm) return window.Xrm;
+    return null;
+  }
+
+  function mostrarAviso(texto) {
+    vista.removeAttribute("srcdoc");
+    vista.setAttribute("srcdoc",
+      '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:16px;' +
+      'font-family:Segoe UI,Arial,sans-serif;font-size:13px;color:#605e5c">' + texto + "</body></html>");
+  }
+
+  function pintar(cual) {
+    var conf = COLUMNAS[cual];
+    for (var k in botones) {
+      if (Object.prototype.hasOwnProperty.call(botones, k)) {
+        botones[k].setAttribute("aria-pressed", String(k === cual));
+      }
+    }
+    var contenido = registro ? registro[conf.campo] : null;
+    if (!contenido) {
+      estado.textContent = conf.titulo + ": todavía no se armó.";
+      mostrarAviso("Esta solicitud todav&iacute;a no tiene " + conf.titulo.toLowerCase() + ".");
+      return;
+    }
+    var fecha = registro[conf.enviado];
+    estado.textContent = conf.titulo + (fecha ? " · enviado el " + new Date(fecha).toLocaleString()
+                                               : " · armado, sin enviar todavía");
+    // `srcdoc` + sandbox vacío: se renderiza tal cual y no ejecuta nada.
+    vista.setAttribute("srcdoc", contenido);
+  }
+
+  function arrancar() {
+    var id = idDelRegistro();
+    var api = xrm();
+    if (!id) {
+      estado.textContent = "";
+      mostrarAviso("Guard&aacute; la solicitud primero: todav&iacute;a no tiene identificador.");
+      return;
+    }
+    if (!api || !api.WebApi) {
+      estado.textContent = "";
+      mostrarAviso("No se pudo acceder a los datos del formulario.");
+      return;
+    }
+    var seleccion = "?$select=" + COLUMNAS.acuse.campo + "," + COLUMNAS.final.campo + "," +
+                    COLUMNAS.acuse.enviado + "," + COLUMNAS.final.enviado;
+    api.WebApi.retrieveRecord(TABLA, id, seleccion).then(
+      function (r) {
+        registro = r;
+        for (var k in botones) {
+          if (Object.prototype.hasOwnProperty.call(botones, k)) {
+            botones[k].disabled = false;
+          }
+        }
+        // Arranca en la respuesta final si existe; si no, en el acuse.
+        pintar(r[COLUMNAS.final.campo] ? "final" : "acuse");
+      },
+      function () {
+        estado.textContent = "";
+        mostrarAviso("No se pudo leer la solicitud.");
+      }
+    );
+  }
+
+  botones.acuse.addEventListener("click", function () { pintar("acuse"); });
+  botones.final.addEventListener("click", function () { pintar("final"); });
+  botones.acuse.disabled = true;
+  botones.final.disabled = true;
+  arrancar();
+})();
+</script>
+</body>
+</html>

@@ -462,14 +462,24 @@ def _verificar(dv, datos, identidad, solution_id):
 def _comparar_familia(c, f, i, consulta, lcid, difs, tabla_nombre):
     n, tipo = c["nombre"], c["tipo"]
 
-    def igual(campo, tipo_py, esperado, permite_nulo=False):
+    def igual(campo, tipo_py, esperado, permite_nulo=False, vacio_es_nulo=False):
+        """`vacio_es_nulo`: la plataforma devuelve `''` donde el playbook no declara nada.
+
+        No es un matiz: una diferencia que NO se puede resolver deja la tabla en
+        `difiere` para siempre, y `--agregar-columnas` exige que las columnas
+        faltantes sean la ÚNICA diferencia. O sea que un falso positivo acá vuelve
+        IMPOSIBLE agregarle una columna a esa tabla con esta herramienta. Pasó el
+        2026-09-23 con `AutoNumberFormat` en las seis columnas de texto de Solicitud.
+        """
         real = exigir_forma(f.get(campo), tipo_py, consulta, f"value[{i}].{campo}", permite_nulo=permite_nulo)
+        if vacio_es_nulo and real == "":
+            real = None
         if real != esperado:
             difs.append(f"{n}.{campo}: entorno={real!r} playbook={esperado!r}")
 
     if tipo in ("texto", "autonumerico"):
         igual("MaxLength", int, c["largo"])
-        igual("AutoNumberFormat", str, c.get("formato") or None, permite_nulo=True)
+        igual("AutoNumberFormat", str, c.get("formato") or None, permite_nulo=True, vacio_es_nulo=True)
     elif tipo == "memo":
         igual("MaxLength", int, c["largo"])
     elif tipo == "entero":

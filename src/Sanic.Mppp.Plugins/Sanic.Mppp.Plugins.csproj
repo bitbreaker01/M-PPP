@@ -8,6 +8,14 @@
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- HAY QUE SUBIR EL TERCER NUMERO (el build) EN CADA DESPLIEGUE. Sin version explicita, cada compilacion sale
+         1.0.0.0, Dataverse ve el mismo ensamblado de siempre y el sandbox sigue ejecutando el BINARIO VIEJO aunque el
+         paquete se haya actualizado: los tipos nuevos aparecen en `plugintype` y al invocarlos responde "The plug-in
+         type could not be found in the plug-in assembly" (verificado en Dev el 2026-09-22).
+         Solo build o revision: cambiar major o minor hace que Dataverse lo trate como OTRO ensamblado y los steps ya
+         registrados NO se re-apuntan solos (Learn, "Assembly versioning"). -->
+    <AssemblyVersion>1.0.11.0</AssemblyVersion>
+    <FileVersion>1.0.11.0</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Ya están en el sandbox de Dataverse: no se suben con el paquete. -->

@@ -15,8 +15,29 @@ namespace Sanic.Mppp.Plugins.Datos
         public const string Rol = "role";
         public const string UsuarioRol = "systemuserroles";
 
+        // Los nombres de los roles, tal como se LLAMAN en el entorno (columna `name` de la tabla
+        // `role`), que es por donde el plugin los busca. No es el nombre del archivo del playbook.
+        //
+        // Hasta el 2026-09-23 estas constantes decían `sr_mppp_ejecutivo`, tomado del nombre de
+        // `playbooks/rol/sr_mppp_ejecutivo.md`. Ese valor no existe en ninguna columna de
+        // Dataverse: el rol se llama `SR - MPPP - Ejecutivo`. La consulta devolvía cero filas
+        // SIEMPRE, `DeterminarRoles` caía en `RolDeActor.Ninguno` y **ninguna transición de Fila
+        // se podía autorizar, para nadie**. Las 793 pruebas pasaban porque el doble sembraba el
+        // mismo string equivocado. Un identificador con el que se le habla al entorno se verifica
+        // CONTRA EL ENTORNO (`herramientas/pruebas/verificar_roles.py`), no contra una constante.
+
         /// <summary>El rol de Ejecutivo (playbooks/rol/sr_mppp_ejecutivo.md; diseno/04 §2).</summary>
-        public const string RolEjecutivo = "sr_mppp_ejecutivo";
+        public const string RolEjecutivo = "SR - MPPP - Ejecutivo";
+
+        /// <summary>El rol de Supervisor (playbooks/rol/sr_mppp_supervisor.md; diseno/04 §2).</summary>
+        public const string RolSupervisor = "SR - MPPP - Supervisor";
+
+        /// <summary>
+        /// D-44: el usuario de aplicación del RPA tiene su propio rol, distinto del de la cuenta de
+        /// servicio de los flujos. Es de FASE 2 y todavía NO existe en el entorno: hasta que se cree
+        /// con este nombre, ninguna transición del RPA es posible, que es lo correcto en fase 1.
+        /// </summary>
+        public const string RolRpa = "SR - MPPP - RPA";
 
         /// <summary>`title` de `appnotification`: 256 caracteres (Microsoft Learn, tabla `appnotification`).</summary>
         public const int LargoTitulo = 256;

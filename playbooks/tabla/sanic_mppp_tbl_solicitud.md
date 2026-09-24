@@ -21,6 +21,12 @@
 
 De dónde sale cada dato: `diseno/01-convenciones.md` §0 y §7, verificados contra Dev el 2026-09-20. La tabla está definida en `diseno/02-diccionario-datos.md` §3.1 y figura en `diseno/06-inventario-componentes.md` §3, renglón 3.7.
 
+**`sanic_nombre` no va marcada obligatoria**, aunque siempre tenga valor: la genera la
+plataforma (autonumérica). Si se marcara obligatoria quedaría `ApplicationRequired`, y el conector
+de Dataverse exige un valor para TODA columna `ApplicationRequired` al crear una fila; el flujo
+fallaría pidiendo un dato que nadie digita. Esto vive acá y no en la descripción de la columna: esa
+descripción la lee un ejecutivo del banco en la interfaz, no quien construye.
+
 Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic Corp", con otro unique name; no es el de este proyecto. El idioma base del entorno es inglés y es el único provisionado: las etiquetas van en español bajo ese LCID.
 
 ## 2. Qué se crea
@@ -41,7 +47,7 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     "displayname": "Numero",
     "descripcion": "Número de la solicitud. Es lo que se le cita al cliente.",
     "largo": 100,
-    "requerida": true,
+    "requerida": false,
     "autonumerico": "MPPP-{SEQNUM:8}"
   },
   "columnas": [
@@ -164,6 +170,15 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
       "nombre": "sanic_fechaprocesada",
       "displayname": "Procesada el",
       "descripcion": "Cuándo todas las filas llegaron a un estado terminal.",
+      "tipo": "fechahora",
+      "requerida": false,
+      "protegida": false,
+      "auditoria": false
+    },
+    {
+      "nombre": "sanic_bloqueodecierre",
+      "displayname": "Bloqueo de cierre (tecnico)",
+      "descripcion": "TECNICA, no es dato de negocio y no va en ningun formulario. El step de post-transicion la escribe ANTES de mirar las filas, para tomar el lock exclusivo de la Solicitud y que dos aprobaciones simultaneas no lean las dos el mismo estado a medias (patron 'pre-lock in a plug-in transaction', Microsoft Learn, Scalable Customization Design). Su VALOR no lo lee nadie; lo unico que importa es el lock que toma al escribirla. Queda fuera de la lista blanca a proposito: solo la escribe el servidor.",
       "tipo": "fechahora",
       "requerida": false,
       "protegida": false,
@@ -372,7 +387,7 @@ python3 herramientas/construir/muestra_tabla.py playbooks/tabla/sanic_mppp_tbl_s
 |---|---|---|
 | 1 | `GET EntityDefinitions(LogicalName='sanic_mppp_tbl_solicitud')` | 200 · `OwnershipType = UserOwned` · `IsManaged = false` · `IsCustomEntity = true` · `HasNotes = false` · `HasActivities = false` · `IsAuditEnabled = false` · `PrimaryNameAttribute = sanic_nombre` |
 | 2 | Nombre, plural y descripción en 1033 | los de la sección 2; ninguna etiqueta en otro idioma |
-| 3 | Columnas (29): tipo, requerida, protegida, auditoría, nombre visible, descripción y lo propio de su tipo | `sanic_nombre` autonumérico `MPPP-{SEQNUM:8}` (largo 100) requerida · `sanic_messageid` texto 450 requerida · `sanic_outlookmessageid` texto 500 opcional · `sanic_remitente` texto 320 requerida · `sanic_motivoclasificacion` texto 300 opcional · `sanic_asunto` texto 400 opcional · `sanic_fecharecibido` fecha y hora (usuario local) requerida · `sanic_fechaingresada` fecha y hora (usuario local) requerida · `sanic_estadoprocesamiento` choice `sanic_mppp_ch_estadosolicitud` requerida · `sanic_fechavalidada` fecha y hora (usuario local) opcional · `sanic_fechaacuseiniciado` fecha y hora (usuario local) opcional · `sanic_fechaacuseenviado` fecha y hora (usuario local) opcional · `sanic_acusecontenido` multilínea 1048576 opcional · `sanic_fechaprocesada` fecha y hora (usuario local) opcional · `sanic_fecharespuestafinaliniciada` fecha y hora (usuario local) opcional · `sanic_fecharespuestafinalenviada` fecha y hora (usuario local) opcional · `sanic_respuestafinalcontenido` multilínea 1048576 opcional · `sanic_fechacerrada` fecha y hora (usuario local) opcional · `sanic_correocrudo` archivo hasta 25600 KB opcional · `sanic_exceloriginal` archivo hasta 10240 KB opcional · `sanic_cantidadadjuntos` entero 0–1000 opcional · `sanic_cantidadexcel` entero 0–1000 opcional · `sanic_filastotales` entero 0–100000 opcional · `sanic_filasvalidas` entero 0–100000 opcional · `sanic_filasrechazadas` entero 0–100000 opcional · `sanic_versionparametros` texto 200 opcional · `sanic_reintentosvalidacion` entero 0–1000 opcional · `sanic_requiererevision` sí/no (por defecto False) opcional · `sanic_motivorevision` multilínea 2000 opcional; ninguna auditada |
+| 3 | Columnas (30): tipo, requerida, protegida, auditoría, nombre visible, descripción y lo propio de su tipo | `sanic_nombre` autonumérico `MPPP-{SEQNUM:8}` (largo 100) requerida · `sanic_messageid` texto 450 requerida · `sanic_outlookmessageid` texto 500 opcional · `sanic_remitente` texto 320 requerida · `sanic_motivoclasificacion` texto 300 opcional · `sanic_asunto` texto 400 opcional · `sanic_fecharecibido` fecha y hora (usuario local) requerida · `sanic_fechaingresada` fecha y hora (usuario local) requerida · `sanic_estadoprocesamiento` choice `sanic_mppp_ch_estadosolicitud` requerida · `sanic_fechavalidada` fecha y hora (usuario local) opcional · `sanic_fechaacuseiniciado` fecha y hora (usuario local) opcional · `sanic_fechaacuseenviado` fecha y hora (usuario local) opcional · `sanic_acusecontenido` multilínea 1048576 opcional · `sanic_fechaprocesada` fecha y hora (usuario local) opcional · `sanic_fecharespuestafinaliniciada` fecha y hora (usuario local) opcional · `sanic_fecharespuestafinalenviada` fecha y hora (usuario local) opcional · `sanic_respuestafinalcontenido` multilínea 1048576 opcional · `sanic_fechacerrada` fecha y hora (usuario local) opcional · `sanic_correocrudo` archivo hasta 25600 KB opcional · `sanic_exceloriginal` archivo hasta 10240 KB opcional · `sanic_cantidadadjuntos` entero 0–1000 opcional · `sanic_cantidadexcel` entero 0–1000 opcional · `sanic_filastotales` entero 0–100000 opcional · `sanic_filasvalidas` entero 0–100000 opcional · `sanic_filasrechazadas` entero 0–100000 opcional · `sanic_versionparametros` texto 200 opcional · `sanic_reintentosvalidacion` entero 0–1000 opcional · `sanic_requiererevision` sí/no (por defecto False) opcional · `sanic_motivorevision` multilínea 2000 opcional · `sanic_bloqueodecierre` fecha y hora (usuario local) opcional, técnica; ninguna auditada |
 | 4 | Ninguna columna propia de más | salvo lookups, que nacen con su relación |
 | 5 | Pertenece a la solución de la sección 1 | una fila en `solutioncomponents` (tipo de componente 1) |
 | 6 | Segunda ejecución sin `--solo-verificar` | estado `ya_existia`, código de salida 0 |

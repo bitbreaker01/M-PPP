@@ -55,7 +55,9 @@ namespace Sanic.Mppp.Plugins.Api
             {
                 trace.Trace($"ClasificarCorreo: empieza para la solicitud {solicitudId}.");
 
-                var servicio = fabrica.CreateOrganizationService(contexto.UserId);
+                // SYSTEM, no quien llama: mismo motivo que en `ValidarSolicitudApi` (diseno/04 §1 y §3). Este plugin
+                // lee las autorizaciones del remitente, que la cuenta de servicio no tiene permiso de leer.
+                var servicio = fabrica.CreateOrganizationService(null);
                 var clasificar = new ClasificarCorreo(
                     new SolicitudesDataverse(servicio), new CatalogosDataverse(servicio), new ArchivosDataverse(servicio), new AvisosDataverse(servicio));
 

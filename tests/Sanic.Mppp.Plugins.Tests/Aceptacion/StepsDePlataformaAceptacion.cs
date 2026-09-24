@@ -15,7 +15,13 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
     {
         private static readonly DateTime Ahora = new DateTime(2026, 9, 21, 18, 0, 0, DateTimeKind.Utc);
 
-        private static (ContextoDePluginSimulado ctx, OrganizationServiceEnMemoria svc) Armar(string mensaje, Entity target, int depth = 1, bool identidadDeAplicacion = false)
+        private static (ContextoDePluginSimulado ctx, OrganizationServiceEnMemoria svc) Armar(
+            string mensaje,
+            Entity target,
+            int depth = 1,
+            bool identidadDeAplicacion = false,
+            string upnDeQuienEscribe = null,
+            string cuentaDeServicioDeclarada = null)
         {
             var svc = new OrganizationServiceEnMemoria();
             var ctx = new ContextoDePluginSimulado(svc, Ahora);
@@ -27,6 +33,22 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             if (identidadDeAplicacion)
             {
                 usuario["applicationid"] = Guid.NewGuid();
+            }
+
+            if (upnDeQuienEscribe != null)
+            {
+                usuario["domainname"] = upnDeQuienEscribe;
+            }
+
+            if (cuentaDeServicioDeclarada != null)
+            {
+                svc.Sembrar(new Entity(Tablas.Parametro)
+                {
+                    ["sanic_nombre"] = BaseDeStep.ParametroCuentaDeServicio,
+                    ["sanic_version"] = 1,
+                    ["sanic_valor"] = cuentaDeServicioDeclarada,
+                    ["statecode"] = new OptionSetValue(Tablas.Activo)
+                });
             }
 
             var id = svc.Sembrar(usuario);
@@ -66,6 +88,27 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             new ListaBlancaStep().Execute(ctx);
         }
 
+        /// <summary>
+        /// Los steps trabajan con SYSTEM, no con quien llama (`diseno/04` §1, textual). Con la identidad de quien
+        /// llama, NINGUNA persona podía transicionar una Fila: el step de transición lee `rpa.puedeaprobar` de la
+        /// tabla Parametro, sobre la que la matriz no le da lectura a ningún rol de negocio. El entorno respondía
+        /// "is missing prvReadsanic_mppp_tbl_parametro" (2026-09-23).
+        ///
+        /// Ninguna prueba lo detectaba porque el doble de `IOrganizationService` no modela privilegios: devuelve lo
+        /// que se le pide, venga de quien venga. Esta fija la identidad; la que prueba el EFECTO de los privilegios
+        /// es la suite de comportamiento contra el entorno (`herramientas/pruebas/`), que suplanta usuarios reales.
+        /// </summary>
+        [Fact]
+        public void Los_steps_trabajan_como_system_y_no_como_quien_llama()
+        {
+            var (ctx, _) = Armar("Update", Fila(("sanic_estado", new OptionSetValue(4))));
+
+            new ListaBlancaStep().Execute(ctx);
+
+            Assert.Null(ctx.UsuarioDelServicio);
+            Assert.NotEqual(Guid.Empty, ctx.Contexto.UserId); // el contexto SÍ trae usuario: no se usa a propósito
+        }
+
         [Theory]
         [InlineData(2, false)] // código de servidor: profundidad mayor que 1
         [InlineData(1, true)] // identidad de aplicación: la cuenta de servicio de los flujos, el RPA
@@ -73,6 +116,51 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         {
             var (ctx, _) = Armar("Update", Fila(("sanic_numerocuenta", "999"), ("sanic_referencia", "x")), depth, identidadDeAplicacion);
             new ListaBlancaStep().Execute(ctx);
+        }
+
+        /// <summary>
+        /// La cuenta de servicio de BAC es un usuario, no un service principal: `diseno/07-flujos.md` §33 declara esa
+        /// excepción a BP-PP-122. Un usuario NO tiene `applicationid`, así que sin esta vía los cinco flujos entran a la
+        /// lista blanca como si fueran una persona y no pueden escribir sus propias marcas de envío. Se declara por su UPN
+        /// en el parámetro `servicio.cuenta` y no por su GUID, porque el GUID cambia de entorno en entorno y el UPN no.
+        /// </summary>
+        [Fact]
+        public void La_cuenta_de_servicio_declarada_en_el_parametro_no_pasa_por_la_lista_blanca()
+        {
+            var (ctx, _) = Armar(
+                "Update",
+                Fila(("sanic_numerocuenta", "999"), ("sanic_referencia", "x")),
+                upnDeQuienEscribe: "servicio.mppp@bac.com.ni",
+                cuentaDeServicioDeclarada: "servicio.mppp@bac.com.ni");
+
+            new ListaBlancaStep().Execute(ctx);
+        }
+
+        [Theory]
+        [InlineData("SERVICIO.MPPP@BAC.COM.NI", "servicio.mppp@bac.com.ni")] // el UPN no distingue mayúsculas
+        [InlineData("servicio.mppp@bac.com.ni", "  servicio.mppp@bac.com.ni  ")] // un valor con espacios al costado igual sirve
+        public void El_UPN_se_compara_sin_distinguir_mayusculas_ni_espacios(string upn, string declarado)
+        {
+            var (ctx, _) = Armar("Update", Fila(("sanic_numerocuenta", "999")), upnDeQuienEscribe: upn, cuentaDeServicioDeclarada: declarado);
+            new ListaBlancaStep().Execute(ctx);
+        }
+
+        /// <summary>
+        /// Lo que hace que esta vía no sea un agujero: sin parámetro no exime a nadie, y con parámetro exime SOLO a quien
+        /// coincide. Un parámetro vacío o borrado devuelve el control a como estaba, nunca lo abre.
+        /// </summary>
+        [Theory]
+        [InlineData("servicio.mppp@bac.com.ni", null)] // el parámetro no existe
+        [InlineData("servicio.mppp@bac.com.ni", "")] // el parámetro existe pero está vacío
+        [InlineData("servicio.mppp@bac.com.ni", "   ")] // solo espacios
+        [InlineData("ejecutivo@bac.com.ni", "servicio.mppp@bac.com.ni")] // es otro usuario
+        [InlineData(null, "servicio.mppp@bac.com.ni")] // quien escribe no tiene UPN
+        public void Sin_parametro_o_con_otro_usuario_sigue_siendo_una_persona(string upn, string declarado)
+        {
+            var (ctx, _) = Armar("Update", Fila(("sanic_numerocuenta", "999")), upnDeQuienEscribe: upn, cuentaDeServicioDeclarada: declarado);
+
+            var ex = Assert.Throws<InvalidPluginExecutionException>(() => new ListaBlancaStep().Execute(ctx));
+            Assert.Contains("sanic_numerocuenta", ex.Message);
         }
 
         [Fact]
@@ -238,64 +326,11 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Throws<InvalidPluginExecutionException>(() => new NombreCalculadoStep().Execute(ctxFila));
         }
 
-        // ------------------------------------------------------------------ 7.11 integridad de AutorizacionPlan
-        private static (ContextoDePluginSimulado ctx, OrganizationServiceEnMemoria svc, Guid autorizado, Guid plan, Guid otroPlan) MundoDeAutorizacion()
-        {
-            var svc = new OrganizationServiceEnMemoria();
-            var cliente = svc.Sembrar(new Entity(Tablas.Cliente) { ["sanic_nombre"] = "ACME" });
-            var otroCliente = svc.Sembrar(new Entity(Tablas.Cliente) { ["sanic_nombre"] = "BETA" });
-            var autorizado = svc.Sembrar(new Entity(Tablas.Autorizado) { ["sanic_nombre"] = "ana@acme.com", ["sanic_clienteid"] = new EntityReference(Tablas.Cliente, cliente) });
-            var plan = svc.Sembrar(new Entity(Tablas.Plan) { ["sanic_codigo"] = "0042", ["sanic_clienteid"] = new EntityReference(Tablas.Cliente, cliente) });
-            var otroPlan = svc.Sembrar(new Entity(Tablas.Plan) { ["sanic_codigo"] = "0099", ["sanic_clienteid"] = new EntityReference(Tablas.Cliente, otroCliente) });
-            var ctx = new ContextoDePluginSimulado(svc, Ahora);
-            ctx.Contexto.MessageName = "Create";
-            return (ctx, svc, autorizado, plan, otroPlan);
-        }
-
-        [Fact]
-        public void Una_autorizacion_de_un_plan_de_otra_empresa_no_se_guarda()
-        {
-            var m = MundoDeAutorizacion();
-            m.ctx.Contexto.InputParameters["Target"] = new Entity(Tablas.AutorizacionPlan, Guid.NewGuid())
-            {
-                ["sanic_autorizadoid"] = new EntityReference(Tablas.Autorizado, m.autorizado),
-                ["sanic_planid"] = new EntityReference(Tablas.Plan, m.otroPlan),
-            };
-
-            var ex = Assert.Throws<InvalidPluginExecutionException>(() => new IntegridadAutorizacionPlanStep().Execute(m.ctx));
-            Assert.False(string.IsNullOrWhiteSpace(ex.Message));
-
-            m.ctx.Contexto.InputParameters["Target"] = new Entity(Tablas.AutorizacionPlan, Guid.NewGuid())
-            {
-                ["sanic_autorizadoid"] = new EntityReference(Tablas.Autorizado, m.autorizado),
-                ["sanic_planid"] = new EntityReference(Tablas.Plan, m.plan),
-            };
-            new IntegridadAutorizacionPlanStep().Execute(m.ctx);
-        }
-
-        [Fact]
-        public void En_un_update_que_cambia_un_solo_lookup_el_otro_se_lee_del_registro()
-        {
-            var m = MundoDeAutorizacion();
-            var existente = m.svc.Sembrar(new Entity(Tablas.AutorizacionPlan)
-            {
-                ["sanic_autorizadoid"] = new EntityReference(Tablas.Autorizado, m.autorizado),
-                ["sanic_planid"] = new EntityReference(Tablas.Plan, m.plan),
-            });
-            m.ctx.Contexto.MessageName = "Update";
-            m.ctx.Contexto.InputParameters["Target"] = new Entity(Tablas.AutorizacionPlan, existente) { ["sanic_planid"] = new EntityReference(Tablas.Plan, m.otroPlan) };
-
-            Assert.Throws<InvalidPluginExecutionException>(() => new IntegridadAutorizacionPlanStep().Execute(m.ctx));
-
-            m.ctx.Contexto.InputParameters["Target"] = new Entity(Tablas.AutorizacionPlan, existente) { ["sanic_fechadocumento"] = Ahora };
-            new IntegridadAutorizacionPlanStep().Execute(m.ctx); // no cambia ningún lookup: nada que comprobar
-        }
-
         // ------------------------------------------------------------------ lo común
         [Fact]
         public void Un_proveedor_incompleto_no_revienta_con_una_referencia_nula()
         {
-            foreach (IPlugin step in new IPlugin[] { new ListaBlancaStep(), new NormalizarYValidarStep(), new NombreCalculadoStep(), new IntegridadAutorizacionPlanStep() })
+            foreach (IPlugin step in new IPlugin[] { new ListaBlancaStep(), new NormalizarYValidarStep(), new NombreCalculadoStep() })
             {
                 Assert.Throws<InvalidPluginExecutionException>(() => step.Execute(null));
                 var (ctx, _) = Armar("Update", Fila(("sanic_estado", new OptionSetValue(3))));

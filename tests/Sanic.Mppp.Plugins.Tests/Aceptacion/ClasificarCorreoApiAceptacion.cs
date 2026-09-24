@@ -66,7 +66,10 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
 
         // ------------------------------------------------------------------ el camino feliz
         [Fact]
-        public void Devuelve_las_tres_salidas_con_sus_nombres_exactos_y_usa_el_usuario_y_la_fecha_del_contexto()
+        // Se llamaba `..._usa_el_usuario_y_la_fecha_del_contexto` y exigía el usuario del contexto, que es lo
+        // contrario de `diseno/04` §1 y §3 (el plugin lee las autorizaciones del remitente, que la cuenta de
+        // servicio no puede leer). Corregida el 2026-09-23.
+        public void Devuelve_las_tres_salidas_con_sus_nombres_exactos_trabaja_como_system_y_usa_la_fecha_del_contexto()
         {
             var (ctx, svc, _) = Armar();
 
@@ -76,8 +79,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
             Assert.Equal(Clasificaciones.Nuevo, ctx.Contexto.OutputParameters[ClasificarCorreoApi.SalidaClasificacion]);
             Assert.Equal(false, ctx.Contexto.OutputParameters[ClasificarCorreoApi.SalidaYaProcesada]);
             Assert.Equal(new[] { "procesar", "clasificacion", "yaprocesada" }, ctx.Contexto.OutputParameters.Keys.OrderBy(k => k == "procesar" ? 0 : k == "clasificacion" ? 1 : 2));
-            Assert.Equal(ctx.Contexto.UserId, ctx.UsuarioDelServicio); // la cuenta de servicio, no quien inició
-            Assert.NotEqual(ctx.Contexto.InitiatingUserId, ctx.UsuarioDelServicio);
+            Assert.Null(ctx.UsuarioDelServicio); // `null` = SYSTEM, ni el usuario del contexto ni quien inició
             var evaluacion = svc.Registros(TablasHistorico.ResultadoRegla).First();
             Assert.Equal(Ahora, evaluacion["sanic_fechaevaluacion"]); // la fecha sale del contexto: el código no lee el reloj
         }

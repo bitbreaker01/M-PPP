@@ -1,0 +1,392 @@
+{
+  "triggers": {
+    "Cuando_lo_llama_un_flujo": {
+      "type": "Request",
+      "kind": "Button",
+      "inputs": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "title": "SolicitudId",
+              "type": "string",
+              "x-ms-dynamically-added": true,
+              "description": "Identificador de la Solicitud a la que hay que comunicarle algo.",
+              "x-ms-content-hint": "TEXT"
+            },
+            "text_1": {
+              "title": "Origen",
+              "type": "string",
+              "x-ms-dynamically-added": true,
+              "description": "Valor de la opcion 'origen' del flujo que llama: 159460003 (MPPP-COM) o 159460005 (MPPP-VIG).",
+              "x-ms-content-hint": "TEXT"
+            }
+          },
+          "required": ["text", "text_1"]
+        }
+      }
+    }
+  },
+  "actions": {
+    "Leer_la_solicitud": {
+      "runAfter": {},
+      "type": "OpenApiConnection",
+      "inputs": {
+        "host": {
+          "connectionName": "@@conr:dataverse@@",
+          "operationId": "GetItem",
+          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+        },
+        "parameters": {
+          "entityName": "sanic_mppp_tbl_solicituds",
+          "recordId": "@triggerBody()['text']"
+        },
+        "authentication": "@parameters('$authentication')",
+        "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+      }
+    },
+
+    "Hay_un_envio_a_medias": {
+      "runAfter": { "Leer_la_solicitud": ["Succeeded"] },
+      "type": "If",
+      "expression": {
+        "and": [
+          {
+            "or": [
+              {
+                "and": [
+                  { "not": { "equals": ["@outputs('Leer_la_solicitud')?['body/sanic_fechaacuseiniciado']", "@null"] } },
+                  { "equals": ["@outputs('Leer_la_solicitud')?['body/sanic_fechaacuseenviado']", "@null"] }
+                ]
+              },
+              {
+                "and": [
+                  { "not": { "equals": ["@outputs('Leer_la_solicitud')?['body/sanic_fecharespuestafinaliniciada']", "@null"] } },
+                  { "equals": ["@outputs('Leer_la_solicitud')?['body/sanic_fecharespuestafinalenviada']", "@null"] }
+                ]
+              }
+            ]
+          },
+          { "equals": ["@outputs('Leer_la_solicitud')?['body/sanic_requiererevision']", false] }
+        ]
+      },
+      "actions": {
+        "Levantar_para_revision": {
+          "runAfter": {},
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "UpdateOnlyRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_solicituds",
+              "recordId": "@triggerBody()['text']",
+              "item/sanic_requiererevision": true,
+              "item/sanic_motivorevision": "Envio iniciado sin confirmar: no se reenvia para que el cliente no reciba dos veces lo mismo."
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+          }
+        },
+        "Bitacora_requiere_revision": {
+          "runAfter": { "Levantar_para_revision": ["Succeeded"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "CreateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_bitacoras",
+              "item/sanic_evento": 159460016,
+              "item/sanic_origen": "@int(triggerBody()['text_1'])",
+              "item/sanic_fechaevento": "@utcNow()",
+              "item/sanic_actortexto": "Cuenta de servicio",
+              "item/sanic_detalle": "Envio iniciado sin confirmar.",
+              "item/sanic_solicitudid@odata.bind": "@concat('/sanic_mppp_tbl_solicituds(', triggerBody()['text'], ')')"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "else": { "actions": {} }
+    },
+
+    "Toca_el_acuse": {
+      "runAfter": { "Hay_un_envio_a_medias": ["Succeeded"] },
+      "type": "If",
+      "expression": {
+        "and": [
+          {
+            "or": [
+              { "equals": ["@outputs('Leer_la_solicitud')?['body/sanic_estadoprocesamiento']", 159460005] },
+              { "equals": ["@outputs('Leer_la_solicitud')?['body/sanic_estadoprocesamiento']", 159460004] }
+            ]
+          },
+          { "equals": ["@outputs('Leer_la_solicitud')?['body/sanic_fechaacuseiniciado']", "@null"] }
+        ]
+      },
+      "actions": {
+        "Marcar_acuse_iniciado": {
+          "runAfter": {},
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "UpdateOnlyRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_solicituds",
+              "recordId": "@triggerBody()['text']",
+              "item/sanic_fechaacuseiniciado": "@utcNow()"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+          }
+        },
+        "Bitacora_acuse_iniciado": {
+          "runAfter": { "Marcar_acuse_iniciado": ["Succeeded"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "CreateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_bitacoras",
+              "item/sanic_evento": 159460003,
+              "item/sanic_origen": "@int(triggerBody()['text_1'])",
+              "item/sanic_fechaevento": "@utcNow()",
+              "item/sanic_actortexto": "Cuenta de servicio",
+              "item/sanic_solicitudid@odata.bind": "@concat('/sanic_mppp_tbl_solicituds(', triggerBody()['text'], ')')"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Responder_el_acuse": {
+          "runAfter": { "Bitacora_acuse_iniciado": ["Succeeded"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:outlook@@",
+              "operationId": "ReplyToV3",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+            },
+            "parameters": {
+              "messageId": "@outputs('Leer_la_solicitud')?['body/sanic_outlookmessageid']",
+              "mailboxAddress": "@parameters('@@ev:sanic_mppp_ev_buzoningesta@@')",
+              "replyParameters/Body": "@outputs('Leer_la_solicitud')?['body/sanic_acusecontenido']",
+              "replyParameters/ReplyAll": false,
+              "replyParameters/importance": "Normal"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Marcar_acuse_enviado": {
+          "runAfter": { "Responder_el_acuse": ["Succeeded"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "UpdateOnlyRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_solicituds",
+              "recordId": "@triggerBody()['text']",
+              "item/sanic_fechaacuseenviado": "@utcNow()"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+          }
+        },
+        "Bitacora_acuse_enviado": {
+          "runAfter": { "Marcar_acuse_enviado": ["Succeeded"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "CreateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_bitacoras",
+              "item/sanic_evento": 159460004,
+              "item/sanic_origen": "@int(triggerBody()['text_1'])",
+              "item/sanic_fechaevento": "@utcNow()",
+              "item/sanic_actortexto": "Cuenta de servicio",
+              "item/sanic_solicitudid@odata.bind": "@concat('/sanic_mppp_tbl_solicituds(', triggerBody()['text'], ')')"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Cerrar_si_estaba_rechazada": {
+          "runAfter": { "Bitacora_acuse_enviado": ["Succeeded"] },
+          "type": "If",
+          "expression": {
+            "and": [
+              { "equals": ["@outputs('Leer_la_solicitud')?['body/sanic_estadoprocesamiento']", 159460004] }
+            ]
+          },
+          "actions": {
+            "Cerrar_la_rechazada": {
+              "runAfter": {},
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "@@conr:dataverse@@",
+                  "operationId": "UpdateOnlyRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "sanic_mppp_tbl_solicituds",
+                  "recordId": "@triggerBody()['text']",
+                  "item/sanic_estadoprocesamiento": 159460007,
+                  "item/sanic_fechacerrada": "@utcNow()"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+              }
+            }
+          },
+          "else": { "actions": {} }
+        }
+      },
+      "else": { "actions": {} }
+    },
+
+    "Toca_la_respuesta_final": {
+      "runAfter": { "Toca_el_acuse": ["Succeeded"] },
+      "type": "If",
+      "expression": {
+        "and": [
+          { "equals": ["@outputs('Leer_la_solicitud')?['body/sanic_estadoprocesamiento']", 159460006] },
+          { "not": { "equals": ["@outputs('Leer_la_solicitud')?['body/sanic_fechaacuseenviado']", "@null"] } },
+          { "equals": ["@outputs('Leer_la_solicitud')?['body/sanic_fecharespuestafinaliniciada']", "@null"] }
+        ]
+      },
+      "actions": {
+        "Marcar_respuesta_iniciada": {
+          "runAfter": {},
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "UpdateOnlyRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_solicituds",
+              "recordId": "@triggerBody()['text']",
+              "item/sanic_fecharespuestafinaliniciada": "@utcNow()"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+          }
+        },
+        "Bitacora_respuesta_iniciada": {
+          "runAfter": { "Marcar_respuesta_iniciada": ["Succeeded"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "CreateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_bitacoras",
+              "item/sanic_evento": 159460010,
+              "item/sanic_origen": "@int(triggerBody()['text_1'])",
+              "item/sanic_fechaevento": "@utcNow()",
+              "item/sanic_actortexto": "Cuenta de servicio",
+              "item/sanic_solicitudid@odata.bind": "@concat('/sanic_mppp_tbl_solicituds(', triggerBody()['text'], ')')"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Responder_la_final": {
+          "runAfter": { "Bitacora_respuesta_iniciada": ["Succeeded"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:outlook@@",
+              "operationId": "ReplyToV3",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+            },
+            "parameters": {
+              "messageId": "@outputs('Leer_la_solicitud')?['body/sanic_outlookmessageid']",
+              "mailboxAddress": "@parameters('@@ev:sanic_mppp_ev_buzoningesta@@')",
+              "replyParameters/Body": "@outputs('Leer_la_solicitud')?['body/sanic_respuestafinalcontenido']",
+              "replyParameters/ReplyAll": false,
+              "replyParameters/importance": "Normal"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Marcar_respuesta_enviada": {
+          "runAfter": { "Responder_la_final": ["Succeeded"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "UpdateOnlyRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_solicituds",
+              "recordId": "@triggerBody()['text']",
+              "item/sanic_fecharespuestafinalenviada": "@utcNow()",
+              "item/sanic_estadoprocesamiento": 159460007,
+              "item/sanic_fechacerrada": "@utcNow()"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+          }
+        },
+        "Bitacora_respuesta_enviada": {
+          "runAfter": { "Marcar_respuesta_enviada": ["Succeeded"] },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "CreateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_bitacoras",
+              "item/sanic_evento": 159460011,
+              "item/sanic_origen": "@int(triggerBody()['text_1'])",
+              "item/sanic_fechaevento": "@utcNow()",
+              "item/sanic_actortexto": "Cuenta de servicio",
+              "item/sanic_solicitudid@odata.bind": "@concat('/sanic_mppp_tbl_solicituds(', triggerBody()['text'], ')')"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "else": { "actions": {} }
+    },
+
+    "Responder_al_flujo_que_llamo": {
+      "runAfter": { "Toca_la_respuesta_final": ["Succeeded"] },
+      "type": "Response",
+      "kind": "PowerApp",
+      "inputs": {
+        "statusCode": 200,
+        "schema": {
+          "type": "object",
+          "properties": {
+            "resultado": { "title": "Resultado", "x-ms-dynamically-added": true, "type": "string" }
+          },
+          "additionalProperties": {}
+        },
+        "body": { "resultado": "ok" }
+      }
+    }
+  }
+}

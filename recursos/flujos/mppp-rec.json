@@ -1,0 +1,47 @@
+{
+  "triggers": {
+    "Cuando_llega_un_correo_nuevo": {
+      "type": "OpenApiConnection",
+      "splitOn": "@triggerOutputs()?['body/value']",
+      "recurrence": {
+        "interval": 1,
+        "frequency": "Minute"
+      },
+      "runtimeConfiguration": {
+        "concurrency": {
+          "runs": 5
+        }
+      },
+      "inputs": {
+        "host": {
+          "connectionName": "@@conr:outlook@@",
+          "operationId": "SharedMailboxOnNewEmailV2",
+          "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+        },
+        "parameters": {
+          "mailboxAddress": "@parameters('@@ev:sanic_mppp_ev_buzoningesta@@')",
+          "folderId": "Inbox",
+          "importance": "Any",
+          "hasAttachments": false,
+          "includeAttachments": false
+        },
+        "authentication": "@parameters('$authentication')"
+      }
+    }
+  },
+  "actions": {
+    "Ingerir_el_correo": {
+      "runAfter": {},
+      "type": "Workflow",
+      "inputs": {
+        "host": {
+          "workflowReferenceName": "@@flujo:Cloud Flow - MPPP - ING - Ingerir y validar correo@@"
+        },
+        "body": {
+          "text": "@triggerOutputs()?['body/id']",
+          "text_1": "159460001"
+        }
+      }
+    }
+  }
+}

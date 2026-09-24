@@ -1,0 +1,471 @@
+{
+  "triggers": {
+    "Cada_10_minutos": {
+      "type": "Recurrence",
+      "recurrence": { "frequency": "Minute", "interval": 10 }
+    }
+  },
+  "actions": {
+    "Parametro_sin_validar": {
+      "runAfter": {},
+      "type": "OpenApiConnection",
+      "inputs": {
+        "host": {
+          "connectionName": "@@conr:dataverse@@",
+          "operationId": "ListRecords",
+          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+        },
+        "parameters": {
+          "entityName": "sanic_mppp_tbl_parametros",
+          "$select": "sanic_nombre,sanic_valor",
+          "$filter": "statecode eq 0 and sanic_nombre eq 'vigilancia.minutos.sinvalidar'",
+          "$top": 1
+        },
+        "authentication": "@parameters('$authentication')",
+        "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+      }
+    },
+
+    "Parametro_sin_responder": {
+      "runAfter": { "Parametro_sin_validar": ["Succeeded"] },
+      "type": "OpenApiConnection",
+      "inputs": {
+        "host": {
+          "connectionName": "@@conr:dataverse@@",
+          "operationId": "ListRecords",
+          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+        },
+        "parameters": {
+          "entityName": "sanic_mppp_tbl_parametros",
+          "$select": "sanic_nombre,sanic_valor",
+          "$filter": "statecode eq 0 and sanic_nombre eq 'vigilancia.minutos.sinresponder'",
+          "$top": 1
+        },
+        "authentication": "@parameters('$authentication')",
+        "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+      }
+    },
+
+    "Parametro_reintentos": {
+      "runAfter": { "Parametro_sin_responder": ["Succeeded"] },
+      "type": "OpenApiConnection",
+      "inputs": {
+        "host": {
+          "connectionName": "@@conr:dataverse@@",
+          "operationId": "ListRecords",
+          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+        },
+        "parameters": {
+          "entityName": "sanic_mppp_tbl_parametros",
+          "$select": "sanic_nombre,sanic_valor",
+          "$filter": "statecode eq 0 and sanic_nombre eq 'vigilancia.reintentos.maximo'",
+          "$top": 1
+        },
+        "authentication": "@parameters('$authentication')",
+        "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+      }
+    },
+
+    "Parametro_vencimiento": {
+      "runAfter": { "Parametro_reintentos": ["Succeeded"] },
+      "type": "OpenApiConnection",
+      "inputs": {
+        "host": {
+          "connectionName": "@@conr:dataverse@@",
+          "operationId": "ListRecords",
+          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+        },
+        "parameters": {
+          "entityName": "sanic_mppp_tbl_parametros",
+          "$select": "sanic_nombre,sanic_valor",
+          "$filter": "statecode eq 0 and sanic_nombre eq 'clasificacion.dias.vencimiento'",
+          "$top": 1
+        },
+        "authentication": "@parameters('$authentication')",
+        "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+      }
+    },
+
+    "Umbrales": {
+      "runAfter": { "Parametro_vencimiento": ["Succeeded"] },
+      "type": "Compose",
+      "inputs": {
+        "minutos_sin_validar": "@int(coalesce(first(outputs('Parametro_sin_validar')?['body/value'])?['sanic_valor'], '15'))",
+        "minutos_sin_responder": "@int(coalesce(first(outputs('Parametro_sin_responder')?['body/value'])?['sanic_valor'], '30'))",
+        "reintentos_maximo": "@int(coalesce(first(outputs('Parametro_reintentos')?['body/value'])?['sanic_valor'], '3'))",
+        "dias_vencimiento": "@int(coalesce(first(outputs('Parametro_vencimiento')?['body/value'])?['sanic_valor'], '30'))"
+      }
+    },
+
+    "Correos_que_quedaron_en_la_bandeja": {
+      "runAfter": { "Umbrales": ["Succeeded"] },
+      "type": "Scope",
+      "actions": {
+        "Leer_la_bandeja": {
+          "runAfter": {},
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:outlook@@",
+              "operationId": "GetEmailsV3",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+            },
+            "parameters": {
+              "mailboxAddress": "@parameters('@@ev:sanic_mppp_ev_buzoningesta@@')",
+              "fetchOnlyUnread": false,
+              "includeAttachments": false,
+              "top": 25
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Por_cada_correo_viejo": {
+          "runAfter": { "Leer_la_bandeja": ["Succeeded"] },
+          "type": "Foreach",
+          "foreach": "@coalesce(outputs('Leer_la_bandeja')?['body/value'], json('[]'))",
+          "runtimeConfiguration": { "concurrency": { "repetitions": 1 } },
+          "actions": {
+            "Es_lo_bastante_viejo": {
+              "runAfter": {},
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "less": [
+                      "@item()?['receivedDateTime']",
+                      "@addMinutes(utcNow(), mul(-1, outputs('Umbrales')['minutos_sin_validar']))"
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Reingerir": {
+                  "runAfter": {},
+                  "type": "Workflow",
+                  "inputs": {
+                    "host": { "workflowReferenceName": "@@flujo:Cloud Flow - MPPP - ING - Ingerir y validar correo@@" },
+                    "body": { "text": "@item()?['id']", "text_1": "159460005" }
+                  }
+                }
+              },
+              "else": { "actions": {} }
+            }
+          }
+        }
+      }
+    },
+
+    "Solicitudes_sin_validar": {
+      "runAfter": { "Correos_que_quedaron_en_la_bandeja": ["Succeeded", "Failed"] },
+      "type": "Scope",
+      "actions": {
+        "Buscar_ingresadas_viejas": {
+          "runAfter": {},
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "ListRecords",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_solicituds",
+              "$select": "sanic_mppp_tbl_solicitudid,sanic_reintentosvalidacion",
+              "$filter": "@concat('sanic_estadoprocesamiento eq 159460001 and sanic_requiererevision eq false and sanic_fechaingresada lt ', addMinutes(utcNow(), mul(-1, outputs('Umbrales')['minutos_sin_validar']), 'yyyy-MM-ddTHH:mm:ssZ'))",
+              "$top": 25
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Por_cada_ingresada": {
+          "runAfter": { "Buscar_ingresadas_viejas": ["Succeeded"] },
+          "type": "Foreach",
+          "foreach": "@coalesce(outputs('Buscar_ingresadas_viejas')?['body/value'], json('[]'))",
+          "runtimeConfiguration": { "concurrency": { "repetitions": 1 } },
+          "actions": {
+            "Le_quedan_reintentos": {
+              "runAfter": {},
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "less": [
+                      "@coalesce(item()?['sanic_reintentosvalidacion'], 0)",
+                      "@outputs('Umbrales')['reintentos_maximo']"
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Sumar_un_reintento": {
+                  "runAfter": {},
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "@@conr:dataverse@@",
+                      "operationId": "UpdateOnlyRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "sanic_mppp_tbl_solicituds",
+                      "recordId": "@item()?['sanic_mppp_tbl_solicitudid']",
+                      "item/sanic_reintentosvalidacion": "@add(coalesce(item()?['sanic_reintentosvalidacion'], 0), 1)"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Reclasificar": {
+                  "runAfter": { "Sumar_un_reintento": ["Succeeded"] },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "@@conr:dataverse@@",
+                      "operationId": "PerformUnboundAction",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "actionName": "sanic_mppp_capi_clasificarcorreo",
+                      "item/solicitudid": "@item()?['sanic_mppp_tbl_solicitudid']"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Revalidar_si_corresponde": {
+                  "runAfter": { "Reclasificar": ["Succeeded"] },
+                  "type": "If",
+                  "expression": {
+                    "and": [{ "equals": ["@outputs('Reclasificar')?['body/procesar']", true] }]
+                  },
+                  "actions": {
+                    "Revalidar": {
+                      "runAfter": {},
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "@@conr:dataverse@@",
+                          "operationId": "PerformUnboundAction",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "actionName": "sanic_mppp_capi_validarsolicitud",
+                          "item/solicitudid": "@item()?['sanic_mppp_tbl_solicitudid']"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    }
+                  },
+                  "else": { "actions": {} }
+                },
+                "Bitacora_reintento": {
+                  "runAfter": { "Revalidar_si_corresponde": ["Succeeded"] },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "@@conr:dataverse@@",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "sanic_mppp_tbl_bitacoras",
+                      "item/sanic_evento": 159460015,
+                      "item/sanic_origen": 159460005,
+                      "item/sanic_fechaevento": "@utcNow()",
+                      "item/sanic_actortexto": "Cuenta de servicio",
+                      "item/sanic_solicitudid@odata.bind": "@concat('/sanic_mppp_tbl_solicituds(', item()?['sanic_mppp_tbl_solicitudid'], ')')"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Levantar_para_revision_por_reintentos": {
+                    "runAfter": {},
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "host": {
+                        "connectionName": "@@conr:dataverse@@",
+                        "operationId": "UpdateOnlyRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      },
+                      "parameters": {
+                        "entityName": "sanic_mppp_tbl_solicituds",
+                        "recordId": "@item()?['sanic_mppp_tbl_solicitudid']",
+                        "item/sanic_requiererevision": true,
+                        "item/sanic_motivorevision": "@concat('Validacion fallida ', string(coalesce(item()?['sanic_reintentosvalidacion'], 0)), ' veces.')"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "Comunicaciones_sin_enviar": {
+      "runAfter": { "Solicitudes_sin_validar": ["Succeeded", "Failed"] },
+      "type": "Scope",
+      "actions": {
+        "Buscar_comunicaciones_pendientes": {
+          "runAfter": {},
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "ListRecords",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_solicituds",
+              "$select": "sanic_mppp_tbl_solicitudid",
+              "$filter": "@concat('sanic_fechaingresada lt ', addMinutes(utcNow(), mul(-1, outputs('Umbrales')['minutos_sin_responder']), 'yyyy-MM-ddTHH:mm:ssZ'), ' and (((sanic_estadoprocesamiento eq 159460005 or sanic_estadoprocesamiento eq 159460004) and sanic_fechaacuseiniciado eq null) or (sanic_estadoprocesamiento eq 159460006 and sanic_fecharespuestafinaliniciada eq null))')",
+              "$top": 25
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Por_cada_comunicacion_pendiente": {
+          "runAfter": { "Buscar_comunicaciones_pendientes": ["Succeeded"] },
+          "type": "Foreach",
+          "foreach": "@coalesce(outputs('Buscar_comunicaciones_pendientes')?['body/value'], json('[]'))",
+          "runtimeConfiguration": { "concurrency": { "repetitions": 1 } },
+          "actions": {
+            "Enviar_lo_que_falta": {
+              "runAfter": {},
+              "type": "Workflow",
+              "inputs": {
+                "host": { "workflowReferenceName": "@@flujo:Cloud Flow - MPPP - ENV - Enviar comunicacion al cliente@@" },
+                "body": { "text": "@item()?['sanic_mppp_tbl_solicitudid']", "text_1": "159460005" }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "Envios_iniciados_sin_confirmar": {
+      "runAfter": { "Comunicaciones_sin_enviar": ["Succeeded", "Failed"] },
+      "type": "Scope",
+      "actions": {
+        "Buscar_envios_a_medias": {
+          "runAfter": {},
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "ListRecords",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_solicituds",
+              "$select": "sanic_mppp_tbl_solicitudid",
+              "$filter": "@concat('sanic_requiererevision eq false and ((sanic_fechaacuseiniciado ne null and sanic_fechaacuseenviado eq null and sanic_fechaacuseiniciado lt ', addMinutes(utcNow(), mul(-1, outputs('Umbrales')['minutos_sin_responder']), 'yyyy-MM-ddTHH:mm:ssZ'), ') or (sanic_fecharespuestafinaliniciada ne null and sanic_fecharespuestafinalenviada eq null and sanic_fecharespuestafinaliniciada lt ', addMinutes(utcNow(), mul(-1, outputs('Umbrales')['minutos_sin_responder']), 'yyyy-MM-ddTHH:mm:ssZ'), '))')",
+              "$top": 25
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Por_cada_envio_a_medias": {
+          "runAfter": { "Buscar_envios_a_medias": ["Succeeded"] },
+          "type": "Foreach",
+          "foreach": "@coalesce(outputs('Buscar_envios_a_medias')?['body/value'], json('[]'))",
+          "runtimeConfiguration": { "concurrency": { "repetitions": 1 } },
+          "actions": {
+            "Marcar_para_revision": {
+              "runAfter": {},
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "@@conr:dataverse@@",
+                  "operationId": "UpdateOnlyRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "sanic_mppp_tbl_solicituds",
+                  "recordId": "@item()?['sanic_mppp_tbl_solicitudid']",
+                  "item/sanic_requiererevision": true,
+                  "item/sanic_motivorevision": "Envio iniciado sin confirmar: no se reenvia para que el cliente no reciba dos veces lo mismo."
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "Por_clasificar_vencidos": {
+      "runAfter": { "Envios_iniciados_sin_confirmar": ["Succeeded", "Failed"] },
+      "type": "Scope",
+      "actions": {
+        "Buscar_vencidos": {
+          "runAfter": {},
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "@@conr:dataverse@@",
+              "operationId": "ListRecords",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_mppp_tbl_solicituds",
+              "$select": "sanic_mppp_tbl_solicitudid",
+              "$filter": "@concat('(sanic_estadoprocesamiento eq 159460002 or sanic_estadoprocesamiento eq 159460008) and sanic_fecharecibido lt ', addDays(utcNow(), mul(-1, outputs('Umbrales')['dias_vencimiento']), 'yyyy-MM-ddTHH:mm:ssZ'))",
+              "$top": 25
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Por_cada_vencido": {
+          "runAfter": { "Buscar_vencidos": ["Succeeded"] },
+          "type": "Foreach",
+          "foreach": "@coalesce(outputs('Buscar_vencidos')?['body/value'], json('[]'))",
+          "runtimeConfiguration": { "concurrency": { "repetitions": 1 } },
+          "actions": {
+            "Vencer": {
+              "runAfter": {},
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "@@conr:dataverse@@",
+                  "operationId": "UpdateOnlyRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "sanic_mppp_tbl_solicituds",
+                  "recordId": "@item()?['sanic_mppp_tbl_solicitudid']",
+                  "item/sanic_estadoprocesamiento": 159460009,
+                  "item/sanic_fechacerrada": "@utcNow()"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "Bitacora_vencida": {
+              "runAfter": { "Vencer": ["Succeeded"] },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "@@conr:dataverse@@",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "sanic_mppp_tbl_bitacoras",
+                  "item/sanic_evento": 159460020,
+                  "item/sanic_origen": 159460005,
+                  "item/sanic_fechaevento": "@utcNow()",
+                  "item/sanic_actortexto": "Cuenta de servicio",
+                  "item/sanic_solicitudid@odata.bind": "@concat('/sanic_mppp_tbl_solicituds(', item()?['sanic_mppp_tbl_solicitudid'], ')')"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -78,7 +78,12 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         {
             public readonly OrganizationServiceEnMemoria Svc = new OrganizationServiceEnMemoria();
             public readonly ArchivosDeMemoria Archivos = new ArchivosDeMemoria();
-            public readonly LectorQueCuenta Lector = new LectorQueCuenta();
+            /// <summary>El último lector que la fábrica armó. Nunca nulo, aunque Ejecutar reviente antes de pedirlo.</summary>
+            public LectorQueCuenta Lector { get; private set; } = new LectorQueCuenta(new LimitesLectura());
+
+            /// <summary>Lo que la pieza recibe de verdad: una fábrica, porque los topes salen del parámetro `lectura.limites`.</summary>
+            public Func<LimitesLectura, ILectorPlantilla> FabricaDeLector => limites => Lector = new LectorQueCuenta(limites);
+
             public Guid SolicitudId;
 
             public Mundo(byte[] excel, int adjuntos = 1, int excels = 1, EstadoDeLaSolicitud estado = EstadoDeLaSolicitud.Ingresada, bool conParametros = true, string obligatoriedad = null)
@@ -151,7 +156,7 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
 
             public ResultadoDeValidacion Correr()
             {
-                return new ValidarSolicitud(new SolicitudesDataverse(Svc), new CatalogosDataverse(Svc), Archivos, Lector).Ejecutar(SolicitudId, Ahora);
+                return new ValidarSolicitud(new SolicitudesDataverse(Svc), new CatalogosDataverse(Svc), Archivos, FabricaDeLector).Ejecutar(SolicitudId, Ahora);
             }
 
             public Entity Solicitud() => Svc.Retrieve(TablasHistorico.Solicitud, SolicitudId, new ColumnSet(true));
@@ -192,7 +197,16 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         /// <summary>El lector real, envuelto para contar cuántas veces se abre el Excel.</summary>
         private sealed class LectorQueCuenta : ILectorPlantilla
         {
-            private readonly LectorOpenXml _real = new LectorOpenXml();
+            private readonly LectorOpenXml _real;
+
+            public LectorQueCuenta(LimitesLectura limites)
+            {
+                Limites = limites;
+                _real = new LectorOpenXml(limites);
+            }
+
+            /// <summary>Con qué topes se armó: así se comprueba que `lectura.limites` llega hasta acá.</summary>
+            public LimitesLectura Limites { get; }
 
             public int Lecturas { get; private set; }
 
@@ -427,13 +441,34 @@ namespace Sanic.Mppp.Plugins.Tests.Aceptacion
         public void Los_argumentos_se_validan_y_la_fecha_tiene_que_ser_utc()
         {
             var m = new Mundo(Excel(Fila()));
-            var api = new ValidarSolicitud(new SolicitudesDataverse(m.Svc), new CatalogosDataverse(m.Svc), m.Archivos, m.Lector);
+            var api = new ValidarSolicitud(new SolicitudesDataverse(m.Svc), new CatalogosDataverse(m.Svc), m.Archivos, m.FabricaDeLector);
             Assert.Throws<ArgumentException>(() => api.Ejecutar(Guid.Empty, Ahora));
             Assert.Throws<ArgumentException>(() => api.Ejecutar(m.SolicitudId, DateTime.SpecifyKind(Ahora, DateTimeKind.Local)));
-            Assert.Throws<ArgumentNullException>(() => new ValidarSolicitud(null, new CatalogosDataverse(m.Svc), m.Archivos, m.Lector));
-            Assert.Throws<ArgumentNullException>(() => new ValidarSolicitud(new SolicitudesDataverse(m.Svc), null, m.Archivos, m.Lector));
-            Assert.Throws<ArgumentNullException>(() => new ValidarSolicitud(new SolicitudesDataverse(m.Svc), new CatalogosDataverse(m.Svc), null, m.Lector));
+            Assert.Throws<ArgumentNullException>(() => new ValidarSolicitud(null, new CatalogosDataverse(m.Svc), m.Archivos, m.FabricaDeLector));
+            Assert.Throws<ArgumentNullException>(() => new ValidarSolicitud(new SolicitudesDataverse(m.Svc), null, m.Archivos, m.FabricaDeLector));
+            Assert.Throws<ArgumentNullException>(() => new ValidarSolicitud(new SolicitudesDataverse(m.Svc), new CatalogosDataverse(m.Svc), null, m.FabricaDeLector));
             Assert.Throws<ArgumentNullException>(() => new ValidarSolicitud(new SolicitudesDataverse(m.Svc), new CatalogosDataverse(m.Svc), m.Archivos, null));
+        }
+
+        /// <summary>
+        /// Los topes de `lectura.limites` tienen que llegar al LECTOR, no quedarse en la descarga: el de bytes
+        /// descomprimidos es la defensa contra un zip bomba (LP-02) y vive dentro del lector. Por eso la pieza recibe
+        /// una fábrica y no un lector ya armado.
+        /// </summary>
+        [Fact]
+        public void Los_topes_del_parametro_llegan_al_lector_y_no_se_quedan_en_la_descarga()
+        {
+            var m = new Mundo(Excel(Fila()), conParametros: false);
+            m.Parametro(ValidarSolicitud.ParametroEstructura, Estructura());
+            m.Parametro(ValidarSolicitud.ParametroListas, ParametrosDePlantillaAceptacion.ListasValidas);
+            m.Parametro(ValidarSolicitud.ParametroObligatoriedad, ParametrosDePlantillaAceptacion.ObligatoriedadInicial);
+            m.Parametro(ValidarSolicitud.ParametroLimites, @"{""maximoBytesComprimido"":1048576,""maximoBytesDescomprimido"":3145728}");
+
+            m.Correr();
+
+            Assert.Equal(1, m.Lector.Lecturas);
+            Assert.Equal(1048576L, m.Lector.Limites.TamanoMaximoBytesEntrada);
+            Assert.Equal(3145728L, m.Lector.Limites.TamanoMaximoBytesDescomprimidos);
         }
 
         [Fact]

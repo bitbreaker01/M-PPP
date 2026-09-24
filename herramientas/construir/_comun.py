@@ -238,6 +238,12 @@ class Rastro:
         self._dv = dv
         self.en_curso = "la preparación de la primera consulta"
 
+    @property
+    def api(self):
+        """URL absoluta del endpoint. Hace falta para los `@odata.id` de
+        `$ref`: OData rechaza ahí un URI relativo."""
+        return self._dv.api
+
     def call(self, metodo, ruta, *args, **kwargs):
         self.en_curso = f"{metodo} {ruta.split('?')[0]}"
         return self._dv.call(metodo, ruta, *args, **kwargs)

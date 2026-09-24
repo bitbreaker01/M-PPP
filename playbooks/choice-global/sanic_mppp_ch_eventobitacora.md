@@ -131,6 +131,11 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
       "valor": 159460020,
       "etiqueta": "Vencida",
       "descripcion": ""
+    },
+    {
+      "valor": 159460021,
+      "etiqueta": "Revision atendida",
+      "descripcion": "Una persona apago la marca de revision. El detalle lleva el motivo que habia escrito la maquina."
     }
   ]
 }
@@ -170,7 +175,7 @@ Las comprobaciones de la receta, con estos valores esperados:
 |---|---|---|
 | 1 | `GET GlobalOptionSetDefinitions(Name='sanic_mppp_ch_eventobitacora')` | 200 · `IsGlobal = true` · `OptionSetType = Picklist` · `IsManaged = false` |
 | 2 | Display name y descripción en 1033 | los de la sección 2 |
-| 3 | Opciones, en orden, con valor, etiqueta y descripción | `159460001 = Ingresada`, `159460002 = Validacion terminada`, `159460003 = Acuse iniciado`, `159460004 = Acuse enviado`, `159460005 = Fila digitada`, `159460006 = Fila aprobada`, `159460007 = Fila devuelta`, `159460008 = Fila rechazada en AS400`, `159460018 = Fila anulada`, `159460009 = Procesada`, `159460010 = Respuesta final iniciada`, `159460011 = Respuesta final enviada`, `159460012 = Cerrada`, `159460013 = No reconocida atendida`, `159460014 = Descartada`, `159460015 = Reintento`, `159460016 = Requiere revision`, `159460017 = Error`, `159460019 = Correo clasificado`, `159460020 = Vencida`; ninguna más; ninguna etiqueta en otro idioma |
+| 3 | Opciones, en orden, con valor, etiqueta y descripción | `159460001 = Ingresada`, `159460002 = Validacion terminada`, `159460003 = Acuse iniciado`, `159460004 = Acuse enviado`, `159460005 = Fila digitada`, `159460006 = Fila aprobada`, `159460007 = Fila devuelta`, `159460008 = Fila rechazada en AS400`, `159460018 = Fila anulada`, `159460009 = Procesada`, `159460010 = Respuesta final iniciada`, `159460011 = Respuesta final enviada`, `159460012 = Cerrada`, `159460013 = No reconocida atendida`, `159460014 = Descartada`, `159460015 = Reintento`, `159460016 = Requiere revision`, `159460017 = Error`, `159460019 = Correo clasificado`, `159460020 = Vencida`, `159460021 = Revision atendida`; ninguna más; ninguna etiqueta en otro idioma |
 | 4 | Pertenece a la solución de la sección 1 | exactamente una fila en `solutioncomponents` |
 | 5 | Segunda ejecución de la herramienta sin `--solo-verificar` | estado `ya_existia`, código de salida 0, no cambia nada |
 

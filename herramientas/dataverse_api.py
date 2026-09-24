@@ -74,6 +74,52 @@ class Dataverse:
                 msg = txt[:1000]
             return e.code, {"error": msg}, {}
 
+    def texto(self, ruta, accept="application/xml", timeout=180):
+        """Devuelve `(estado_http, texto)` SIN parsear. `call()` descarta todo
+        lo que no sea JSON y devuelve `{}`, así que no sirve para leer el
+        documento `$metadata`, que es XML y es donde hay que mirar si una
+        Custom API está publicada para los conectores."""
+        h = {
+            "Authorization": "Bearer " + self._token,
+            "Accept": accept,
+            "OData-MaxVersion": "4.0",
+            "OData-Version": "4.0",
+        }
+        req = urllib.request.Request(
+            self.api + urllib.parse.quote(ruta, safe="/?&=$(),'@._-:"), method="GET", headers=h)
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return r.status, r.read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as e:
+            return e.code, e.read().decode("utf-8", "replace")[:2000]
+
+    def subir_archivo(self, ruta_columna, nombre_archivo, contenido, timeout=300):
+        """Sube bytes crudos a una columna de archivo: PATCH a
+        `<conjunto>(<id>)/<columna>` con `application/octet-stream` y el nombre
+        en la cabecera `x-ms-file-name`. Va aparte de `call()` porque ese
+        siempre serializa JSON, y acá el cuerpo son bytes."""
+        h = {
+            "Authorization": "Bearer " + self._token,
+            "Accept": "application/json",
+            "OData-MaxVersion": "4.0",
+            "OData-Version": "4.0",
+            "Content-Type": "application/octet-stream",
+            "x-ms-file-name": nombre_archivo,
+        }
+        req = urllib.request.Request(
+            self.api + urllib.parse.quote(ruta_columna, safe="/?&=$(),'@._-:"),
+            method="PATCH", headers=h, data=contenido)
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return r.status, {}, dict(r.headers)
+        except urllib.error.HTTPError as e:
+            txt = e.read().decode()
+            try:
+                msg = json.loads(txt)["error"]["message"]
+            except Exception:
+                msg = txt[:1000]
+            return e.code, {"error": msg}, {}
+
     @staticmethod
     def id_creado(cabeceras):
         """GUID del registro recién creado, tomado de la cabecera OData-EntityId."""

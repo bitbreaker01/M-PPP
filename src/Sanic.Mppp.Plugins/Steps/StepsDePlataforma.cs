@@ -13,12 +13,33 @@ namespace Sanic.Mppp.Plugins.Steps
     ///  - `Target` que no es una `Entity`, o que no es de la tabla que el step espera, se ignora en silencio (el step no se
     ///    registró bien, pero no es asunto de quien está guardando): el step no hace nada;
     ///  - **quién escribe**: es código de servidor si la profundidad es mayor que 1 (nuestro propio plugin o Custom API, que
-    ///    escribe con SYSTEM: `03` §4) o si quien inicia es una identidad de APLICACIÓN (`systemuser.applicationid` con valor:
-    ///    la cuenta de servicio de los flujos y el usuario del RPA). Cualquier otro es una persona;
-    ///  - la identidad de aplicación se consulta UNA vez por ejecución y solo cuando hace falta (profundidad 1).
+    ///    escribe con SYSTEM: `03` §4), si quien inicia es una identidad de APLICACIÓN (`systemuser.applicationid` con valor:
+    ///    el usuario del RPA) o si su UPN es el que declara el parámetro `servicio.cuenta` (la cuenta de servicio de los
+    ///    cinco flujos). Cualquier otro es una persona;
+    ///  - la identidad se consulta UNA vez por ejecución y solo cuando hace falta (profundidad 1); el parámetro se lee solo
+    ///    si además no hay `applicationid`, que es el camino barato.
     /// </summary>
     public static class BaseDeStep
     {
+        /// <summary>
+        /// Parámetro que declara el UPN de la cuenta de servicio de los flujos.
+        ///
+        /// **Por qué existe.** `diseno/07-flujos.md` §33 declara una excepción a BP-PP-122: los cinco flujos son propiedad
+        /// de una **cuenta de servicio**, que en BAC es un usuario, no un service principal. Un usuario no tiene
+        /// `applicationid`, así que sin esta vía la lista blanca lo trata como persona y los flujos no pueden escribir sus
+        /// propias marcas de envío. Se descubrió el 2026-09-23, cuando `MPPP-ENV` falló al escribir
+        /// `sanic_fechaacuseiniciado`.
+        ///
+        /// **Por qué el UPN y no el GUID.** El identificador del usuario cambia de un entorno a otro; el UPN no. Un
+        /// parámetro con un GUID habría que reescribirlo en cada despliegue, y quien lo revise no puede saber a quién
+        /// nombra. `servicio.mppp@bac.com.ni` se lee.
+        ///
+        /// **Qué lo mantiene cerrado.** Sin el parámetro, o con el parámetro vacío, no exime a NADIE: el control queda
+        /// exactamente como estaba. Y exime solo a quien coincide, uno. Quién puede escribir en la tabla de parámetros es
+        /// lo que gobierna esta puerta (`diseno/04` §3): si eso se afloja, se afloja esto.
+        /// </summary>
+        public const string ParametroCuentaDeServicio = "servicio.cuenta";
+
         public static bool EsCodigoDeServidor(IPluginExecutionContext contexto, IOrganizationService servicio)
         {
             if (contexto.Depth > 1)
@@ -30,7 +51,7 @@ namespace Sanic.Mppp.Plugins.Steps
             Entity usuario;
             try
             {
-                usuario = servicio.Retrieve(TablasNativas.Usuario, contexto.InitiatingUserId, new ColumnSet("applicationid"));
+                usuario = servicio.Retrieve(TablasNativas.Usuario, contexto.InitiatingUserId, new ColumnSet("applicationid", "domainname"));
             }
             catch (FaultException<OrganizationServiceFault>)
             {
@@ -38,7 +59,56 @@ namespace Sanic.Mppp.Plugins.Steps
                 return false;
             }
 
-            return usuario.Contains("applicationid") && usuario["applicationid"] != null;
+            if (usuario.Contains("applicationid") && usuario["applicationid"] != null)
+            {
+                return true;
+            }
+
+            return EsLaCuentaDeServicio(servicio, usuario.GetAttributeValue<string>("domainname"));
+        }
+
+        /// <summary>
+        /// `true` solo si el parámetro `servicio.cuenta` trae un UPN y es exactamente el de quien escribe. Un UPN no
+        /// distingue mayúsculas, y un valor cargado a mano puede traer espacios al costado, así que se comparan recortados
+        /// y sin distinguir caja. Cualquier ausencia —el usuario sin UPN, el parámetro sin cargar o vacío— devuelve
+        /// `false`: esta puerta nunca se abre sola.
+        ///
+        /// **Por qué el `catch`.** `CatalogosDataverse.Parametro` no devuelve `null` cuando el valor está vacío: lanza
+        /// `InvalidOperationException`, porque el resto de los parámetros del sistema SÍ son obligatorios. Sin este
+        /// `catch`, alguien que cargara `servicio.cuenta` y le dejara el valor en blanco tumbaría TODO guardado de Fila y
+        /// de Solicitud, para cualquier usuario, con un error que no nombra la causa. Lo encontró una prueba antes de que
+        /// llegara al entorno. Vale acá el mismo principio que en el `Retrieve` del usuario, más arriba: un dato de
+        /// configuración mal cargado degrada el control a "es una persona", nunca tumba la operación.
+        /// </summary>
+        private static bool EsLaCuentaDeServicio(IOrganizationService servicio, string upnDeQuienEscribe)
+        {
+            if (string.IsNullOrWhiteSpace(upnDeQuienEscribe))
+            {
+                return false;
+            }
+
+            string declarado;
+            try
+            {
+                declarado = new CatalogosDataverse(servicio).Parametro(ParametroCuentaDeServicio)?.Valor;
+            }
+            catch (InvalidOperationException)
+            {
+                // El parámetro existe pero está vacío o ilegible: no declara a nadie.
+                return false;
+            }
+            catch (FaultException<OrganizationServiceFault>)
+            {
+                // No se pudo consultar la tabla de parámetros: tampoco declara a nadie.
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(declarado))
+            {
+                return false;
+            }
+
+            return string.Equals(declarado.Trim(), upnDeQuienEscribe.Trim(), StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -64,7 +134,21 @@ namespace Sanic.Mppp.Plugins.Steps
                 throw new InvalidPluginExecutionException("Faltan servicios de la plataforma para ejecutar el step.");
             }
 
-            servicio = fabrica.CreateOrganizationService(contexto.UserId);
+            // SYSTEM, no quien llama (diseno/04 §1, textual: "los plugins leen los catálogos y graban ... con el
+            // servicio de SYSTEM (`CreateOrganizationService(null)`), no con el usuario que llama").
+            //
+            // Con la identidad de quien llama NINGUNA persona podía transicionar una Fila: el step de transición lee
+            // `rpa.puedeaprobar` de la tabla Parametro, sobre la que la matriz no le da lectura a nadie salvo al
+            // administrador técnico (defecto encontrado el 2026-09-23; el servidor respondía
+            // "is missing prvReadsanic_mppp_tbl_parametro"). Estuvo tres semanas escondido porque todo lo probado
+            // hasta entonces corrió con una identidad sobre-privilegiada (el service principal, el administrador, y
+            // los flujos, cuya cuenta de servicio hoy es provisoriamente la del administrador).
+            //
+            // Esto NO debilita el control: la seguridad de este diseño no descansa en los privilegios del llamador
+            // dentro del plugin, sino en la lista blanca de columnas y en las verificaciones explícitas de rol y de
+            // segregación. `EsCodigoDeServidor` sigue mirando el CONTEXTO (`Depth`, `InitiatingUserId`), no la
+            // identidad del servicio, así que una persona sigue siendo una persona para la lista blanca.
+            servicio = fabrica.CreateOrganizationService(null);
 
             target = contexto.InputParameters.Contains("Target") && contexto.InputParameters["Target"] is Entity entidad
                 ? entidad
@@ -262,68 +346,6 @@ namespace Sanic.Mppp.Plugins.Steps
             }
 
             throw new InvalidPluginExecutionException($"No se puede calcular el nombre: falta {motivo} ('{columna}').");
-        }
-    }
-
-    /// <summary>
-    /// 7.11, integridad de AutorizacionPlan: `Create` y `Update` PreOperation (diseno/03 §5; diseno/02 §2.4). El Cliente del Plan
-    /// tiene que ser el mismo Cliente del Autorizado. En un `Update` que solo cambia uno de los dos lookups, el otro se lee del
-    /// registro. Si no coinciden, se rechaza el guardado con un mensaje que lo explica.
-    /// </summary>
-    public sealed class IntegridadAutorizacionPlanStep : IPlugin
-    {
-        public void Execute(IServiceProvider serviceProvider)
-        {
-            if (!PlomeriaDePlataforma.Preparar(serviceProvider, out var contexto, out var servicio, out var target))
-            {
-                return;
-            }
-
-            if (!string.Equals(target.LogicalName, Tablas.AutorizacionPlan, StringComparison.Ordinal))
-            {
-                return;
-            }
-
-            var traeAutorizado = target.Contains("sanic_autorizadoid");
-            var traePlan = target.Contains("sanic_planid");
-
-            if (!traeAutorizado && !traePlan)
-            {
-                // El Target no trae ninguno de los dos lookups: no hay nada que comprobar (diseno/03 §5).
-                return;
-            }
-
-            EntityReference autorizadoRef;
-            EntityReference planRef;
-
-            if (traeAutorizado && traePlan)
-            {
-                autorizadoRef = (EntityReference)target["sanic_autorizadoid"];
-                planRef = (EntityReference)target["sanic_planid"];
-            }
-            else if (string.Equals(contexto.MessageName, "Update", StringComparison.Ordinal))
-            {
-                // Trae uno solo, y es un Update: el otro se lee del registro existente (diseno/03 §5).
-                var existente = servicio.Retrieve(Tablas.AutorizacionPlan, target.Id, new ColumnSet("sanic_autorizadoid", "sanic_planid"));
-                autorizadoRef = traeAutorizado ? (EntityReference)target["sanic_autorizadoid"] : existente.GetAttributeValue<EntityReference>("sanic_autorizadoid");
-                planRef = traePlan ? (EntityReference)target["sanic_planid"] : existente.GetAttributeValue<EntityReference>("sanic_planid");
-            }
-            else
-            {
-                // Create con un solo lookup: los dos son requeridos por la plataforma: no es asunto de este step.
-                return;
-            }
-
-            var plan = servicio.Retrieve(Tablas.Plan, planRef.Id, new ColumnSet("sanic_clienteid"));
-            var autorizado = servicio.Retrieve(Tablas.Autorizado, autorizadoRef.Id, new ColumnSet("sanic_clienteid"));
-
-            var clienteDelPlan = plan.GetAttributeValue<EntityReference>("sanic_clienteid")?.Id;
-            var clienteDelAutorizado = autorizado.GetAttributeValue<EntityReference>("sanic_clienteid")?.Id;
-
-            if (clienteDelPlan != clienteDelAutorizado)
-            {
-                throw new InvalidPluginExecutionException("No se puede guardar la autorización: el plan pertenece a una empresa distinta de la del autorizado.");
-            }
         }
     }
 }

@@ -61,6 +61,12 @@ Advertencias: en Dev existe otro publisher con el mismo prefijo de texto, "Sanic
     },
     "sanic_mppp_tbl_bitacora": {
       "leer": "organizacion"
+    },
+    "sanic_mppp_tbl_motivoaccion": {
+      "crear": "usuario",
+      "leer": "usuario",
+      "escribir": "usuario",
+      "borrar": "usuario"
     }
   },
   "otros_privilegios": {}

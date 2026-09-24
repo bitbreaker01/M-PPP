@@ -18,6 +18,10 @@ cliente real (misma firma, mismo tipo de retorno), y además:
 
 
 class ClienteSimulado:
+    # Igual que el cliente real: base ABSOLUTA. Los `@odata.id` de `$ref` la
+    # necesitan, y con una base relativa la plataforma responde 400.
+    api = "https://ensayo.crm.dynamics.com/api/data/v9.2/"
+
     def __init__(self):
         self._reglas = []
         self.llamadas = []

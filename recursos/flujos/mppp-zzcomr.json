@@ -1,0 +1,61 @@
+{
+  "triggers": {
+    "Cada_3_minutos": {
+      "type": "Recurrence",
+      "recurrence": { "frequency": "Minute", "interval": 3 },
+      "runtimeConfiguration": {
+        "concurrency": {
+          "runs": 1
+        }
+      }
+    }
+  },
+  "actions": {
+    "Solicitudes_que_esperan_comunicacion": {
+      "runAfter": {},
+      "type": "OpenApiConnection",
+      "inputs": {
+        "host": {
+          "connectionName": "@@conr:dataverse@@",
+          "operationId": "ListRecords",
+          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+        },
+        "parameters": {
+          "entityName": "sanic_mppp_tbl_solicituds",
+          "$select": "sanic_mppp_tbl_solicitudid,sanic_estadoprocesamiento",
+          "$filter": "statecode eq 0 and (((sanic_estadoprocesamiento eq 159460004 or sanic_estadoprocesamiento eq 159460005) and sanic_fechaacuseiniciado eq null) or (sanic_estadoprocesamiento eq 159460006 and sanic_fechaacuseenviado ne null and sanic_fecharespuestafinaliniciada eq null))",
+          "$orderby": "createdon asc",
+          "$top": 50
+        },
+        "authentication": "@parameters('$authentication')",
+        "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+      }
+    },
+
+    "Una_por_una": {
+      "runAfter": { "Solicitudes_que_esperan_comunicacion": ["Succeeded"] },
+      "type": "Foreach",
+      "foreach": "@outputs('Solicitudes_que_esperan_comunicacion')?['body/value']",
+      "runtimeConfiguration": {
+        "concurrency": {
+          "repetitions": 1
+        }
+      },
+      "actions": {
+        "Enviar_la_comunicacion": {
+          "runAfter": {},
+          "type": "Workflow",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "@@flujo:Cloud Flow - MPPP - ENV - Enviar comunicacion al cliente@@"
+            },
+            "body": {
+              "text": "@items('Una_por_una')?['sanic_mppp_tbl_solicitudid']",
+              "text_1": "159460003"
+            }
+          }
+        }
+      }
+    }
+  }
+}
